@@ -117,7 +117,7 @@ class MetaculusQuestion:
     def submit_from_samples(self, samples):
         submission = self.get_submission(samples)
         self.submit(submission["loc"], submission["scale"])
-        return (loc, scale)
+        return (submission["loc"], submission["scale"])
 
     def show_submission(self, samples):
         pyplot.figure()
