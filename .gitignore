@@ -1,2 +1,5 @@
 .vscode/
 .mypy_cache/
+.venv/
+ergo.egg-info/
+*__pycache__*

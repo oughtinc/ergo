@@ -35,12 +35,12 @@ class MetaculusQuestion:
     """
     id: int
     data: Optional[object]
-    metaculus: Metaculus
+    metaculus: "Metaculus"
     varname: Optional[str]
 
-    def __init__(self, id: int, metaculus: Metaculus, name=None):
+    def __init__(self, id: int, metaculus: "Metaculus", data, name=None):
         self.id = id
-        self.data = None
+        self.data = data
         self.metaculus = metaculus
         self.name = name
         self.fetch()
@@ -188,6 +188,35 @@ class MetaculusQuestion:
             data.append([question.id, question.name,
                          question.title, question.resolve_time])
         return pd.DataFrame(data, columns=columns)
+
+
+class BinaryQuestion(MetaculusQuestion):
+    def score_prediction(self):
+        resolution = self.data["resolution"]
+        if resolution is None:
+            last_community_prediction = self.data["prediction_timeseries"][-1]
+            resolution = last_community_prediction["distribution"]["avg"]
+        scores = []
+        for my_prediction in self.data["my_predictions"]["predictions"]:
+            value = my_prediction["x"]
+            score = resolution * (1-value) ** 2 + (1-resolution) * (value) ** 2
+            scores.append(score)
+        return resolution, np.mean(scores)
+
+
+class ContinuousQuestion(MetaculusQuestion):
+    def score_prediction(self):
+        resolution = self.data["resolution"]
+        if resolution is None:
+            last_community_prediction = self.data["prediction_timeseries"][-1]["community_prediction"]
+            resolution = last_community_prediction["q2"]
+        scores = []
+        for my_prediction in self.data["my_predictions"]["predictions"]:
+            # Todo: handle predictions with multiple distributions
+            d = my_prediction["d"][0]
+            dist = scipy.stats.logistic(scale=d["s"], loc=d["x0"])
+            scores.append(dist.logpdf(resolution))
+        return resolution, np.mean(scores)
 
 
 class Metaculus:
