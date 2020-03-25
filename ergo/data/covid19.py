@@ -52,7 +52,7 @@ class ConfirmedInfections(DataLoader):
   def load(self):
     self.who_regions = WHORegionData().raw()
     self.hopkins_data = HopkinsData().raw()
-    self.countries = set(self.hopkins_data["Country/Region"].tolist())
+    self.countries = set(self.hopkins_data["standard_country"].tolist())
     self.regions = set(self.who_regions["Region"].tolist())
 
   def countries_for_region(self, region):
