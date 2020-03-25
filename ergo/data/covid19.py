@@ -63,7 +63,7 @@ class ConfirmedInfections(DataLoader):
     @functools.lru_cache(None)
     def confirmed_for_country(self, country, date, warn=False):
         country_data = self.hopkins_data.loc[self.hopkins_data["standard_country"] == country][date.format(
-            "M/DD/YY")]
+            "M/D/YY")]
         if len(country_data) == 0 and warn:
             self.warn(f"No confirmed case data for country: {country}.")
         return sum(country_data)
