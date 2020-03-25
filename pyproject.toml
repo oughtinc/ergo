@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "ergo"
+version = "0.1.0"
+description = ""
+authors = ["Ought <team@ought.org>"]
+
+[tool.poetry.dependencies]
+python = "3.6.9"
+requests = "^2.23.0"
+torch = "^1.4.0"
+dataclasses = "^0.7"
+country_converter = "^0.6.7"
+tqdm = "^4.43.0"
+scipy = "^1.4.1"
+pyro-ppl = "^1.3.0"
+pandas = "^1.0.3"
+pendulum = "^2.1.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+mypy = "^0.770"
+data-science-types = "^0.2.6"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
