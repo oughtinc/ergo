@@ -154,12 +154,9 @@ class MetaculusQuestion:
         }
         requests.post(
             f"""https://www.metaculus.com/api2/questions/{self.id}/predict/""",
-            # headers={
-            #     "Cookie": f"csrftoken={self.metaculus.csrftoken}; sessionid={self.metaculus.sessionid}",
-            #     "Content-Type": "application/json",
-            #     "Referer": "https://www.metaculus.com/",
-            #     "X-CSRFToken": self.metaculus.csrftoken
-            # },
+            headers={
+                "Content-Type": "application/json",
+            },
             data=json.dumps(prediction_data)
         )
 
@@ -230,8 +227,13 @@ class Metaculus:
     def login(self, username, password):
         loginURL = f"{self.api_url}/accounts/login/"
         r = self.s.post(loginURL,
+                        headers={
+                            "Content-Type": "application/json",
+                        },
                         data=json.dumps(
                             {"username": username, "password": password}))
+
+        print(r.json())
 
         self.user_id = r.json()['user_id']
 
