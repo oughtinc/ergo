@@ -1,6 +1,7 @@
 import json
 import requests
 import pendulum
+import scipy
 import pandas as pd
 import numpy as np
 
@@ -136,14 +137,7 @@ class MetaculusQuestion:
       traceback.print_exc()
     else:
       self.submit(loc, scale)
-      if show:
-        rv = scipy.stats.logistic(loc, scale)
-        x = np.linspace(0, 1, 200)    
-        pyplot.plot(x, rv.pdf(x))
-        sns.distplot(np.array(normalized_samples), label="samples")
-        sns.distplot(np.array(rv.rvs(1000)) , label="prediction")
-        pyplot.legend()
-        pyplot.show()
+      return (loc, scale)
   
   def submit(self, loc, scale):
     if not self.is_continuous:
