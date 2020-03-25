@@ -36,7 +36,7 @@ class MetaculusQuestion:
     id: int
     data: Optional[object]
     metaculus: "Metaculus"
-    varname: Optional[str]
+    name: Optional[str]
 
     def __init__(self, id: int, metaculus: "Metaculus", data, name=None):
         self.id = id
@@ -227,36 +227,29 @@ class Metaculus:
     def login(self, username, password):
         loginURL = f"{self.api_url}/accounts/login/"
         r = self.s.post(loginURL,
-                        headers={
-                            "Content-Type": "application/json",
-                        },
-                        data=json.dumps(
-                            {"username": username, "password": password}))
-
-        print(r.json())
+                        headers={"Content-Type": "application/json", },
+                        data=json.dumps({"username": username, "password": password}))
 
         self.user_id = r.json()['user_id']
 
-    def get_question(self, id: int, varname=None):
+    def get_question(self, id: int, name=None):
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         # pp.pprint(data)
         if(data["possibilities"]["type"] == "binary"):
-            return BinaryQuestion(id, self, data, varname)
+            return BinaryQuestion(id, self, data, name)
         if(data["possibilities"]["type"] == "continuous"):
-            return ContinuousQuestion(id, self, data, varname)
+            return ContinuousQuestion(id, self, data, name)
         raise NotImplementedError(
             "We couldn't determine whether this question was binary, continuous, or something else")
 
     def get_predicted_questions(self):
         r = self.s.get(f"{self.api_url}/questions/?guessed_by={self.user_id}")
         json_data = r.json()
-        # pp.pprint(json_data)
         results = json_data["results"]
         question_ids = [result["id"] for result in results]
         return [self.get_question(id) for id in question_ids]
         # TODO: retrieve additional data if next link is not None
-        # print(results)
 
     def show_prediction_results(self):
         questions = self.get_predicted_questions()
