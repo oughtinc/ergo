@@ -2,8 +2,11 @@ import json
 import requests
 import pendulum
 import scipy
+# scipy importing guidelines: https://docs.scipy.org/doc/scipy/reference/api.html
+from scipy import stats
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as pyplot
 
 from typing import Optional, List
 
@@ -31,7 +34,7 @@ class MetaculusQuestion:
     - prediction_timeseries
     - author_name
     - prediction_histogram
-    - anon_prediction_count        
+    - anon_prediction_count
     """
     id: int
     data: Optional[object]
@@ -114,11 +117,12 @@ class MetaculusQuestion:
     def submit_from_samples(self, samples):
         submission = self.get_submission(samples)
         self.submit(submission["loc"], submission["scale"])
+        return (loc, scale)
 
     def show_submission(self, samples):
         pyplot.figure()
         submission = self.get_submission(samples)
-        rv = scipy.stats.logistic(submission["loc"], submission["scale"])
+        rv = stats.logistic(submission["loc"], submission["scale"])
         x = np.linspace(0, 1, 200)
         pyplot.plot(x, rv.pdf(x))
         sns.distplot(
@@ -136,7 +140,7 @@ class MetaculusQuestion:
 
         scale = min(max(scale, 0.02), 10)
         loc = min(max(loc, 0), 1)
-        distribution = scipy.stats.logistic(loc, scale)
+        distribution = stats.logistic(loc, scale)
 
         low = max(distribution.cdf(0), 0.01)
         high = min(distribution.cdf(1), 0.99)
@@ -152,13 +156,18 @@ class MetaculusQuestion:
             },
             "void": False
         }
-        requests.post(
+
+        r = self.metaculus.s.post(
             f"""https://www.metaculus.com/api2/questions/{self.id}/predict/""",
             headers={
                 "Content-Type": "application/json",
+                "Referer": "https://www.metaculus.com/",
+                "X-CSRFToken": self.metaculus.s.cookies.get_dict()["csrftoken"]
             },
             data=json.dumps(prediction_data)
         )
+
+        return r
 
     def normalize_samples(self, samples, epsilon=1e-9):
         if self.is_continuous:
@@ -172,7 +181,7 @@ class MetaculusQuestion:
 
     def fit_single_logistic(self, samples):
         with np.errstate(all='raise'):
-            loc, scale = scipy.stats.logistic.fit(samples)
+            loc, scale = stats.logistic.fit(samples)
             scale = min(max(scale, 0.02), 10)
             loc = min(max(loc, -0.1565), 1.1565)
             return loc, scale
@@ -211,7 +220,7 @@ class ContinuousQuestion(MetaculusQuestion):
         for my_prediction in self.data["my_predictions"]["predictions"]:
             # Todo: handle predictions with multiple distributions
             d = my_prediction["d"][0]
-            dist = scipy.stats.logistic(scale=d["s"], loc=d["x0"])
+            dist = stats.logistic(scale=d["s"], loc=d["x0"])
             scores.append(dist.logpdf(resolution))
         return resolution, np.mean(scores)
 
