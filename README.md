@@ -16,3 +16,13 @@ A Python library for forecasting models
         1. Note that if you make changes to the library and need to reload it into the Colab, you'll need to first go to `Runtime > Factory reset runtime` in the Colab (`Restart runtime` will not cause the Colab to reload the library from Github)
     3. Run the Colab, make sure it works. Make sure not to submit any predictions on our main account, use our test credentials if necessary: uname: `oughttest`, pwd: `6vCo39Mz^rrb`
 
+## TODO
+### testing priorities
+1. Metaculus API:
+    1. end-to-end:
+        1. submit_from_samples
+            1. I'd quite like to test this -- I've had this silently fail before, but haven't added a test yet because it would be difficult to
+        1. get_predicted_questions
+        2. show_prediction_results (once we refactor this to produce a dataframe)
+2. 
+
