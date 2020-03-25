@@ -2,6 +2,7 @@ import json
 import requests
 import pendulum
 import pandas as pd
+import numpy as np
 
 from typing import Optional, List
 
