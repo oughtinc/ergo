@@ -101,6 +101,10 @@ def random_choice(options, **kwargs):
     return options[idx]
 
 
+def random_integer(min: int, max: int, **kwargs) -> int:
+    return int(math.floor(uniform(min, max, **kwargs).item()))
+
+
 flip = bernoulli
 
 
