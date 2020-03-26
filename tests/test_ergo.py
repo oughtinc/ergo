@@ -1,5 +1,5 @@
 import ergo
-import pytest
+import pytest  # type: ignore
 import requests
 
 test_uname = "oughttest"
@@ -34,3 +34,9 @@ class TestMetaculus:
 
     def test_show_submission(self):
         self.euro_question.show_submission(mock_sample)
+
+
+class TestData:
+    def test_confirmed_infections(self):
+        confirmed = ergo.data.covid19.ConfirmedInfections()
+        assert confirmed.get("Iran", "3/25/20") == 27017
