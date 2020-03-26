@@ -40,7 +40,7 @@ class WHORegionData(DataLoader):
 
 
 class HopkinsData(DataLoader):
-    url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"
+    url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
 
     def load(self):
         data = pd.read_csv(self.url)
