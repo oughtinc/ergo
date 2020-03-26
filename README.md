@@ -16,13 +16,3 @@ A Python library for forecasting models
     2. Install the code in the Colab like `!pip install --quiet git+https://github.com/oughtinc/ergo.git@branch-name`
         1. Note that if you make changes to the library and need to reload it into the Colab, you'll need to first go to `Runtime > Factory reset runtime` in the Colab (`Restart runtime` will not cause the Colab to reload the library from Github)
     3. Run the Colab, make sure it works. Make sure not to submit any predictions on our main account, use our test credentials if necessary: Username: `oughttest`, Password: `6vCo39Mz^rrb`
-
-## TODO
-
-### Testing priorities
-
-1. Metaculus API:
-    1. End-to-end:
-        1. submit_from_samples
-        1. get_predicted_questions
-        2. show_prediction_results (once we refactor this to produce a dataframe)
