@@ -10,7 +10,7 @@ mock_sample = [1, 2, 3]
 
 
 def test_version():
-    assert ergo.__version__ == '0.2.0'
+    assert ergo.__version__ == '0.3.0'
 
 
 class TestMetaculus:
