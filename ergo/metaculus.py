@@ -4,6 +4,7 @@ import pendulum
 import scipy
 # scipy importing guidelines: https://docs.scipy.org/doc/scipy/reference/api.html
 from scipy import stats
+import seaborn  # type: ignore
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
@@ -125,9 +126,9 @@ class MetaculusQuestion:
         rv = stats.logistic(submission["loc"], submission["scale"])
         x = np.linspace(0, 1, 200)
         pyplot.plot(x, rv.pdf(x))
-        sns.distplot(
+        seaborn.distplot(
             np.array(submission["normalized_samples"]), label="samples")
-        sns.distplot(np.array(rv.rvs(1000)), label="prediction")
+        seaborn.distplot(np.array(rv.rvs(1000)), label="prediction")
         pyplot.legend()
         pyplot.show()
 
@@ -166,6 +167,7 @@ class MetaculusQuestion:
             },
             data=json.dumps(prediction_data)
         )
+        r.raise_for_status()
 
         return r
 

@@ -380,6 +380,20 @@ numpy = ">=1.13.3"
 
 [[package]]
 category = "main"
+description = "seaborn: statistical data visualization"
+name = "seaborn"
+optional = false
+python-versions = ">=3.6"
+version = "0.10.0"
+
+[package.dependencies]
+matplotlib = ">=2.1.2"
+numpy = ">=1.13.3"
+pandas = ">=0.22.0"
+scipy = ">=1.0.1"
+
+[[package]]
+category = "main"
 description = "Python 2 and 3 compatibility utilities"
 name = "six"
 optional = false
@@ -455,7 +469,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "0a05054d0a31f9ce3b59be6d8c757efd8469258cbba8becbe6fecdadcbd80d4c"
+content-hash = "67c385c4885b9141220f173b6e1da98eafbec83b17f3119a66acb06fbeb5a3a3"
 python-versions = "3.6.9"
 
 [metadata.files]
@@ -711,6 +725,10 @@ scipy = [
     {file = "scipy-1.4.1-cp38-cp38-win32.whl", hash = "sha256:cc971a82ea1170e677443108703a2ec9ff0f70752258d0e9f5433d00dda01f59"},
     {file = "scipy-1.4.1-cp38-cp38-win_amd64.whl", hash = "sha256:2cce3f9847a1a51019e8c5b47620da93950e58ebc611f13e0d11f4980ca5fecb"},
     {file = "scipy-1.4.1.tar.gz", hash = "sha256:dee1bbf3a6c8f73b6b218cb28eed8dd13347ea2f87d572ce19b289d6fd3fbc59"},
+]
+seaborn = [
+    {file = "seaborn-0.10.0-py3-none-any.whl", hash = "sha256:bdf7714ef7d4603e6325d3902e80a46d6149561e1cc237ac08a1c05c3f55a996"},
+    {file = "seaborn-0.10.0.tar.gz", hash = "sha256:59fe414e138d7d5ea08b0feb01b86caf4682e36fa748e3987730523a89aecbb9"},
 ]
 six = [
     {file = "six-1.14.0-py2.py3-none-any.whl", hash = "sha256:8f3cd2e254d8f793e7f3d6d9df77b92252b52637291d0f0da013c76ea2724b6c"},
