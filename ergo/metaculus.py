@@ -167,6 +167,7 @@ class MetaculusQuestion:
             },
             data=json.dumps(prediction_data)
         )
+        r.raise_for_status()
 
         return r
 
