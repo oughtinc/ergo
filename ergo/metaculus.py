@@ -42,16 +42,15 @@ class MetaculusQuestion:
     metaculus: "Metaculus"
     name: Optional[str]
 
-    def __init__(self, id: int, metaculus: "Metaculus", data, name=None, domain="www"):
+    def __init__(self, id: int, metaculus: "Metaculus", data, name=None):
         self.id = id
         self.data = data
         self.metaculus = metaculus
         self.name = name
-        self.domain = domain
         self.fetch()
 
     def api_url(self):
-        return f"https://{self.domain}.metaculus.com/api2/questions/{self.id}/"
+        return f"https://www.metaculus.com/api2/questions/{self.id}/"
 
     def fetch(self):
         self.data = requests.get(self.api_url()).json()
