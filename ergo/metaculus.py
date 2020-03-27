@@ -295,8 +295,6 @@ class Metaculus:
         if r.status_code < 400:
             return self.get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
 
-        print(r.json())
-
         if r.json() == {"detail": "Invalid page."}:
             return results
 
