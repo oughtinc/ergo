@@ -19,19 +19,26 @@ pyro.enable_validation(True)
 
 # Core functionality
 
-def sample(dist: dist.Distribution, name: str = None):
+
+def sample(dist: dist.Distribution, name: str = None, **kwargs):
     if not name:
         # If no name is provided, the model should use the @name_count
         # decorator to avoid using the same name for multiple variables
         name = "_var"
-    return pyro.sample(name, dist)
+    return pyro.sample(name, dist, **kwargs)
 
 
 def tag(value, name: str):
     return pyro.deterministic(name, value)
 
 
+def float(value):
+    """Convert value to float"""
+    return torch.tensor(value).type(torch.float)
+
+
 # Provide samplers for primitive distributions
+
 
 def bernoulli(p, **kwargs):
     return sample(dist.Bernoulli(probs=p), **kwargs)
@@ -59,6 +66,7 @@ def categorical(ps, **kwargs):
 
 # Provide alternative parameterizations for primitive distributions
 
+
 def NormalFromInterval(low, high):
     # This assumes a centered 90% confidence interval, i.e. the left endpoint
     # marks 0.05% on the CDF, the right 0.95%.
@@ -67,13 +75,20 @@ def NormalFromInterval(low, high):
     return dist.Normal(mean, stdev)
 
 
+def HalfNormalFromInterval(high):
+    # This assumes a 90% confidence interval starting at 0,
+    # i.e. right endpoint marks 90% on the CDF
+    stdev = high / 1.645
+    return dist.HalfNormal(stdev)
+
+
 def LogNormalFromInterval(low, high):
     # This assumes a centered 90% confidence interval, i.e. the left endpoint
     # marks 0.05% on the CDF, the right 0.95%.
     loghigh = math.log(high)
     loglow = math.log(low)
     mean = (loghigh + loglow) / 2
-    stdev = (loghigh - loglow) / (2*1.645)
+    stdev = (loghigh - loglow) / (2 * 1.645)
     return dist.LogNormal(mean, stdev)
 
 
@@ -83,6 +98,7 @@ def BetaFromHits(hits, total):
 
 # Alternative names and parameterizations for primitive distribution samplers
 
+
 def normal_from_interval(low, high, **kwargs):
     return sample(NormalFromInterval(low, high), **kwargs)
 
@@ -91,12 +107,16 @@ def lognormal_from_interval(low, high, **kwargs):
     return sample(LogNormalFromInterval(low, high), **kwargs)
 
 
+def halfnormal_from_interval(high, **kwargs):
+    return sample(HalfNormalFromInterval(high), **kwargs)
+
+
 def beta_from_hits(hits, total, **kwargs):
     return sample(BetaFromHits(hits, total), **kwargs)
 
 
 def random_choice(options, **kwargs):
-    ps = torch.Tensor([1/len(options)] * len(options))
+    ps = torch.Tensor([1 / len(options)] * len(options))
     idx = sample(dist.Categorical(ps))
     return options[idx]
 
@@ -110,6 +130,7 @@ flip = bernoulli
 
 # Stats
 
+
 def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     """
     1. Run model forward, record samples for variables
@@ -122,9 +143,8 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
             if trace.nodes[name]["type"] == "sample":
                 if not ignore_unnamed or not name.startswith("_var"):
                     samples.setdefault(name, [])
-                    samples[name].append(
-                        trace.nodes[name]["value"].item())  # FIXME
-    return pd.DataFrame(samples)   # type: ignore
+                    samples[name].append(trace.nodes[name]["value"].item())  # FIXME
+    return pd.DataFrame(samples)  # type: ignore
 
 
 model = name_count
