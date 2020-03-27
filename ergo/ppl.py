@@ -32,7 +32,7 @@ def tag(value, name: str):
     return pyro.deterministic(name, value)
 
 
-def float(value):
+def to_float(value):
     """Convert value to float"""
     return torch.tensor(value).type(torch.float)
 
