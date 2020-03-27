@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ergo"
-version = "0.2.1"
+version = "0.4.0"
 description = ""
 authors = ["Ought <team@ought.org>"]
 
@@ -16,11 +16,14 @@ pyro-ppl = "^1.3.0"
 pandas = "0.25.0"
 pendulum = "^2.1.0"
 matplotlib = "^3.2.1"
+seaborn = "^0.10.0"
+typing_extensions = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 mypy = "^0.770"
 data-science-types = "^0.2.6"
+autopep8 = "^1.5"
 
 [build-system]
 requires = ["poetry>=0.12"]

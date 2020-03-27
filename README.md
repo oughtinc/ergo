@@ -2,6 +2,10 @@
 
 A Python library for forecasting models
 
+## Colab template
+
+[Basic example](https://colab.research.google.com/drive/1b4_c1UwYu5T8UK2EgWYRWrdLjjsypjYu) of a Colab using Ergo
+
 ## Before submitting a PR
 
 1. Format code according to [PEP8](https://www.python.org/dev/peps/pep-0008/). You could use autopep8.
@@ -10,7 +14,6 @@ A Python library for forecasting models
 3. Increment the version of this package in:
     1. `pyproject.toml`
     2. `ergo/__init__.py`
-    3. In tests as needed
 4. Make sure the code works with our most recent Colabs:
     1. Push the code to a branch on Github
     2. Install the code in the Colab like `!pip install --quiet git+https://github.com/oughtinc/ergo.git@branch-name`
