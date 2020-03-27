@@ -10,10 +10,6 @@ test_user_id = 112420
 mock_sample = [1, 2, 3]
 
 
-def test_version():
-    assert ergo.__version__ == '0.3.0'
-
-
 class TestMetaculus:
     metaculus = ergo.Metaculus(test_uname, test_pwd)
     euro_question = metaculus.get_question(3706)
