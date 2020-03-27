@@ -2,6 +2,10 @@
 
 A Python library for forecasting models
 
+## Colab template
+
+[Basic example](https://colab.research.google.com/drive/1b4_c1UwYu5T8UK2EgWYRWrdLjjsypjYu) of a Colab using Ergo
+
 ## Before submitting a PR
 
 1. Format code according to [PEP8](https://www.python.org/dev/peps/pep-0008/). You could use autopep8.
