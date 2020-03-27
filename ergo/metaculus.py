@@ -153,10 +153,10 @@ class MetaculusQuestion:
         }
 
         r = self.metaculus.s.post(
-            f"""https://www.metaculus.com/api2/questions/{self.id}/predict/""",
+            f"""{self.metaculus.api_url}/questions/{self.id}/predict/""",
             headers={
                 "Content-Type": "application/json",
-                "Referer": "https://www.metaculus.com/",
+                "Referer": self.metaculus.api_url,
                 "X-CSRFToken": self.metaculus.s.cookies.get_dict()["csrftoken"]
             },
             data=json.dumps(prediction_data)
@@ -239,7 +239,6 @@ class ContinuousQuestion(MetaculusQuestion):
 
 
 class Metaculus:
-    api_url = "https://www.metaculus.com/api2"
     player_status_to_api_wording = {
         "predicted": "guessed_by",
         "not-predicted": "not_guessed_by",
@@ -247,8 +246,9 @@ class Metaculus:
         "interested": "upvoted_by",
     }
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, api_domain="www"):
         self.user_id = None
+        self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
         self.login(username, password)
 
