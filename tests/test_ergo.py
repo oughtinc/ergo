@@ -1,6 +1,7 @@
 import ergo
 import pytest  # type: ignore
 import requests
+import pendulum
 
 test_uname = "oughttest"
 test_pwd = "6vCo39Mz^rrb"
@@ -50,6 +51,33 @@ class TestMetaculus:
     def test_show_prediction_results(self):
         # smoke test
         self.metaculus.get_prediction_results()
+
+    def test_get_questions(self):
+        questions = self.metaculus.get_questions()
+        assert len(questions) >= 20
+
+    def test_get_questions_pages(self):
+        two_pages = self.metaculus.get_questions(pages=2)
+        assert len(two_pages) >= 40
+
+    def test_get_questions_player_status(self):
+        i_predicted = self.metaculus.get_questions(player_status="predicted")
+        for q in i_predicted:
+            assert q["my_predictions"] is not None
+
+        not_predicted = self.metaculus.get_questions(
+            player_status="not-predicted")
+        for q in not_predicted:
+            assert q["my_predictions"] is None
+
+    def test_get_questions_question_status(self):
+        open = self.metaculus.get_questions(question_status="open")
+        for q in open:
+            assert pendulum.parse(open[0]["close_time"]) > pendulum.now()
+
+        closed = self.metaculus.get_questions(question_status="closed")
+        for q in closed:
+            assert pendulum.parse(closed[0]["close_time"]) < pendulum.now()
 
 
 class TestData:

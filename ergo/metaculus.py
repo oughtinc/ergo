@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as pyplot
 
 from typing import Optional, List, Any
+from typing_extensions import Literal
 from dataclasses import dataclass, asdict
 
 
@@ -239,6 +240,12 @@ class ContinuousQuestion(MetaculusQuestion):
 
 class Metaculus:
     api_url = "https://www.metaculus.com/api2"
+    player_status_to_api_wording = {
+        "predicted": "guessed_by",
+        "not-predicted": "not_guessed_by",
+        "author": "author",
+        "interested": "upvoted_by",
+    }
 
     def __init__(self, username, password):
         self.user_id = None
@@ -278,3 +285,35 @@ class Metaculus:
         flat_predictions = [
             prediction for question in predictions_per_question for prediction in question]
         return pd.DataFrame([asdict(prediction) for prediction in flat_predictions])
+
+    def get_questions_for_pages(self, query_string: str, max_pages: int = 1, current_page: int = 1, results=[]):
+        if current_page > max_pages:
+            return results
+
+        r = self.s.get(
+            f"{self.api_url}/questions/?{query_string}&page={current_page}")
+        if r.status_code < 400:
+            return self.get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
+
+        if r.json() == '{"detail":"Invalid page."}':
+            return results
+
+        r.raise_for_status()
+
+    def get_questions(self,
+                      question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
+                      player_status: Literal["any", "predicted",
+                                             "not-predicted", "author", "interested", "private"] = "any",
+                      # 20 results per page
+                      pages: int = 1
+                      ):
+        query_params = [f"status={question_status}", "order_by=-publish_time"]
+        if player_status != "any":
+            if player_status == "private":
+                query_params.append("access=private")
+            else:
+                query_params.append(
+                    f"{self.player_status_to_api_wording[player_status]}={self.user_id}")
+
+        query_string = "&".join(query_params)
+        return self.get_questions_for_pages(query_string, pages)
