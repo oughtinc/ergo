@@ -60,6 +60,12 @@ class TestMetaculus:
         two_pages = self.metaculus.get_questions(pages=2)
         assert len(two_pages) >= 40
 
+    def test_get_questions_end_of_pages(self):
+        all_pages = self.metaculus.get_questions(
+            player_status="predicted", pages=9999)
+        # basically just a smoke test to make sure it returns some results and doesn't just error
+        assert len(all_pages) > 1
+
     def test_get_questions_player_status(self):
         i_predicted = self.metaculus.get_questions(player_status="predicted")
         for q in i_predicted:
