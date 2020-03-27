@@ -9,7 +9,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
 
-from typing import Optional, List
+from typing import Optional, List, Any
+from dataclasses import dataclass, asdict
 
 
 class MetaculusQuestion:
@@ -47,14 +48,6 @@ class MetaculusQuestion:
         self.data = data
         self.metaculus = metaculus
         self.name = name
-        self.fetch()
-
-    def api_url(self):
-        return f"https://www.metaculus.com/api2/questions/{self.id}/"
-
-    def fetch(self):
-        self.data = requests.get(self.api_url()).json()
-        return self.data
 
     @property
     def is_continuous(self):
@@ -106,7 +99,7 @@ class MetaculusQuestion:
             normalized_samples = self.normalize_samples(samples)
             loc, scale = self.fit_single_logistic(normalized_samples)
         except FloatingPointError:
-            print("Error on " + question.area)
+            print("Error on " + self.area)
             traceback.print_exc()
         else:
             return {
@@ -188,8 +181,11 @@ class MetaculusQuestion:
             loc = min(max(loc, -0.1565), 1.1565)
             return loc, scale
 
-    @classmethod
-    def to_dataframe(self, questions: List["MetaculusQuestion"]):
+    def get_scored_predictions(self):
+        pass
+
+    @staticmethod
+    def to_dataframe(questions: List["MetaculusQuestion"]):
         columns = ["id", "name", "title", "resolve_time"]
         data = []
         for question in questions:
@@ -198,33 +194,47 @@ class MetaculusQuestion:
         return pd.DataFrame(data, columns=columns)
 
 
+@dataclass
+class ScoredPrediction:
+    time: float
+    prediction: Any
+    resolution: float
+    score: float
+    question_name: str
+
+
 class BinaryQuestion(MetaculusQuestion):
-    def score_prediction(self):
+    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
+        predicted = prediction["x"]
+        # Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
+        score = (resolution - predicted)**2
+        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
+
+    def get_scored_predictions(self):
+        # print(self.data)
         resolution = self.data["resolution"]
         if resolution is None:
             last_community_prediction = self.data["prediction_timeseries"][-1]
             resolution = last_community_prediction["distribution"]["avg"]
-        scores = []
-        for my_prediction in self.data["my_predictions"]["predictions"]:
-            value = my_prediction["x"]
-            score = resolution * (1-value) ** 2 + (1-resolution) * (value) ** 2
-            scores.append(score)
-        return resolution, np.mean(scores)
+        predictions = self.data["my_predictions"]["predictions"]
+        return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
 
 class ContinuousQuestion(MetaculusQuestion):
-    def score_prediction(self):
+    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
+        # TODO: handle predictions with multiple distributions
+        d = prediction["d"][0]
+        dist = stats.logistic(scale=d["s"], loc=d["x0"])
+        score = dist.logpdf(resolution)
+        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
+
+    def get_scored_predictions(self):
         resolution = self.data["resolution"]
         if resolution is None:
             last_community_prediction = self.data["prediction_timeseries"][-1]["community_prediction"]
             resolution = last_community_prediction["q2"]
-        scores = []
-        for my_prediction in self.data["my_predictions"]["predictions"]:
-            # Todo: handle predictions with multiple distributions
-            d = my_prediction["d"][0]
-            dist = stats.logistic(scale=d["s"], loc=d["x0"])
-            scores.append(dist.logpdf(resolution))
-        return resolution, np.mean(scores)
+        predictions = self.data["my_predictions"]["predictions"]
+        return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
 
 class Metaculus:
@@ -246,7 +256,6 @@ class Metaculus:
     def get_question(self, id: int, name=None):
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
-        # pp.pprint(data)
         if(data["possibilities"]["type"] == "binary"):
             return BinaryQuestion(id, self, data, name)
         if(data["possibilities"]["type"] == "continuous"):
@@ -262,59 +271,10 @@ class Metaculus:
         return [self.get_question(id) for id in question_ids]
         # TODO: retrieve additional data if next link is not None
 
-    def show_prediction_results(self):
+    def get_prediction_results(self):
         questions = self.get_predicted_questions()
-        binary_questions = [
-            question for question in questions if isinstance(question, BinaryQuestion)]
-        continuous_questions = [
-            question for question in questions if not isinstance(question, BinaryQuestion)]
-        binary_scores = [question.score_prediction()
-                         for question in binary_questions]
-        continuous_scores = [question.score_prediction()
-                             for question in continuous_questions]
-        mean_binary_score = np.mean(binary_scores)
-        mean_continuous_score = np.mean(continuous_scores)
-
-        s = mean_binary_score
-        p = (1 + np.sqrt(1-4*s))/2
-
-        display(HTML(f"""<div>
-        <strong>Summary</strong>
-        <ol>
-            <li>Mean Binary Score (lower is better): {mean_binary_score:.2}
-            <ul>
-                <li>Interpretation 1: we make calibrated forecasts of probability p={p:.2} (these predictions resolve true {p * 100:.0}% of the time)</li>
-            </ul>
-            </li>
-            <li>Mean Continuous Score (higher is better): {mean_continuous_score:.2}</li>
-        </ol>
-        <br />
-        </div>"""))
-
-        for idx, question in enumerate(questions):
-            resolution = question.data["resolution"]
-            expected_resolution, score = question.score_prediction()
-
-            display(HTML(f"""<div>
-                <strong>{idx+1} - {question.data["title"]}</strong>
-                <ol>
-                    <li><em><a target="_blank" href="http://metaculus.com{question.data["page_url"]}">Metaculus link</a></em></li>
-                    <li><em>open date</em>: {parse(question.data["publish_time"]).strftime("%b %d, %Y")}</li>
-                    <li><em>resolve date</em>: {parse(question.data["resolve_time"]).strftime("%b %d, %Y")}</li>
-                    <li><em>type</em>: {question.data["possibilities"]["type"]}</li>
-                    <li><em>resolution</em>: {resolution}</li>"""))
-
-            if isinstance(question, BinaryQuestion):
-                if resolution is None:
-                    display(HTML(
-                        '<li><em>community expected resolution</em>: {:.2f}</li>'.format(expected_resolution)))
-                    display(
-                        HTML('<li><em>brier score (lower is better)</em>: {:.3f}</li>'.format(score)))
-            else:
-                if resolution is None:
-                    display(HTML(
-                        '<li><em>community expected resolution</em>: {:.2f}</li>'.format(expected_resolution)))
-                    display(
-                        HTML('<li><em>log pdf score (higher is better)</em>: {:.3f}</li>'.format(score)))
-                display(HTML(f"""</ol>
-                <br />"""))
+        predictions_per_question = [
+            question.get_scored_predictions() for question in questions]
+        flat_predictions = [
+            prediction for question in predictions_per_question for prediction in question]
+        return pd.DataFrame([asdict(prediction) for prediction in flat_predictions])
