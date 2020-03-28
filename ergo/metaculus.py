@@ -95,7 +95,7 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
-    def get_submission(self, samples):
+    def get_prediction(self, samples):
         try:
             normalized_samples = self.normalize_samples(samples)
             loc, scale = self.fit_single_logistic(normalized_samples)
@@ -110,13 +110,13 @@ class MetaculusQuestion:
             }
 
     def submit_from_samples(self, samples):
-        submission = self.get_submission(samples)
+        submission = self.get_prediction(samples)
         self.submit(submission["loc"], submission["scale"])
         return (submission["loc"], submission["scale"])
 
-    def show_submission(self, samples):
+    def show_prediction(self, samples):
         pyplot.figure()
-        submission = self.get_submission(samples)
+        submission = self.get_prediction(samples)
         rv = stats.logistic(submission["loc"], submission["scale"])
         x = np.linspace(0, 1, 200)
         pyplot.plot(x, rv.pdf(x))
@@ -126,23 +126,32 @@ class MetaculusQuestion:
         pyplot.legend()
         pyplot.show()
 
-    def submit(self, loc, scale):
+    def get_submission(self, submission_loc, submission_scale):
         if not self.is_continuous:
             raise NotImplementedError("Can only submit continuous questions!")
 
-        scale = min(max(scale, 0.02), 10)
-        loc = min(max(loc, 0), 1)
-        distribution = stats.logistic(loc, scale)
+        submission_scale = min(max(submission_scale, 0.02), 10)
+        submission_loc = min(max(submission_loc, 0), 1)
+        distribution = stats.logistic(submission_loc, submission_scale)
 
         low = max(distribution.cdf(0), 0.01)
         high = min(distribution.cdf(1), 0.99)
+        return {
+            "submission_scale": submission_scale,
+            "submission_loc": submission_loc,
+            "low": low,
+            "high": high
+        }
+
+    def submit(self, loc, scale):
+        submission = self.get_submission(loc, scale)
         prediction_data = {
             "prediction":
             {
                 "kind": "multi",
                 "d": [
                     {
-                        "kind": "logistic", "x0": loc, "s": scale, "w": 1, "low": low, "high": high
+                        "kind": "logistic", "x0": submission["submission_loc"], "s": submission["submission_scale"], "w": 1, "low": submission["low"], "high": submission["high"]
                     }
                 ]
             },
@@ -162,7 +171,8 @@ class MetaculusQuestion:
             r.raise_for_status()
 
         except:
-            print(r.json())
+            print(f"response JSON: {r.json()}")
+            print(f"submission: {submission}")
             raise
 
         return r
