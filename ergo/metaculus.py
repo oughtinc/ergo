@@ -129,9 +129,6 @@ class MetaculusQuestion:
     def submit(self, loc, scale):
         if not self.is_continuous:
             raise NotImplementedError("Can only submit continuous questions!")
-        if not self.metaculus:
-            raise ValueError(
-                "Question was created without Metaculus connection!")
 
         scale = min(max(scale, 0.02), 10)
         loc = min(max(loc, 0), 1)
@@ -161,7 +158,12 @@ class MetaculusQuestion:
             },
             data=json.dumps(prediction_data)
         )
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+
+        except:
+            print(r.json())
+            raise
 
         return r
 
