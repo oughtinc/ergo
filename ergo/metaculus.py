@@ -135,7 +135,7 @@ class MetaculusQuestion:
         distribution = stats.logistic(submission_loc, submission_scale)
 
         low = 0
-        high = min(distribution.cdf(1), 0.99)
+        high = 1
         return {
             "submission_scale": submission_scale,
             "submission_loc": submission_loc,
