@@ -2,6 +2,9 @@ import ergo
 import pytest  # type: ignore
 import requests
 import pendulum
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 test_uname = "oughttest"
 test_pwd = "6vCo39Mz^rrb"
@@ -12,34 +15,49 @@ mock_sample = [1, 2, 3]
 
 class TestMetaculus:
     metaculus = ergo.Metaculus(test_uname, test_pwd)
-    euro_question = metaculus.get_question(3706)
-    trump_question = metaculus.get_question(1100)
-    test_continuous_question = metaculus.get_question(3955)
+    continuous_linear_closed_question = metaculus.get_question(3963)
+    continuous_linear_open_question = metaculus.get_question(3962)
+    continuous_log_open_question = metaculus.get_question(3961)
+    closed_question = metaculus.get_question(3965)
+    binary_question = metaculus.get_question(3966)
 
     def test_login(self):
         assert self.metaculus.user_id == test_user_id
 
     def test_get_question(self):
         # make sure we're getting the user-specific data
-        assert "my_predictions" in self.test_continuous_question.data
+        assert "my_predictions" in self.continuous_linear_open_question.data
 
-    def test_submission(self):
-        r = self.test_continuous_question.submit(
+    def test_submission_continuous_linear_open(self):
+        # pp.pprint(self.continuous_linear_open_question.data)
+        r = self.continuous_linear_open_question.submit(
+            0.534894790856232, 0.02)
+        assert r.status_code == 202
+
+    def test_submission_continuous_linear_closed(self):
+        # pp.pprint(self.continuous_linear_closed_question.data)
+        r = self.continuous_linear_closed_question.submit(
+            0.534894790856232, 0.02)
+        assert r.status_code == 202
+
+    def test_submission_continuous_log_open(self):
+        # pp.pprint(self.continuous_log_open_question.data)
+        r = self.continuous_log_open_question.submit(
             0.534894790856232, 0.02)
         assert r.status_code == 202
 
     def test_submission_for_closed_question_fails(self):
         with pytest.raises(requests.exceptions.HTTPError):
-            r = self.euro_question.submit(
+            r = self.closed_question.submit(
                 0.534894790856232, 0.02)
 
     def test_score_binary(self):
         # smoke test
-        self.trump_question.get_scored_predictions()
+        self.binary_question.get_scored_predictions()
 
     def test_score_continuous(self):
         # smoke test
-        self.euro_question.get_scored_predictions()
+        self.continuous_linear_open_question.get_scored_predictions()
 
     def test_show_prediction_results(self):
         # smoke test
