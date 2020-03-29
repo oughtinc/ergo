@@ -96,7 +96,7 @@ class MetaculusQuestion:
         return "<MetaculusQuestion>"
 
     def get_scored_predictions(self):
-        pass
+        raise NotImplementedError("This should be implemented by a subclass")
 
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]):
