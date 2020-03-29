@@ -157,6 +157,33 @@ class ContinuousQuestion(MetaculusQuestion):
         predictions = self.my_predictions["predictions"]
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
+    def show_raw_prediction(self, samples):
+        pyplot.figure()
+        loc, scale = stats.logistic.fit(samples)
+        rv = stats.logistic(loc, scale)
+        seaborn.distplot(
+            samples, label="samples")
+        seaborn.distplot(np.array(rv.rvs(1000)), label="prediction")
+        pyplot.legend()
+        pyplot.show()
+
+    def normalize_samples(self, samples, epsilon=1e-9):
+        if self.is_continuous:
+            if self.is_log:
+                samples = np.maximum(samples, epsilon)
+                samples = samples / self.min
+                samples = np.log(samples) / np.log(self.deriv_ratio)
+            else:
+                samples = (samples - self.min) / (self.max - self.min)
+        return samples
+
+    def fit_single_logistic(self, samples):
+        with np.errstate(all='raise'):
+            loc, scale = stats.logistic.fit(samples)
+            scale = min(max(scale, 0.02), 10)
+            loc = min(max(loc, -0.1565), 1.1565)
+            return loc, scale
+
     def get_prediction(self, samples):
         try:
             normalized_samples = self.normalize_samples(samples)
@@ -171,11 +198,6 @@ class ContinuousQuestion(MetaculusQuestion):
                 "scale": scale
             }
 
-    def submit_from_samples(self, samples):
-        submission = self.get_prediction(samples)
-        self.submit(submission["loc"], submission["scale"])
-        return (submission["loc"], submission["scale"])
-
     def show_prediction(self, samples):
         pyplot.figure()
         submission = self.get_prediction(samples)
@@ -187,23 +209,6 @@ class ContinuousQuestion(MetaculusQuestion):
         seaborn.distplot(np.array(rv.rvs(1000)), label="prediction")
         pyplot.legend()
         pyplot.show()
-
-    def get_submission(self, submission_loc, submission_scale):
-        if not self.is_continuous:
-            raise NotImplementedError("Can only submit continuous questions!")
-
-        submission_scale = min(max(submission_scale, 0.02), 10)
-        submission_loc = min(max(submission_loc, 0), 1)
-        distribution = stats.logistic(submission_loc, submission_scale)
-
-        low = max(distribution.cdf(0), 0.01) if self.low_open else 0
-        high = min(distribution.cdf(1), 0.99) if self.high_open else 1
-        return {
-            "submission_scale": submission_scale,
-            "submission_loc": submission_loc,
-            "low": low,
-            "high": high
-        }
 
     def submit(self, loc, scale):
         submission = self.get_submission(loc, scale)
@@ -239,22 +244,26 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return r
 
-    def normalize_samples(self, samples, epsilon=1e-9):
-        if self.is_continuous:
-            if self.is_log:
-                samples = np.maximum(samples, epsilon)
-                samples = samples / self.min
-                samples = np.log(samples) / np.log(self.deriv_ratio)
-            else:
-                samples = (samples - self.min) / (self.max - self.min)
-        return samples
+    def get_submission(self, submission_loc, submission_scale):
+        if not self.is_continuous:
+            raise NotImplementedError("Can only submit continuous questions!")
 
-    def fit_single_logistic(self, samples):
-        with np.errstate(all='raise'):
-            loc, scale = stats.logistic.fit(samples)
-            scale = min(max(scale, 0.02), 10)
-            loc = min(max(loc, -0.1565), 1.1565)
-            return loc, scale
+        submission_scale = min(max(submission_scale, 0.02), 10)
+        submission_loc = min(max(submission_loc, 0), 1)
+        distribution = stats.logistic(submission_loc, submission_scale)
+
+        low = max(distribution.cdf(0), 0.01) if self.low_open else 0
+        high = min(distribution.cdf(1), 0.99) if self.high_open else 1
+        return {
+            "submission_scale": submission_scale,
+            "submission_loc": submission_loc,
+            "low": low,
+            "high": high
+        }
+
+    def submit_from_samples(self, samples):
+        submission = self.get_prediction(samples)
+        return self.submit(submission["loc"], submission["scale"])
 
 
 class Metaculus:

@@ -3,6 +3,7 @@ import pytest  # type: ignore
 import requests
 import pendulum
 import pprint
+import tests.mocks
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -56,7 +57,7 @@ class TestMetaculus:
         # smoke test
         self.continuous_linear_open_question.get_scored_predictions()
 
-    def test_show_prediction_results(self):
+    def test_get_prediction_results(self):
         # smoke test
         self.metaculus.get_prediction_results()
 
@@ -98,3 +99,15 @@ class TestData:
     def test_confirmed_infections(self):
         confirmed = ergo.data.covid19.ConfirmedInfections()
         assert confirmed.get("Iran", "3/25/20") == 27017
+
+
+# Visual tests -- eyeball the results from these to see if they seem reasonable
+# leave these commented out usually, just use them if they seem useful
+
+# class TestPandemic:
+#     metaculus = ergo.Metaculus(test_uname, test_pwd, api_domain="pandemic")
+#     sf_question = metaculus.get_question(3931)
+
+#     def test_show_prediction(self):
+#         self.sf_question.show_raw_prediction(
+#             tests.mocks.samples)
