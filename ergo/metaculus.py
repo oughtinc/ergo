@@ -14,6 +14,15 @@ from typing_extensions import Literal
 from dataclasses import dataclass, asdict
 
 
+@dataclass
+class ScoredPrediction:
+    time: float
+    prediction: Any
+    resolution: float
+    score: float
+    question_name: str
+
+
 class MetaculusQuestion:
     """
     Attributes:
@@ -51,33 +60,33 @@ class MetaculusQuestion:
         self.name = name
 
     @property
-    def is_continuous(self):
+    def is_continuous(self) -> bool:
         return self.type == "continuous"
 
     @property
-    def type(self):
+    def type(self) -> str:
         return self.possibilities["type"]
 
     @property
-    def min(self):
+    def min(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["min"]
         return None
 
     @property
-    def max(self):
+    def max(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["max"]
         return None
 
     @property
-    def deriv_ratio(self):
+    def deriv_ratio(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["deriv_ratio"]
         return None
 
     @property
-    def is_log(self):
+    def is_log(self) -> bool:
         if self.is_continuous:
             return self.deriv_ratio != 1
         return False
@@ -95,26 +104,17 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
-    def get_scored_predictions(self):
+    def get_scored_predictions(self) -> List[ScoredPrediction]:
         raise NotImplementedError("This should be implemented by a subclass")
 
     @staticmethod
-    def to_dataframe(questions: List["MetaculusQuestion"]):
+    def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
         columns = ["id", "name", "title", "resolve_time"]
         data = []
         for question in questions:
             data.append([question.id, question.name,
                          question.title, question.resolve_time])
         return pd.DataFrame(data, columns=columns)
-
-
-@dataclass
-class ScoredPrediction:
-    time: float
-    prediction: Any
-    resolution: float
-    score: float
-    question_name: str
 
 
 class BinaryQuestion(MetaculusQuestion):
@@ -125,22 +125,22 @@ class BinaryQuestion(MetaculusQuestion):
         return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
 
     def get_scored_predictions(self):
-        resolution = self.data["resolution"]
+        resolution = self.resolution
         if resolution is None:
-            last_community_prediction = self.data["prediction_timeseries"][-1]
+            last_community_prediction = self.prediction_timeseries[-1]
             resolution = last_community_prediction["distribution"]["avg"]
-        predictions = self.data["my_predictions"]["predictions"]
+        predictions = self.my_predictions["predictions"]
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
 
 class ContinuousQuestion(MetaculusQuestion):
-    low_open: bool
-    high_open: bool
+    @property
+    def low_open(self) -> bool:
+        return self.possibilities["low"] == "tail"
 
-    def __init__(self, id: int, metaculus: "Metaculus", data, name=None):
-        self.low_open = data["possibilities"]["low"] == "tail"
-        self.high_open = data["possibilities"]["high"] == "tail"
-        super().__init__(id, metaculus, data, name)
+    @property
+    def high_open(self) -> bool:
+        return self.possibilities["high"] == "tail"
 
     def score_prediction(self, prediction, resolution) -> ScoredPrediction:
         # TODO: handle predictions with multiple distributions
@@ -150,11 +150,11 @@ class ContinuousQuestion(MetaculusQuestion):
         return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
 
     def get_scored_predictions(self):
-        resolution = self.data["resolution"]
+        resolution = self.resolution
         if resolution is None:
-            last_community_prediction = self.data["prediction_timeseries"][-1]["community_prediction"]
+            last_community_prediction = self.prediction_timeseries[-1]["community_prediction"]
             resolution = last_community_prediction["q2"]
-        predictions = self.data["my_predictions"]["predictions"]
+        predictions = self.my_predictions["predictions"]
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
     def get_prediction(self, samples):
@@ -279,7 +279,7 @@ class Metaculus:
 
         self.user_id = r.json()['user_id']
 
-    def get_question(self, id: int, name=None):
+    def get_question(self, id: int, name=None) -> MetaculusQuestion:
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         if(data["possibilities"]["type"] == "binary"):
@@ -289,7 +289,7 @@ class Metaculus:
         raise NotImplementedError(
             "We couldn't determine whether this question was binary, continuous, or something else")
 
-    def get_predicted_questions(self):
+    def get_predicted_questions(self) -> List[MetaculusQuestion]:
         r = self.s.get(f"{self.api_url}/questions/?guessed_by={self.user_id}")
         json_data = r.json()
         results = json_data["results"]
@@ -297,7 +297,7 @@ class Metaculus:
         return [self.get_question(id) for id in question_ids]
         # TODO: retrieve additional data if next link is not None
 
-    def get_prediction_results(self):
+    def get_prediction_results(self) -> pd.DataFrame:
         questions = self.get_predicted_questions()
         predictions_per_question = [
             question.get_scored_predictions() for question in questions]
@@ -305,19 +305,19 @@ class Metaculus:
             prediction for question in predictions_per_question for prediction in question]
         return pd.DataFrame([asdict(prediction) for prediction in flat_predictions])
 
-    def get_questions_for_pages(self, query_string: str, max_pages: int = 1, current_page: int = 1, results=[]):
+    def get_questions_for_pages(self, query_string: str, max_pages: int = 1, current_page: int = 1, results=[]) -> List[MetaculusQuestion]:
         if current_page > max_pages:
             return results
 
         r = self.s.get(
             f"{self.api_url}/questions/?{query_string}&page={current_page}")
-        if r.status_code < 400:
-            return self.get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
 
         if r.json() == {"detail": "Invalid page."}:
             return results
 
         r.raise_for_status()
+
+        return self.get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
 
     def get_questions(self,
                       question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
@@ -325,7 +325,7 @@ class Metaculus:
                                              "not-predicted", "author", "interested", "private"] = "any",
                       # 20 results per page
                       pages: int = 1
-                      ):
+                      ) -> List[MetaculusQuestion]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
