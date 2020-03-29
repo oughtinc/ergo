@@ -29,9 +29,9 @@ class TestMetaculus:
         assert r.status_code == 202
 
     def test_submission_for_closed_question_fails(self):
-        with pytest.raises(requests.exceptions.HTTPError):
-            r = self.euro_question.submit(
-                0.534894790856232, 0.02)
+        # with pytest.raises(requests.exceptions.HTTPError):
+        r = self.euro_question.submit(
+            0.534894790856232, 0.02)
 
     def test_score_binary(self):
         # smoke test

@@ -170,10 +170,20 @@ class MetaculusQuestion:
         try:
             r.raise_for_status()
 
-        except:
-            print(f"response JSON: {r.json()}")
-            print(f"submission: {submission}")
-            raise
+        except requests.exceptions.HTTPError as e:
+            e.args = f"""{e.args}
+
+                request body: {e.request.body}
+
+                response json: {e.response.json()}
+        """
+        #     raise requests.exceptions.HTTPError(f"""{e.args}
+
+        #         request body: {e.request.body}
+
+        #         response json: {e.response.json()}
+        # """, response=e.response)
+            raise e
 
         return r
 
