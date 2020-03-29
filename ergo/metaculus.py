@@ -125,7 +125,6 @@ class BinaryQuestion(MetaculusQuestion):
         return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
 
     def get_scored_predictions(self):
-        # print(self.data)
         resolution = self.data["resolution"]
         if resolution is None:
             last_community_prediction = self.data["prediction_timeseries"][-1]

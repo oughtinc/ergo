@@ -29,19 +29,16 @@ class TestMetaculus:
         assert "my_predictions" in self.continuous_linear_open_question.data
 
     def test_submission_continuous_linear_open(self):
-        # pp.pprint(self.continuous_linear_open_question.data)
         r = self.continuous_linear_open_question.submit(
             0.534894790856232, 0.02)
         assert r.status_code == 202
 
     def test_submission_continuous_linear_closed(self):
-        # pp.pprint(self.continuous_linear_closed_question.data)
         r = self.continuous_linear_closed_question.submit(
             0.534894790856232, 0.02)
         assert r.status_code == 202
 
     def test_submission_continuous_log_open(self):
-        # pp.pprint(self.continuous_log_open_question.data)
         r = self.continuous_log_open_question.submit(
             0.534894790856232, 0.02)
         assert r.status_code == 202
