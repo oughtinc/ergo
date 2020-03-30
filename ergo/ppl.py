@@ -4,11 +4,11 @@ import pyro
 import torch
 import tqdm
 
-import pandas as pd
+import pandas as pd  # type: ignore
 import pyro.distributions as dist  # type: ignore
 
-from pyro.contrib.autoname import name_count
-from pyro.infer import SVI, Trace_ELBO, Predictive
+from pyro.contrib.autoname import name_count  # type: ignore
+from pyro.infer import SVI, Trace_ELBO, Predictive  # type: ignore
 
 from typing import Dict, List
 
