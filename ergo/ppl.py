@@ -8,6 +8,7 @@ import pandas as pd
 import pyro.distributions as dist  # type: ignore
 
 from pyro.contrib.autoname import name_count
+from pyro.infer import SVI, Trace_ELBO
 
 from typing import Dict, List
 
@@ -145,6 +146,68 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
                     samples.setdefault(name, [])
                     samples[name].append(trace.nodes[name]["value"].item())  # FIXME
     return pd.DataFrame(samples)  # type: ignore
+
+
+def infer_and_run(
+    model,
+    num_samples=5000,
+    num_iterations=2000,
+    debug=False,
+    learning_rate=0.01,
+    early_stopping_patience=200,
+) -> pd.DataFrame:
+    """ 
+    debug - whether to output debug information
+    num_iterations - Number of optimizer iterations
+    learning_rate - Optimizer learning rate
+    early_stopping_patience - Stop training if loss hasn't improved for this many iterations
+  """
+
+    def to_numpy(d):
+        return {k: v.detach().numpy() for k, v in d.items()}
+
+    def debug_output(guide):
+        quantiles = to_numpy(guide.quantiles([0.05, 0.5, 0.95]))
+        for k, v in quantiles.items():
+            print(f"{k}: {v[1]:.4f} [{v[0]:.4f}, {v[2]:.4f}]")
+
+    # Automatically chooses a normal distribution for each variable
+    guide = pyro.infer.autoguide.AutoNormal(
+        model, init_loc_fn=pyro.infer.autoguide.init_to_median
+    )
+    pyro.clear_param_store()
+
+    if debug:
+        guide(training=True)  # Needed to initialize the guide before output
+        debug_output(guide)
+        print()
+
+    adam = pyro.optim.Adam({"lr": learning_rate})
+    svi = SVI(model, guide, adam, loss=Trace_ELBO())
+
+    best_loss = None
+    last_improvement = None
+
+    for j in range(num_iterations):
+        # calculate the loss and take a gradient step
+        loss = svi.step(training=True)
+        if best_loss is None or best_loss > loss:
+            best_loss = loss
+            last_improvement = j
+        if j % 100 == 0:
+            if debug:
+                print("[iteration %04d]" % (j + 1))
+                print(f"loss: {loss:.4f}")
+                debug_output(guide)
+                print()
+            if j > (last_improvement + early_stopping_patience):
+                print("Stopping Early")
+                break
+
+    print(f"Final loss: {loss:.4f}")
+    predictive = Predictive(model, guide=guide, num_samples=num_samples)
+    raw_samples = predictive(training=False)
+    return pd.DataFrame(to_numpy(raw_samples))
 
 
 model = name_count

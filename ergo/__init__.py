@@ -27,4 +27,5 @@ from .ppl import (
     random_integer,
     flip,
     run,
+    infer_and_run,
 )
