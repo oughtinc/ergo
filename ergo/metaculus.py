@@ -14,6 +14,15 @@ from typing_extensions import Literal
 from dataclasses import dataclass, asdict
 
 
+@dataclass
+class ScoredPrediction:
+    time: float
+    prediction: Any
+    resolution: float
+    score: float
+    question_name: str
+
+
 class MetaculusQuestion:
     """
     Attributes:
@@ -51,33 +60,33 @@ class MetaculusQuestion:
         self.name = name
 
     @property
-    def is_continuous(self):
+    def is_continuous(self) -> bool:
         return self.type == "continuous"
 
     @property
-    def type(self):
+    def type(self) -> str:
         return self.possibilities["type"]
 
     @property
-    def min(self):
+    def min(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["min"]
         return None
 
     @property
-    def max(self):
+    def max(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["max"]
         return None
 
     @property
-    def deriv_ratio(self):
+    def deriv_ratio(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["deriv_ratio"]
         return None
 
     @property
-    def is_log(self):
+    def is_log(self) -> bool:
         if self.is_continuous:
             return self.deriv_ratio != 1
         return False
@@ -95,7 +104,60 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
-    def get_submission(self, samples):
+    def get_scored_predictions(self) -> List[ScoredPrediction]:
+        raise NotImplementedError("This should be implemented by a subclass")
+
+    @staticmethod
+    def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
+        columns = ["id", "name", "title", "resolve_time"]
+        data = []
+        for question in questions:
+            data.append([question.id, question.name,
+                         question.title, question.resolve_time])
+        return pd.DataFrame(data, columns=columns)
+
+
+class BinaryQuestion(MetaculusQuestion):
+    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
+        predicted = prediction["x"]
+        # Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
+        score = (resolution - predicted)**2
+        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
+
+    def get_scored_predictions(self):
+        resolution = self.resolution
+        if resolution is None:
+            last_community_prediction = self.prediction_timeseries[-1]
+            resolution = last_community_prediction["distribution"]["avg"]
+        predictions = self.my_predictions["predictions"]
+        return [self.score_prediction(prediction, resolution) for prediction in predictions]
+
+
+class ContinuousQuestion(MetaculusQuestion):
+    @property
+    def low_open(self) -> bool:
+        return self.possibilities["low"] == "tail"
+
+    @property
+    def high_open(self) -> bool:
+        return self.possibilities["high"] == "tail"
+
+    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
+        # TODO: handle predictions with multiple distributions
+        d = prediction["d"][0]
+        dist = stats.logistic(scale=d["s"], loc=d["x0"])
+        score = dist.logpdf(resolution)
+        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
+
+    def get_scored_predictions(self):
+        resolution = self.resolution
+        if resolution is None:
+            last_community_prediction = self.prediction_timeseries[-1]["community_prediction"]
+            resolution = last_community_prediction["q2"]
+        predictions = self.my_predictions["predictions"]
+        return [self.score_prediction(prediction, resolution) for prediction in predictions]
+
+    def get_prediction(self, samples):
         try:
             normalized_samples = self.normalize_samples(samples)
             loc, scale = self.fit_single_logistic(normalized_samples)
@@ -110,13 +172,13 @@ class MetaculusQuestion:
             }
 
     def submit_from_samples(self, samples):
-        submission = self.get_submission(samples)
+        submission = self.get_prediction(samples)
         self.submit(submission["loc"], submission["scale"])
         return (submission["loc"], submission["scale"])
 
-    def show_submission(self, samples):
+    def show_prediction(self, samples):
         pyplot.figure()
-        submission = self.get_submission(samples)
+        submission = self.get_prediction(samples)
         rv = stats.logistic(submission["loc"], submission["scale"])
         x = np.linspace(0, 1, 200)
         pyplot.plot(x, rv.pdf(x))
@@ -126,26 +188,32 @@ class MetaculusQuestion:
         pyplot.legend()
         pyplot.show()
 
-    def submit(self, loc, scale):
+    def get_submission(self, submission_loc, submission_scale):
         if not self.is_continuous:
             raise NotImplementedError("Can only submit continuous questions!")
-        if not self.metaculus:
-            raise ValueError(
-                "Question was created without Metaculus connection!")
 
-        scale = min(max(scale, 0.02), 10)
-        loc = min(max(loc, 0), 1)
-        distribution = stats.logistic(loc, scale)
+        submission_scale = min(max(submission_scale, 0.02), 10)
+        submission_loc = min(max(submission_loc, 0), 1)
+        distribution = stats.logistic(submission_loc, submission_scale)
 
-        low = max(distribution.cdf(0), 0.01)
-        high = min(distribution.cdf(1), 0.99)
+        low = max(distribution.cdf(0), 0.01) if self.low_open else 0
+        high = min(distribution.cdf(1), 0.99) if self.high_open else 1
+        return {
+            "submission_scale": submission_scale,
+            "submission_loc": submission_loc,
+            "low": low,
+            "high": high
+        }
+
+    def submit(self, loc, scale):
+        submission = self.get_submission(loc, scale)
         prediction_data = {
             "prediction":
             {
                 "kind": "multi",
                 "d": [
                     {
-                        "kind": "logistic", "x0": loc, "s": scale, "w": 1, "low": low, "high": high
+                        "kind": "logistic", "x0": submission["submission_loc"], "s": submission["submission_scale"], "w": 1, "low": submission["low"], "high": submission["high"]
                     }
                 ]
             },
@@ -161,7 +229,13 @@ class MetaculusQuestion:
             },
             data=json.dumps(prediction_data)
         )
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+
+        except requests.exceptions.HTTPError as e:
+            e.args = (str(
+                e.args), f"request body: {e.request.body}", f"response json: {e.response.json()}")
+            raise
 
         return r
 
@@ -181,61 +255,6 @@ class MetaculusQuestion:
             scale = min(max(scale, 0.02), 10)
             loc = min(max(loc, -0.1565), 1.1565)
             return loc, scale
-
-    def get_scored_predictions(self):
-        pass
-
-    @staticmethod
-    def to_dataframe(questions: List["MetaculusQuestion"]):
-        columns = ["id", "name", "title", "resolve_time"]
-        data = []
-        for question in questions:
-            data.append([question.id, question.name,
-                         question.title, question.resolve_time])
-        return pd.DataFrame(data, columns=columns)
-
-
-@dataclass
-class ScoredPrediction:
-    time: float
-    prediction: Any
-    resolution: float
-    score: float
-    question_name: str
-
-
-class BinaryQuestion(MetaculusQuestion):
-    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
-        predicted = prediction["x"]
-        # Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
-        score = (resolution - predicted)**2
-        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
-
-    def get_scored_predictions(self):
-        # print(self.data)
-        resolution = self.data["resolution"]
-        if resolution is None:
-            last_community_prediction = self.data["prediction_timeseries"][-1]
-            resolution = last_community_prediction["distribution"]["avg"]
-        predictions = self.data["my_predictions"]["predictions"]
-        return [self.score_prediction(prediction, resolution) for prediction in predictions]
-
-
-class ContinuousQuestion(MetaculusQuestion):
-    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
-        # TODO: handle predictions with multiple distributions
-        d = prediction["d"][0]
-        dist = stats.logistic(scale=d["s"], loc=d["x0"])
-        score = dist.logpdf(resolution)
-        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
-
-    def get_scored_predictions(self):
-        resolution = self.data["resolution"]
-        if resolution is None:
-            last_community_prediction = self.data["prediction_timeseries"][-1]["community_prediction"]
-            resolution = last_community_prediction["q2"]
-        predictions = self.data["my_predictions"]["predictions"]
-        return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
 
 class Metaculus:
@@ -260,7 +279,7 @@ class Metaculus:
 
         self.user_id = r.json()['user_id']
 
-    def get_question(self, id: int, name=None):
+    def get_question(self, id: int, name=None) -> MetaculusQuestion:
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         if(data["possibilities"]["type"] == "binary"):
@@ -270,7 +289,7 @@ class Metaculus:
         raise NotImplementedError(
             "We couldn't determine whether this question was binary, continuous, or something else")
 
-    def get_predicted_questions(self):
+    def get_predicted_questions(self) -> List[MetaculusQuestion]:
         r = self.s.get(f"{self.api_url}/questions/?guessed_by={self.user_id}")
         json_data = r.json()
         results = json_data["results"]
@@ -278,7 +297,7 @@ class Metaculus:
         return [self.get_question(id) for id in question_ids]
         # TODO: retrieve additional data if next link is not None
 
-    def get_prediction_results(self):
+    def get_prediction_results(self) -> pd.DataFrame:
         questions = self.get_predicted_questions()
         predictions_per_question = [
             question.get_scored_predictions() for question in questions]
@@ -286,19 +305,19 @@ class Metaculus:
             prediction for question in predictions_per_question for prediction in question]
         return pd.DataFrame([asdict(prediction) for prediction in flat_predictions])
 
-    def get_questions_for_pages(self, query_string: str, max_pages: int = 1, current_page: int = 1, results=[]):
+    def get_questions_for_pages(self, query_string: str, max_pages: int = 1, current_page: int = 1, results=[]) -> List[MetaculusQuestion]:
         if current_page > max_pages:
             return results
 
         r = self.s.get(
             f"{self.api_url}/questions/?{query_string}&page={current_page}")
-        if r.status_code < 400:
-            return self.get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
 
         if r.json() == {"detail": "Invalid page."}:
             return results
 
         r.raise_for_status()
+
+        return self.get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
 
     def get_questions(self,
                       question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
@@ -306,7 +325,7 @@ class Metaculus:
                                              "not-predicted", "author", "interested", "private"] = "any",
                       # 20 results per page
                       pages: int = 1
-                      ):
+                      ) -> List[MetaculusQuestion]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
