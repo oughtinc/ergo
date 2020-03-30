@@ -101,7 +101,7 @@ class TestPPL:
         def model():
             x = ergo.lognormal_from_interval(1, 10, name="x")
             y = ergo.beta_from_hits(2, 10, name="y")
-            z = x * y  
+            z = x * y
             ergo.tag(z, "z")
         samples = ergo.run(model, num_samples=10000)
         stats = samples.describe()
@@ -119,10 +119,13 @@ class TestData:
 # Visual tests -- eyeball the results from these to see if they seem reasonable
 # leave these commented out usually, just use them if they seem useful
 
-# class TestPandemic:
-#     metaculus = ergo.Metaculus(test_uname, test_pwd, api_domain="pandemic")
-#     sf_question = metaculus.get_question(3931)
+class TestPandemic:
+    metaculus = ergo.Metaculus(test_uname, test_pwd, api_domain="pandemic")
+    sf_question = metaculus.get_question(3931)
 
-#     def test_show_prediction(self):
-#         self.sf_question.show_raw_prediction(
-#             tests.mocks.samples)
+    def test_show_prediction(self):
+        self.sf_question.show_raw_prediction(
+            tests.mocks.samples)
+
+    def test_show_performance(self):
+        self.sf_question.show_performance()

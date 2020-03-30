@@ -142,20 +142,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def high_open(self) -> bool:
         return self.possibilities["high"] == "tail"
 
-    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
-        # TODO: handle predictions with multiple distributions
-        d = prediction["d"][0]
-        dist = stats.logistic(scale=d["s"], loc=d["x0"])
-        score = dist.logpdf(resolution)
-        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
-
-    def get_scored_predictions(self):
-        resolution = self.resolution
-        if resolution is None:
-            last_community_prediction = self.prediction_timeseries[-1]["community_prediction"]
-            resolution = last_community_prediction["q2"]
-        predictions = self.my_predictions["predictions"]
-        return [self.score_prediction(prediction, resolution) for prediction in predictions]
+    @property
+    def metaculus_scale(self):
+        return self.possibilities["scale"]
 
     def show_raw_prediction(self, samples):
         pyplot.figure()
@@ -202,8 +191,6 @@ class ContinuousQuestion(MetaculusQuestion):
         pyplot.figure()
         submission = self.get_prediction(samples)
         rv = stats.logistic(submission["loc"], submission["scale"])
-        x = np.linspace(0, 1, 200)
-        pyplot.plot(x, rv.pdf(x))
         seaborn.distplot(
             np.array(submission["normalized_samples"]), label="samples")
         seaborn.distplot(np.array(rv.rvs(1000)), label="prediction")
@@ -264,6 +251,41 @@ class ContinuousQuestion(MetaculusQuestion):
     def submit_from_samples(self, samples):
         submission = self.get_prediction(samples)
         return self.submit(submission["loc"], submission["scale"])
+
+    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
+        # TODO: handle predictions with multiple distributions
+        d = prediction["d"][0]
+        dist = stats.logistic(scale=d["s"], loc=d["x0"])
+        score = dist.logpdf(resolution)
+        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
+
+    def get_scored_predictions(self):
+        resolution = self.resolution
+        if resolution is None:
+            last_community_prediction = self.prediction_timeseries[-1]["community_prediction"]
+            resolution = last_community_prediction["q2"]
+        predictions = self.my_predictions["predictions"]
+        return [self.score_prediction(prediction, resolution) for prediction in predictions]
+
+    def hydrate_prediction(self, prediction):
+        scaling_factor = self.metaculus_scale["max"] - \
+            self.metaculus_scale["min"]
+
+        def scale_param(param):
+            return param * scaling_factor + + self.metaculus_scale["min"]
+
+        prediction = self.my_predictions["predictions"][0]
+        d = prediction["d"][0]
+        dist = stats.logistic(scale=scale_param(
+            d["s"]), loc=scale_param(d["x0"]))
+
+    def show_performance(self):
+        prediction = self.my_predictions["predictions"][0]
+        dist = hydrate_prediction(prediction)
+        pyplot.figure()
+        seaborn.distplot(np.array(dist.rvs(1000)), label="prediction")
+        pyplot.legend()
+        pyplot.show()
 
 
 class Metaculus:
