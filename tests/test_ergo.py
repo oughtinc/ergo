@@ -76,23 +76,20 @@ class TestMetaculus:
         assert len(all_pages) > 1
 
     def test_get_questions_player_status(self):
-        i_predicted = self.metaculus.get_questions(player_status="predicted")
-        for q in i_predicted:
-            assert q["my_predictions"] is not None
+        qs_i_predicted = self.metaculus.get_questions(
+            player_status="predicted")
+        assert qs_i_predicted["i_predicted"].all()
 
         not_predicted = self.metaculus.get_questions(
             player_status="not-predicted")
-        for q in not_predicted:
-            assert q["my_predictions"] is None
+        assert (not_predicted["i_predicted"] == False).all()
 
     def test_get_questions_question_status(self):
         open = self.metaculus.get_questions(question_status="open")
-        for q in open:
-            assert pendulum.parse(open[0]["close_time"]) > pendulum.now()
+        assert(open["close_time"] > pendulum.now()).all()
 
         closed = self.metaculus.get_questions(question_status="closed")
-        for q in closed:
-            assert pendulum.parse(closed[0]["close_time"]) < pendulum.now()
+        assert(closed["close_time"] < pendulum.now()).all()
 
 
 class TestPPL:
@@ -123,9 +120,9 @@ class TestPandemic:
     metaculus = ergo.Metaculus(test_uname, test_pwd, api_domain="pandemic")
     sf_question = metaculus.get_question(3931)
 
-    def test_show_prediction(self):
-        self.sf_question.show_raw_prediction(
-            tests.mocks.samples)
+    # def test_show_prediction(self):
+    #     self.sf_question.show_raw_prediction(
+    #         tests.mocks.samples)
 
-    def test_show_performance(self):
-        self.sf_question.show_performance()
+    # def test_show_performance(self):
+    #     self.sf_question.show_performance()

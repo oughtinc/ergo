@@ -281,7 +281,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
     def show_performance(self):
         prediction = self.my_predictions["predictions"][0]
-        dist = hydrate_prediction(prediction)
+        dist = self.hydrate_prediction(prediction)
         pyplot.figure()
         seaborn.distplot(np.array(dist.rvs(1000)), label="prediction")
         pyplot.legend()
@@ -356,7 +356,7 @@ class Metaculus:
                                              "not-predicted", "author", "interested", "private"] = "any",
                       # 20 results per page
                       pages: int = 1
-                      ) -> List[MetaculusQuestion]:
+                      ) -> pd.DataFrame:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
@@ -366,4 +366,12 @@ class Metaculus:
                     f"{self.player_status_to_api_wording[player_status]}={self.user_id}")
 
         query_string = "&".join(query_params)
-        return self.get_questions_for_pages(query_string, pages)
+        questions_json = self.get_questions_for_pages(query_string, pages)
+        questions_df = pd.DataFrame(questions_json)
+        for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
+            questions_df[col] = questions_df[col].apply(pendulum.parse)
+
+        questions_df["i_created"] = questions_df["author"] == self.user_id
+        questions_df["i_predicted"] = questions_df["my_predictions"].apply(
+            lambda x: x is not None)
+        return questions_df
