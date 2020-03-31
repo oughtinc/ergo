@@ -1,5 +1,5 @@
 import ergo
-import pytest  # type: ignore
+import pytest
 import requests
 import pendulum
 import pprint
