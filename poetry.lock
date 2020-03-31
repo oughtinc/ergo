@@ -1,4 +1,15 @@
 [[package]]
+category = "main"
+description = "Abseil Python Common Libraries, see https://github.com/abseil/abseil-py."
+name = "absl-py"
+optional = false
+python-versions = "*"
+version = "0.9.0"
+
+[package.dependencies]
+six = "*"
+
+[[package]]
 category = "dev"
 description = "Atomic file writes."
 marker = "sys_platform == \"win32\""
@@ -121,6 +132,32 @@ zipp = ">=0.5"
 [package.extras]
 docs = ["sphinx", "rst.linker"]
 testing = ["packaging", "importlib-resources"]
+
+[[package]]
+category = "main"
+description = "Differentiate, compile, and transform Numpy code."
+name = "jax"
+optional = false
+python-versions = ">=3.6"
+version = "0.1.62"
+
+[package.dependencies]
+absl-py = "*"
+numpy = ">=1.12"
+opt_einsum = "*"
+
+[[package]]
+category = "main"
+description = "XLA library for JAX"
+name = "jaxlib"
+optional = false
+python-versions = ">=3.6"
+version = "0.1.43"
+
+[package.dependencies]
+absl-py = "*"
+numpy = ">=1.12"
+scipy = "*"
 
 [[package]]
 category = "main"
@@ -488,10 +525,13 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "80b4c81ff8c5f285d65f3764c2d80cbe0e00802ec93eb2e1e21395382155b532"
+content-hash = "20c9fb1547bc773d572566c54bb3cd4d9adbea148a5d18059d5968b976994bdc"
 python-versions = "3.6.9"
 
 [metadata.files]
+absl-py = [
+    {file = "absl-py-0.9.0.tar.gz", hash = "sha256:75e737d6ce7723d9ff9b7aa1ba3233c34be62ef18d5859e706b8fdc828989830"},
+]
 atomicwrites = [
     {file = "atomicwrites-1.3.0-py2.py3-none-any.whl", hash = "sha256:03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4"},
     {file = "atomicwrites-1.3.0.tar.gz", hash = "sha256:75a9445bac02d8d058d5e1fe689654ba5a6556a1dfd8ce6ec55a0ed79866cfa6"},
@@ -537,6 +577,17 @@ idna = [
 importlib-metadata = [
     {file = "importlib_metadata-1.5.0-py2.py3-none-any.whl", hash = "sha256:b97607a1a18a5100839aec1dc26a1ea17ee0d93b20b0f008d80a5a050afb200b"},
     {file = "importlib_metadata-1.5.0.tar.gz", hash = "sha256:06f5b3a99029c7134207dd882428a66992a9de2bef7c2b699b5641f9886c3302"},
+]
+jax = [
+    {file = "jax-0.1.62.tar.gz", hash = "sha256:0cd8eca934aced8784ebed2c4cc7ea1999c34f6b437fcb1370f67248949c2fac"},
+]
+jaxlib = [
+    {file = "jaxlib-0.1.43-cp36-none-macosx_10_9_x86_64.whl", hash = "sha256:1b9fd8a29755c213e950a8eae128a1fed15e1055bea872e3b00e07ab9b00c05e"},
+    {file = "jaxlib-0.1.43-cp36-none-manylinux2010_x86_64.whl", hash = "sha256:74490dd3c2e37492dbefc040a059bdedf0ba62d5d68c51d43181ac6c1aa14518"},
+    {file = "jaxlib-0.1.43-cp37-none-macosx_10_9_x86_64.whl", hash = "sha256:a82b68665c0f3ef94afb790cec9f300c08ceca8248d73474e940033a133e8d52"},
+    {file = "jaxlib-0.1.43-cp37-none-manylinux2010_x86_64.whl", hash = "sha256:2dd207d8644186d7dcb8a35a85b1af0a822f1240425554ddaa8f93f9568f3962"},
+    {file = "jaxlib-0.1.43-cp38-none-macosx_10_9_x86_64.whl", hash = "sha256:31a3c55e28eaa9182e084e6233400d6e7d24f8eb9102f27e46bf52e8c8db2e02"},
+    {file = "jaxlib-0.1.43-cp38-none-manylinux2010_x86_64.whl", hash = "sha256:2beb7c0aed39ebdea4f07c04fdad491be544b627bb5194698466fa385684c070"},
 ]
 kiwisolver = [
     {file = "kiwisolver-1.1.0-cp27-cp27m-macosx_10_6_intel.macosx_10_9_intel.macosx_10_9_x86_64.macosx_10_10_intel.macosx_10_10_x86_64.whl", hash = "sha256:7f4dd50874177d2bb060d74769210f3bce1af87a8c7cf5b37d032ebf94f0aca3"},
