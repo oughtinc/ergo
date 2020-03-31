@@ -5,13 +5,29 @@ import jax.numpy as np
 from jax import grad, jit, scipy, nn
 from jax.experimental.optimizers import clip_grads
 
+from dataclasses import dataclass
+
+from typing import List
+
+
+@dataclass
+class LogisticParams():
+    loc: float
+    scale: float
+
+
+@dataclass
+class LogisticMixtureParams():
+    components: List[LogisticParams]
+    probs: List[float]
+
 
 def fit_single_scipy(samples):
     with onp.errstate(all='raise'):
         loc, scale = oscipy.stats.logistic.fit(samples)
         scale = min(max(scale, 0.02), 10)
         loc = min(max(loc, -0.1565), 1.1565)
-        return loc, scale
+        return LogisticParams(loc, scale)
 
 
 def logistic_logpdf(x, loc, scale):
@@ -44,14 +60,20 @@ grad_mixture_logpdf = jit(grad(mixture_logpdf, argnums=1))
 def initialize_components(num_components):
     # Each component has (location, scale, weight)
     # Weights sum to 1 (are given in log space)
-    # Use onp to initialize parameters since we don't want to track randomness
-    # here
+    # We use onp to initialize parameters since we don't want to track randomness
     components = onp.random.rand(num_components, 3) * 0.1 + 1.
     components[:, 2] = -num_components
     return components
 
 
-def fit_mixture(data, num_components=3):
+def structure_mixture_params(components) -> LogisticMixtureParams:
+  unnormalized_weights = components[:, 2]
+  probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
+  component_params = [LogisticParams(component[0], component[1]) for component in components]
+  return LogisticMixtureParams(components=component_params, probs=probs)
+
+
+def fit_mixture(data, num_components=3) -> LogisticMixtureParams:
     step_size = 0.01
     components = initialize_components(num_components)
     for n in range(1000):
@@ -65,12 +87,11 @@ def fit_mixture(data, num_components=3):
         if n % 100 == 0:
             score = mixture_logpdf(data, components)
             print(f"Log score: {score:.3f}")
-    return components
+    return structure_mixture_params(components)
 
 
-def fit_single(samples):
-    components = fit_mixture(samples, num_components=1)
-    loc = float(components[0][0])
-    scale = float(components[0][1])
-    return loc, scale
+def fit_single(samples) -> LogisticParams:
+    params = fit_mixture(samples, num_components=1)
+    return params.components[0]
+
 

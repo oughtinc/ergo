@@ -160,17 +160,18 @@ class ContinuousQuestion(MetaculusQuestion):
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
     def get_prediction(self, samples):
+        # TODO: Use logistic.fit_mixture, pass LogisticMixtureParams on to other functions
         try:
             normalized_samples = self.normalize_samples(samples)
-            loc, scale = logistic.fit_single(normalized_samples)
+            params = logistic.fit_single_scipy(normalized_samples)
         except FloatingPointError:
             print("Error on " + self.area)
             traceback.print_exc()
         else:
             return {
                 "normalized_samples": normalized_samples,
-                "loc": loc,
-                "scale": scale
+                "loc": params.loc,
+                "scale": params.scale
             }
 
     def submit_from_samples(self, samples):

@@ -1,17 +1,25 @@
 import pytest
 
-from ergo.logistic import fit_single_scipy, fit_single
+from ergo.logistic import fit_single_scipy, fit_single, fit_mixture
 
 def test_fit_single_scipy():
-    loc, scale = fit_single_scipy([0.1, 0.2])
-    assert 0.13 < loc < 0.17
+    params = fit_single_scipy([0.1, 0.2])
+    assert params.loc == pytest.approx(0.15, abs=0.02)
 
 def test_fit_single_jax():
-    loc, scale = fit_single([0.1, 0.2])
-    assert 0.13 < loc < 0.17
+    params = fit_single([0.1, 0.2])
+    assert params.loc == pytest.approx(0.15, abs=0.02)
 
 def test_fit_single_compare():
-    loc1, scale1 = fit_single_scipy([0.1, 0.2])
-    loc2, scale2 = fit_single([0.1, 0.2])
-    assert abs(loc1 - loc2) < 0.1
-    assert abs(scale1 - scale2) < 0.1
+    scipy_params = fit_single_scipy([0.1, 0.2])
+    jax_params = fit_single([0.1, 0.2])
+    assert scipy_params.loc == pytest.approx(jax_params.loc, abs=0.1)
+    assert scipy_params.scale == pytest.approx(jax_params.scale, abs=0.1)
+
+def test_fit_mixture():
+    params = fit_mixture([0.1, 0.2, 0.8, 0.9], num_components=2)
+    for prob in params.probs:
+        assert prob == pytest.approx(0.5, 0.05)
+    locs = sorted([component.loc for component in params.components])
+    assert locs[0] == pytest.approx(0.15, abs=0.05)
+    assert locs[1] == pytest.approx(0.85, abs=0.05)
