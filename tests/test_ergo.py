@@ -120,9 +120,9 @@ class TestPandemic:
     metaculus = ergo.Metaculus(test_uname, test_pwd, api_domain="pandemic")
     sf_question = metaculus.get_question(3931)
 
-    # def test_show_prediction(self):
-    #     self.sf_question.show_raw_prediction(
-    #         tests.mocks.samples)
+    def test_show_raw_prediction(self):
+        self.sf_question.show_raw_prediction(
+            tests.mocks.samples)
 
-    # def test_show_performance(self):
-    #     self.sf_question.show_performance()
+    def test_show_performance(self):
+        self.sf_question.show_performance()

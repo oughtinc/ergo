@@ -91,6 +91,10 @@ class MetaculusQuestion:
             return self.deriv_ratio != 1
         return False
 
+    @property
+    def latest_community_prediction(self):
+        return self.prediction_timeseries[-1]["community_prediction"]
+
     def __getattr__(self, name):
         if name in self.data:
             if name.endswith("_time"):
@@ -148,11 +152,16 @@ class ContinuousQuestion(MetaculusQuestion):
 
     def show_raw_prediction(self, samples):
         pyplot.figure()
+        pyplot.title(str(self))
         loc, scale = stats.logistic.fit(samples)
-        rv = stats.logistic(loc, scale)
+        prediction_rv = stats.logistic(loc, scale)
         seaborn.distplot(
             samples, label="samples")
-        seaborn.distplot(np.array(rv.rvs(1000)), label="prediction")
+        seaborn.distplot(np.array(prediction_rv.rvs(1000)), label="prediction")
+        # community_dist = self.hydrate_prediction(
+        #     self.latest_community_prediction)
+        # seaborn.distplot(np.array(community_dist.rvs(1000)),
+        #                  label="community prediction")
         pyplot.legend()
         pyplot.show()
 
@@ -187,13 +196,13 @@ class ContinuousQuestion(MetaculusQuestion):
                 "scale": scale
             }
 
-    def show_prediction(self, samples):
+    def show_scaled_submission(self, samples):
         pyplot.figure()
         submission = self.get_prediction(samples)
-        rv = stats.logistic(submission["loc"], submission["scale"])
+        submission_rv = stats.logistic(submission["loc"], submission["scale"])
         seaborn.distplot(
             np.array(submission["normalized_samples"]), label="samples")
-        seaborn.distplot(np.array(rv.rvs(1000)), label="prediction")
+        seaborn.distplot(np.array(submission_rv.rvs(1000)), label="prediction")
         pyplot.legend()
         pyplot.show()
 
@@ -262,8 +271,7 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_scored_predictions(self):
         resolution = self.resolution
         if resolution is None:
-            last_community_prediction = self.prediction_timeseries[-1]["community_prediction"]
-            resolution = last_community_prediction["q2"]
+            resolution = self.latest_community_prediction["q2"]
         predictions = self.my_predictions["predictions"]
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
@@ -272,11 +280,10 @@ class ContinuousQuestion(MetaculusQuestion):
             self.metaculus_scale["min"]
 
         def scale_param(param):
-            return param * scaling_factor + + self.metaculus_scale["min"]
+            return param * scaling_factor + self.metaculus_scale["min"]
 
-        prediction = self.my_predictions["predictions"][0]
         d = prediction["d"][0]
-        dist = stats.logistic(scale=scale_param(
+        return stats.logistic(scale=scale_param(
             d["s"]), loc=scale_param(d["x0"]))
 
     def show_performance(self):
