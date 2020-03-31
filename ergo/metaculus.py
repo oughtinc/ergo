@@ -9,6 +9,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
 
+import ergo.logistic as logistic
+
 from typing import Optional, List, Any
 from typing_extensions import Literal
 from dataclasses import dataclass, asdict
@@ -160,7 +162,7 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_prediction(self, samples):
         try:
             normalized_samples = self.normalize_samples(samples)
-            loc, scale = self.fit_single_logistic(normalized_samples)
+            loc, scale = logistic.fit_single(normalized_samples)
         except FloatingPointError:
             print("Error on " + self.area)
             traceback.print_exc()
@@ -248,13 +250,6 @@ class ContinuousQuestion(MetaculusQuestion):
             else:
                 samples = (samples - self.min) / (self.max - self.min)
         return samples
-
-    def fit_single_logistic(self, samples):
-        with np.errstate(all='raise'):
-            loc, scale = stats.logistic.fit(samples)
-            scale = min(max(scale, 0.02), 10)
-            loc = min(max(loc, -0.1565), 1.1565)
-            return loc, scale
 
 
 class Metaculus:
