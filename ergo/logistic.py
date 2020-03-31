@@ -2,7 +2,8 @@ import numpy as onp
 import scipy as oscipy
 
 import jax.numpy as np
-from jax import grad, jit, scipy, nn, DeviceArray
+from jax import grad, jit, scipy, nn
+from jax.interpreters.xla import DeviceArray
 from jax.experimental.optimizers import clip_grads
 
 from dataclasses import dataclass
