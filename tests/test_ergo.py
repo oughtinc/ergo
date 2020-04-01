@@ -96,7 +96,6 @@ class TestMetaculus:
 
 class TestPPL:
     def test_sampling(self):
-        @ergo.model
         def model():
             x = ergo.lognormal_from_interval(1, 10, name="x")
             y = ergo.beta_from_hits(2, 10, name="y")

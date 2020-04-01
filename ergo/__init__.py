@@ -9,7 +9,6 @@ from .metaculus import Metaculus, MetaculusQuestion
 from .ppl import (
     sample,
     tag,
-    model,
     bernoulli,
     normal,
     lognormal,

@@ -137,6 +137,7 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     1. Run model forward, record samples for variables
     2. Return dataframe with one row for each execution
     """
+    model = name_count(model)
     samples: Dict[str, List[float]] = {}
     for i in tqdm.trange(num_samples):
         trace = pyro.poutine.trace(model).get_trace()
@@ -171,6 +172,8 @@ def infer_and_run(
         for k, v in quantiles.items():
             print(f"{k}: {v[1]:.4f} [{v[0]:.4f}, {v[2]:.4f}]")
 
+    model = name_count(model)
+    
     # Automatically chooses a normal distribution for each variable
     guide = pyro.infer.autoguide.AutoNormal(
         model, init_loc_fn=pyro.infer.autoguide.init_to_median
@@ -209,5 +212,3 @@ def infer_and_run(
     raw_samples = predictive(training=False)
     return pd.DataFrame(to_numpy(raw_samples))
 
-
-model = name_count
