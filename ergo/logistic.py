@@ -53,6 +53,7 @@ def mixture_logpdf_single(datum, components):
                 datum, loc, scale) + weight)
     return scipy.special.logsumexp(np.array(component_scores))
 
+
 @jit
 def mixture_logpdf(data, components):
     scores = vmap(lambda datum: mixture_logpdf_single(datum, components))(data)
@@ -65,22 +66,26 @@ grad_mixture_logpdf = jit(grad(mixture_logpdf, argnums=1))
 def initialize_components(num_components):
     # Each component has (location, scale, weight)
     # Weights sum to 1 (are given in log space)
-    # We use onp to initialize parameters since we don't want to track randomness
+    # We use onp to initialize parameters since we don't want to track
+    # randomness
     components = onp.random.rand(num_components, 3) * 0.1 + 1.
     components[:, 2] = -num_components
     return components
 
 
 def structure_mixture_params(components) -> LogisticMixtureParams:
-  unnormalized_weights = components[:, 2]
-  probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
-  component_params = [LogisticParams(component[0], component[1]) for component in components]
-  return LogisticMixtureParams(components=component_params, probs=probs)
+    unnormalized_weights = components[:, 2]
+    probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
+    component_params = [
+        LogisticParams(
+            component[0],
+            component[1]) for component in components]
+    return LogisticMixtureParams(components=component_params, probs=probs)
 
 
 def fit_mixture(data, num_components=3) -> LogisticMixtureParams:
     step_size = 0.01
-    components = initialize_components(num_components)    
+    components = initialize_components(num_components)
     (init_fun, update_fun, get_params) = sgd(step_size)
     opt_state = init_fun(components)
     for i in range(1000):

@@ -5,13 +5,16 @@ import jax.numpy as np
 
 from ergo.logistic import fit_single_scipy, fit_single, fit_mixture
 
+
 def test_fit_single_scipy():
     params = fit_single_scipy(onp.array([0.1, 0.2]))
     assert params.loc == pytest.approx(0.15, abs=0.02)
 
+
 def test_fit_single_jax():
     params = fit_single(np.array([0.1, 0.2]))
     assert params.loc == pytest.approx(0.15, abs=0.02)
+
 
 def test_fit_single_compare():
     scipy_params = fit_single_scipy(onp.array([0.1, 0.2]))
