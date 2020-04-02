@@ -1,3 +1,5 @@
+import tqdm
+
 import numpy as onp
 import scipy as oscipy
 
@@ -83,22 +85,22 @@ def structure_mixture_params(components) -> LogisticMixtureParams:
     return LogisticMixtureParams(components=component_params, probs=probs)
 
 
-def fit_mixture(data, num_components=3) -> LogisticMixtureParams:
+def fit_mixture(data, num_components=3, verbose=False) -> LogisticMixtureParams:
     step_size = 0.01
     components = initialize_components(num_components)
     (init_fun, update_fun, get_params) = sgd(step_size)
     opt_state = init_fun(components)
-    for i in range(1000):
+    for i in tqdm.trange(5000):
         components = get_params(opt_state)
         grads = -grad_mixture_logpdf(data, components)
-        if np.any(np.isnan(grads)):
+        if np.any(np.isnan(grads)) and verbose:
             print("Encoutered nan gradient, stopping")
             print(grads)
             print(components)
             break
         grads = clip_grads(grads, 1.0)
         opt_state = update_fun(i, grads, opt_state)
-        if i % 100 == 0:
+        if i % 500 == 0 and verbose:
             pprint(components)
             score = mixture_logpdf(data, components)
             print(f"Log score: {score:.3f}")
