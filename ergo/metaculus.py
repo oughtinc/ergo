@@ -152,8 +152,7 @@ class ContinuousQuestion(MetaculusQuestion):
             samples = np.maximum(samples, epsilon)
             samples = samples / self.question_range["min"]
             return np.log(samples) / np.log(self.deriv_ratio)
-        else:
-            return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
+        return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
 
     def get_loc_scale(self, samples) -> Tuple[float, float]:
         normalized_samples = self.normalize_samples(samples)
