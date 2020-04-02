@@ -2,11 +2,12 @@ import numpy as onp
 import scipy as oscipy
 
 import jax.numpy as np
-from jax import grad, jit, scipy, nn
+from jax import grad, jit, scipy, nn, vmap
 from jax.interpreters.xla import DeviceArray
-from jax.experimental.optimizers import clip_grads
+from jax.experimental.optimizers import clip_grads, adam, sgd
 
 from dataclasses import dataclass
+from pprint import pprint
 
 from typing import List
 
@@ -31,6 +32,7 @@ def fit_single_scipy(samples) -> LogisticParams:
         return LogisticParams(loc, scale)
 
 
+@jit
 def logistic_logpdf(x, loc, scale) -> DeviceArray:
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.logistic.html
     y = (x - loc) / scale
@@ -38,21 +40,23 @@ def logistic_logpdf(x, loc, scale) -> DeviceArray:
 
 
 @jit
+def mixture_logpdf_single(datum, components):
+    component_scores = []
+    unnormalized_weights = np.array(
+        [component[2] for component in components])
+    weights = nn.log_softmax(unnormalized_weights)
+    for component, weight in zip(components, weights):
+        loc = component[0]
+        scale = np.max([component[1], 0.01])   # Find a better solution?
+        component_scores.append(
+            logistic_logpdf(
+                datum, loc, scale) + weight)
+    return scipy.special.logsumexp(np.array(component_scores))
+
+@jit
 def mixture_logpdf(data, components):
-    score = 0.0
-    for datum in data:
-        component_scores = []
-        unnormalized_weights = np.array(
-            [component[2] for component in components])
-        weights = nn.log_softmax(unnormalized_weights)
-        for component, weight in zip(components, weights):
-            loc = component[0]
-            scale = abs(component[1])   # Find a better solution?
-            component_scores.append(
-                logistic_logpdf(
-                    datum, loc, scale) + weight)
-        score += scipy.special.logsumexp(np.array(component_scores))
-    return score
+    scores = vmap(lambda datum: mixture_logpdf_single(datum, components))(data)
+    return np.sum(scores)
 
 
 grad_mixture_logpdf = jit(grad(mixture_logpdf, argnums=1))
@@ -76,16 +80,21 @@ def structure_mixture_params(components) -> LogisticMixtureParams:
 
 def fit_mixture(data, num_components=3) -> LogisticMixtureParams:
     step_size = 0.01
-    components = initialize_components(num_components)
-    for n in range(1000):
-        grads = grad_mixture_logpdf(data, components)
-        grads = clip_grads(grads, 1.0)
-        if np.any(np.isnan(grads)) or np.any(np.isnan(components)):
+    components = initialize_components(num_components)    
+    (init_fun, update_fun, get_params) = sgd(step_size)
+    opt_state = init_fun(components)
+    for i in range(1000):
+        components = get_params(opt_state)
+        grads = -grad_mixture_logpdf(data, components)
+        if np.any(np.isnan(grads)):
+            print("Encoutered nan gradient, stopping")
             print(grads)
             print(components)
             break
-        components = components + step_size * grads
-        if n % 100 == 0:
+        grads = clip_grads(grads, 1.0)
+        opt_state = update_fun(i, grads, opt_state)
+        if i % 100 == 0:
+            pprint(components)
             score = mixture_logpdf(data, components)
             print(f"Log score: {score:.3f}")
     return structure_mixture_params(components)
