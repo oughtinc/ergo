@@ -110,3 +110,12 @@ def fit_mixture(data, num_components=3, verbose=False) -> LogisticMixtureParams:
 def fit_single(samples) -> LogisticParams:
     params = fit_mixture(samples, num_components=1)
     return params.components[0]
+
+
+if __name__ == "__main__":
+    data1 = onp.random.logistic(loc=0.7, scale=0.1, size=2000)
+    data2 = onp.random.logistic(loc=0.4, scale=0.2, size=1000)
+    data3 = onp.random.logistic(loc=0.2, scale=0.1, size=2000)
+    data = onp.concatenate([data1, data2, data3])
+    params = fit_mixture(data, num_components=3)
+    pprint(params)
