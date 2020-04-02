@@ -2,14 +2,19 @@ import tqdm
 
 import numpy as onp
 import scipy as oscipy
+import torch
+import seaborn
 
 import jax.numpy as np
+import matplotlib.pyplot as pyplot
 from jax import grad, jit, scipy, nn, vmap
 from jax.interpreters.xla import DeviceArray
 from jax.experimental.optimizers import clip_grads, adam, sgd
 
 from dataclasses import dataclass
 from pprint import pprint
+
+from ergo.ppl import categorical
 
 from typing import List
 
@@ -85,12 +90,12 @@ def structure_mixture_params(components) -> LogisticMixtureParams:
     return LogisticMixtureParams(components=component_params, probs=probs)
 
 
-def fit_mixture(data, num_components=3, verbose=False) -> LogisticMixtureParams:
+def fit_mixture(data, num_components=3, verbose=False, num_samples=5000) -> LogisticMixtureParams:
     step_size = 0.01
     components = initialize_components(num_components)
     (init_fun, update_fun, get_params) = sgd(step_size)
     opt_state = init_fun(components)
-    for i in tqdm.trange(5000):
+    for i in tqdm.trange(num_samples):
         components = get_params(opt_state)
         grads = -grad_mixture_logpdf(data, components)
         if np.any(np.isnan(grads)) and verbose:
@@ -110,3 +115,20 @@ def fit_mixture(data, num_components=3, verbose=False) -> LogisticMixtureParams:
 def fit_single(samples) -> LogisticParams:
     params = fit_mixture(samples, num_components=1)
     return params.components[0]
+
+
+def plot_mixture(params: LogisticMixtureParams, data=None):
+    def sample_logistic_mixture(mixture_params):
+        i = categorical(torch.Tensor(mixture_params.probs))
+        component_params = mixture_params.components[i]
+        return onp.random.logistic(loc=component_params.loc, scale=component_params.scale)
+    learned_samples = np.array([sample_logistic_mixture(
+        params) for _ in range(5000)])
+    seaborn.distplot(learned_samples, label="mixture")
+
+    if data is not None:
+        seaborn.distplot(data, label="data")
+
+    # for some reason mypy incorrectly thinks that there is no pyplot.legend
+    pyplot.legend()  # type: ignore
+    pyplot.show()

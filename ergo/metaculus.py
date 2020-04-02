@@ -4,7 +4,7 @@ import pendulum
 import scipy
 # scipy importing guidelines: https://docs.scipy.org/doc/scipy/reference/api.html
 from scipy import stats
-import seaborn  # type: ignore
+import seaborn
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
