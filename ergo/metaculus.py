@@ -309,7 +309,7 @@ class Metaculus:
     def get_question(self, id: int, name=None) -> MetaculusQuestion:
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
-        return self.make_question_from_data(data)
+        return self.make_question_from_data(data, name)
 
     def get_prediction_results(self) -> pd.DataFrame:
         questions_data = self.get_questions_json(
