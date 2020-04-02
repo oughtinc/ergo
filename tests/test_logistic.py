@@ -47,12 +47,11 @@ def test_fit_mixture_large():
 
 # visual tests, comment out usually
 
-
-def test_visual_plot_mixture():
-    samples = onp.concatenate(
-        [onp.random.normal(loc=0.1, scale=0.1, size=1500),
-         onp.random.normal(loc=0.5, scale=0.1, size=1500),
-         onp.random.logistic(loc=0.9, scale=0.1, size=2000)])
-    onp.random.shuffle(samples)
-    mixture_params = fit_mixture(samples, num_components=5, num_samples=1000)
-    plot_mixture(mixture_params, samples)
+# def test_visual_plot_mixture():
+#     samples = onp.concatenate(
+#         [onp.random.normal(loc=0.1, scale=0.1, size=1500),
+#          onp.random.normal(loc=0.5, scale=0.1, size=1500),
+#          onp.random.logistic(loc=0.9, scale=0.1, size=2000)])
+#     onp.random.shuffle(samples)
+#     mixture_params = fit_mixture(samples, num_components=5, num_samples=1000)
+#     plot_mixture(mixture_params, samples)
