@@ -153,14 +153,11 @@ class ContinuousQuestion(MetaculusQuestion):
             samples = samples / self.question_range["min"]
             return np.log(samples) / np.log(self.deriv_ratio)
         else:
-            print("normalizing with",
-                  self.question_range["min"], self.question_range["max"])
             return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
 
     def get_loc_scale(self, samples) -> Tuple[float, float]:
         normalized_samples = self.normalize_samples(samples)
         loc, scale = stats.logistic.fit(normalized_samples)
-        print("from normalized", loc, scale)
 
         # The scale and loc have to be within a certain range for the Metaculus API to accept the prediction.
         # Based on playing with the API, we think that the ranges specified below are the widest possible.
@@ -170,7 +167,6 @@ class ContinuousQuestion(MetaculusQuestion):
         return (clipped_loc, clipped_scale)
 
     def get_submission(self, scale, loc) -> ContinuousSubmission:
-        print(loc, scale)
         distribution = stats.logistic(loc, scale)
         # We're not really sure what the deal with the low and high is.
         # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
@@ -191,39 +187,21 @@ class ContinuousQuestion(MetaculusQuestion):
     # from the normalized prediction (Metaculus uses the normalized prediction)
     # TODO: instead of returning a regular logistic,
     # return a logistic that's cut off below the low and above the high, like for the Metaculus distribution
-    def get_true_scale_prediction(self, normalized_x0: float, normalized_s: float):
+    def get_true_scale_prediction(self, normalized_s: float, normalized_x0: float):
         if self.is_log:
             raise NotImplementedError(
                 "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
-
-        print("normalized_x0", normalized_x0)
-
-        percent_scale = normalized_s / 10
-        percent_loc = (normalized_x0 - (-0.1565)) / (1.1565 - (-0.1565))
-
-        print("percent_scale", percent_scale)
-        print("percent_loc", percent_loc)
-
         scaling_factor = self.question_range["max"] - \
             self.question_range["min"]
 
         def scale_param(param):
             return param * scaling_factor + self.question_range["min"]
 
-        scaled_loc = scale_param(
-            percent_loc)
-
-        scaled_scale = scale_param(
-            percent_scale)
-
-        print("scaled_loc", scaled_loc)
-        print("scaled_scale", scaled_scale)
-
-        return stats.logistic(loc=scaled_loc, scale=scaled_scale)
+        return stats.logistic(scale=scale_param(
+            normalized_s), loc=scale_param(normalized_x0))
 
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
-        print(submission)
         submission_rv = self.get_true_scale_prediction(
             submission.scale, submission.loc)
         pyplot.figure()
