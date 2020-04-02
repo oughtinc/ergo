@@ -68,18 +68,6 @@ class MetaculusQuestion:
         return self.possibilities["type"]
 
     @property
-    def min(self) -> Optional[float]:
-        if self.is_continuous:
-            return self.possibilities["scale"]["min"]
-        return None
-
-    @property
-    def max(self) -> Optional[float]:
-        if self.is_continuous:
-            return self.possibilities["scale"]["max"]
-        return None
-
-    @property
     def deriv_ratio(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["deriv_ratio"]
@@ -160,30 +148,30 @@ class ContinuousQuestion(MetaculusQuestion):
 
     # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
     def normalize_samples(self, samples, epsilon=1e-9):
-        if self.is_continuous:
-            if self.is_log:
-                samples = np.maximum(samples, epsilon)
-                samples = samples / self.min
-                samples = np.log(samples) / np.log(self.deriv_ratio)
-            else:
-                samples = (samples - self.min) / (self.max - self.min)
-        return samples
+        if self.is_log:
+            samples = np.maximum(samples, epsilon)
+            samples = samples / self.question_range["min"]
+            return np.log(samples) / np.log(self.deriv_ratio)
+        else:
+            print("normalizing with",
+                  self.question_range["min"], self.question_range["max"])
+            return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
 
-    def get_scale_loc(self, samples) -> Tuple[float, float]:
+    def get_loc_scale(self, samples) -> Tuple[float, float]:
         normalized_samples = self.normalize_samples(samples)
-        loc, scale = stats.logistic.fit(samples)
+        loc, scale = stats.logistic.fit(normalized_samples)
+        print("from normalized", loc, scale)
 
         # The scale and loc have to be within a certain range for the Metaculus API to accept the prediction.
         # Based on playing with the API, we think that the ranges specified below are the widest possible.
         # TODO: confirm that this is actually true, could well be wrong
-        clipped_scale = min(max(scale, 0.02), 10)
         clipped_loc = min(max(loc, -0.1565), 1.1565)
-        print("get_scale_loc", scale, loc)
-        return (clipped_scale, clipped_loc)
+        clipped_scale = min(max(scale, 0.02), 10)
+        return (clipped_loc, clipped_scale)
 
     def get_submission(self, scale, loc) -> ContinuousSubmission:
-        print(scale, loc)
-        distribution = stats.logistic(scale, loc)
+        print(loc, scale)
+        distribution = stats.logistic(loc, scale)
         # We're not really sure what the deal with the low and high is.
         # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
         # and ignores porbability mass assigned below/above.
@@ -193,28 +181,45 @@ class ContinuousQuestion(MetaculusQuestion):
         # then the API will reject the prediction, though we haven't tested that extensively)
         low = max(distribution.cdf(0), 0.01) if self.low_open else 0
         high = min(distribution.cdf(1), 0.99) if self.high_open else 1
-        return ContinuousSubmission(scale, loc, low, high)
+        return ContinuousSubmission(loc, scale, low, high)
 
     def get_submission_from_samples(self, samples) -> ContinuousSubmission:
-        scale, loc = self.get_scale_loc(samples)
+        loc, scale = self.get_loc_scale(samples)
         return self.get_submission(scale, loc)
 
     # Get the prediction on the actual scale of the question,
     # from the normalized prediction (Metaculus uses the normalized prediction)
     # TODO: instead of returning a regular logistic,
     # return a logistic that's cut off below the low and above the high, like for the Metaculus distribution
-    def get_true_scale_prediction(self, normalized_s: float, normalized_x0: float):
+    def get_true_scale_prediction(self, normalized_x0: float, normalized_s: float):
         if self.is_log:
             raise NotImplementedError(
                 "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
+
+        print("normalized_x0", normalized_x0)
+
+        percent_scale = normalized_s / 10
+        percent_loc = (normalized_x0 - (-0.1565)) / (1.1565 - (-0.1565))
+
+        print("percent_scale", percent_scale)
+        print("percent_loc", percent_loc)
+
         scaling_factor = self.question_range["max"] - \
             self.question_range["min"]
 
         def scale_param(param):
             return param * scaling_factor + self.question_range["min"]
 
-        return stats.logistic(scale=scale_param(
-            normalized_s), loc=scale_param(normalized_x0))
+        scaled_loc = scale_param(
+            percent_loc)
+
+        scaled_scale = scale_param(
+            percent_scale)
+
+        print("scaled_loc", scaled_loc)
+        print("scaled_scale", scaled_scale)
+
+        return stats.logistic(loc=scaled_loc, scale=scaled_scale)
 
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
@@ -225,7 +230,8 @@ class ContinuousQuestion(MetaculusQuestion):
         pyplot.title(f"{self} prediction")
         seaborn.distplot(
             np.array(samples), label="samples")
-        seaborn.distplot(np.array(submission_rv.rvs(1000)), label="prediction")
+        seaborn.distplot(np.array(submission_rv.rvs(1000)),
+                         label="prediction")
         pyplot.legend()
         pyplot.show()
 
