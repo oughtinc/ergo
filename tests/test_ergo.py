@@ -29,25 +29,29 @@ class TestMetaculus:
         # make sure we're getting the user-specific data
         assert "my_predictions" in self.continuous_linear_open_question.data
 
-    def test_submission_continuous_linear_open(self):
+    def test_submit_continuous_linear_open(self):
         submission = self.continuous_linear_open_question.get_submission(
             0.534894790856232, 0.02)
         r = self.continuous_linear_open_question.submit(submission)
         assert r.status_code == 202
 
-    def test_submission_continuous_linear_closed(self):
+    def test_submit_continuous_linear_closed(self):
         submission = self.continuous_linear_closed_question.get_submission(
             0.534894790856232, 0.02)
         r = self.continuous_linear_closed_question.submit(submission)
         assert r.status_code == 202
 
-    def test_submission_continuous_log_open(self):
+    def test_submit_continuous_log_open(self):
         submission = self.continuous_log_open_question.get_submission(
             0.534894790856232, 0.02)
         r = self.continuous_log_open_question.submit(submission)
         assert r.status_code == 202
 
-    def test_submission_for_closed_question_fails(self):
+    def test_submit_binary(self):
+        r = self.binary_question.submit(0.95)
+        assert r.status_code == 202
+
+    def test_submit_closed_question_fails(self):
         with pytest.raises(requests.exceptions.HTTPError):
             submission = self.closed_question.get_submission(
                 0.534894790856232, 0.02)

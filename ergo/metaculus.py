@@ -124,6 +124,15 @@ class BinaryQuestion(MetaculusQuestion):
         predictions = self.my_predictions["predictions"]
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
+    def submit(self, p: float):
+        return self.metaculus.post(
+            f"{self.metaculus.api_url}/questions/{self.id}/predict/",
+            {
+                "prediction": p,
+                "void": False
+            }
+        )
+
 
 @dataclass
 class ContinuousSubmission:
@@ -226,24 +235,10 @@ class ContinuousQuestion(MetaculusQuestion):
             "void": False
         }
 
-        r = self.metaculus.s.post(
+        return self.metaculus.post(
             f"""{self.metaculus.api_url}/questions/{self.id}/predict/""",
-            headers={
-                "Content-Type": "application/json",
-                "Referer": self.metaculus.api_url,
-                "X-CSRFToken": self.metaculus.s.cookies.get_dict()["csrftoken"]
-            },
-            data=json.dumps(prediction_data)
+            prediction_data
         )
-        try:
-            r.raise_for_status()
-
-        except requests.exceptions.HTTPError as e:
-            e.args = (str(
-                e.args), f"request body: {e.request.body}", f"response json: {e.response.json()}")
-            raise
-
-        return r
 
     def submit_from_samples(self, samples) -> requests.Response:
         submission = self.get_submission_from_samples(samples)
@@ -297,6 +292,26 @@ class Metaculus:
                         data=json.dumps({"username": username, "password": password}))
 
         self.user_id = r.json()['user_id']
+
+    def post(self, url: str, data: Dict):
+        r = self.s.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Referer": self.api_url,
+                "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"]
+            },
+            data=json.dumps(data)
+        )
+        try:
+            r.raise_for_status()
+
+        except requests.exceptions.HTTPError as e:
+            e.args = (str(
+                e.args), f"request body: {e.request.body}", f"response json: {e.response.json()}")
+            raise
+
+        return r
 
     def make_question_from_data(self, data=Dict, name=None) -> MetaculusQuestion:
         if(data["possibilities"]["type"] == "binary"):
