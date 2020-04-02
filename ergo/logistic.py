@@ -117,18 +117,18 @@ def fit_single(samples) -> LogisticParams:
     return params.components[0]
 
 
+def sample_mixture(mixture_params):
+    i = categorical(torch.Tensor(mixture_params.probs))
+    component_params = mixture_params.components[i]
+    return onp.random.logistic(loc=component_params.loc, scale=component_params.scale)
+
+
 def plot_mixture(params: LogisticMixtureParams, data=None):
-    def sample_logistic_mixture(mixture_params):
-        i = categorical(torch.Tensor(mixture_params.probs))
-        component_params = mixture_params.components[i]
-        return onp.random.logistic(loc=component_params.loc, scale=component_params.scale)
-    learned_samples = np.array([sample_logistic_mixture(
-        params) for _ in range(5000)])
-    seaborn.distplot(learned_samples, label="mixture")
-
+    learned_samples = np.array([sample_mixture(params) for _ in range(5000)])
+    ax = seaborn.distplot(learned_samples, label="Mixture")
+    ax.set(xlabel='Sample value', ylabel='Density')
     if data is not None:
-        seaborn.distplot(data, label="data")
-
+        seaborn.distplot(data, label="Data")
     # for some reason mypy incorrectly thinks that there is no pyplot.legend
     pyplot.legend()  # type: ignore
     pyplot.show()
