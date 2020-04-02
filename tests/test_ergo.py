@@ -30,24 +30,29 @@ class TestMetaculus:
         assert "my_predictions" in self.continuous_linear_open_question.data
 
     def test_submission_continuous_linear_open(self):
-        r = self.continuous_linear_open_question.submit(
+        submission = self.continuous_linear_open_question.get_submission(
             0.534894790856232, 0.02)
+        r = self.continuous_linear_open_question.submit(submission)
         assert r.status_code == 202
 
     def test_submission_continuous_linear_closed(self):
-        r = self.continuous_linear_closed_question.submit(
+        submission = self.continuous_linear_closed_question.get_submission(
             0.534894790856232, 0.02)
+        r = self.continuous_linear_closed_question.submit(submission)
         assert r.status_code == 202
 
     def test_submission_continuous_log_open(self):
-        r = self.continuous_log_open_question.submit(
+        submission = self.continuous_log_open_question.get_submission(
             0.534894790856232, 0.02)
+        r = self.continuous_log_open_question.submit(submission)
         assert r.status_code == 202
 
     def test_submission_for_closed_question_fails(self):
         with pytest.raises(requests.exceptions.HTTPError):
-            r = self.closed_question.submit(
+            submission = self.closed_question.get_submission(
                 0.534894790856232, 0.02)
+            r = self.closed_question.submit(submission)
+            print(r)
 
     def test_score_binary(self):
         # smoke test
@@ -61,34 +66,30 @@ class TestMetaculus:
         # smoke test
         self.metaculus.get_prediction_results()
 
-    def test_get_questions(self):
-        questions = self.metaculus.get_questions()
+    def test_get_questions_json(self):
+        questions = self.metaculus.get_questions_json()
         assert len(questions) >= 20
 
-    def test_get_questions_pages(self):
-        two_pages = self.metaculus.get_questions(pages=2)
+    def test_get_questions_json_pages(self):
+        two_pages = self.metaculus.get_questions_json(pages=2)
         assert len(two_pages) >= 40
 
-    def test_get_questions_end_of_pages(self):
-        all_pages = self.metaculus.get_questions(
-            player_status="predicted", pages=9999)
-        # basically just a smoke test to make sure it returns some results and doesn't just error
-        assert len(all_pages) > 1
-
     def test_get_questions_player_status(self):
-        qs_i_predicted = self.metaculus.get_questions(
-            player_status="predicted")
+        qs_i_predicted = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
+            player_status="predicted"))
         assert qs_i_predicted["i_predicted"].all()
 
-        not_predicted = self.metaculus.get_questions(
-            player_status="not-predicted")
+        not_predicted = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
+            player_status="not-predicted"))
         assert (not_predicted["i_predicted"] == False).all()
 
     def test_get_questions_question_status(self):
-        open = self.metaculus.get_questions(question_status="open")
+        open = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
+            question_status="open"))
         assert(open["close_time"] > pendulum.now()).all()
 
-        closed = self.metaculus.get_questions(question_status="closed")
+        closed = self.metaculus.make_questions_df(
+            self.metaculus.get_questions_json(question_status="closed"))
         assert(closed["close_time"] < pendulum.now()).all()
 
 
@@ -100,7 +101,7 @@ class TestPPL:
             y = ergo.beta_from_hits(2, 10, name="y")
             z = x * y
             ergo.tag(z, "z")
-        samples = ergo.run(model, num_samples=10000)
+        samples = ergo.run(model, num_samples=1000)
         stats = samples.describe()
         assert 3.5 < stats["x"]["mean"] < 4.5
         assert 0.1 < stats["y"]["mean"] < 0.3
@@ -120,8 +121,8 @@ class TestPandemic:
     metaculus = ergo.Metaculus(test_uname, test_pwd, api_domain="pandemic")
     sf_question = metaculus.get_question(3931)
 
-    def test_show_raw_prediction(self):
-        self.sf_question.show_raw_prediction(
+    def test_show_submission(self):
+        self.sf_question.show_submission(
             tests.mocks.samples)
 
     def test_show_performance(self):

@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
 
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict, Tuple
 from typing_extensions import Literal
 from dataclasses import dataclass, asdict
 
@@ -137,6 +137,14 @@ class BinaryQuestion(MetaculusQuestion):
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
 
+@dataclass
+class ContinuousSubmission:
+    loc: float
+    scale: float
+    low: float
+    high: float
+
+
 class ContinuousQuestion(MetaculusQuestion):
     @property
     def low_open(self) -> bool:
@@ -147,24 +155,10 @@ class ContinuousQuestion(MetaculusQuestion):
         return self.possibilities["high"] == "tail"
 
     @property
-    def metaculus_scale(self):
+    def question_range(self):
         return self.possibilities["scale"]
 
-    def show_raw_prediction(self, samples):
-        pyplot.figure()
-        pyplot.title(str(self))
-        loc, scale = stats.logistic.fit(samples)
-        prediction_rv = stats.logistic(loc, scale)
-        seaborn.distplot(
-            samples, label="samples")
-        seaborn.distplot(np.array(prediction_rv.rvs(1000)), label="prediction")
-        # community_dist = self.hydrate_prediction(
-        #     self.latest_community_prediction)
-        # seaborn.distplot(np.array(community_dist.rvs(1000)),
-        #                  label="community prediction")
-        pyplot.legend()
-        pyplot.show()
-
+    # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
     def normalize_samples(self, samples, epsilon=1e-9):
         if self.is_continuous:
             if self.is_log:
@@ -175,46 +169,74 @@ class ContinuousQuestion(MetaculusQuestion):
                 samples = (samples - self.min) / (self.max - self.min)
         return samples
 
-    def fit_single_logistic(self, samples):
-        with np.errstate(all='raise'):
-            loc, scale = stats.logistic.fit(samples)
-            scale = min(max(scale, 0.02), 10)
-            loc = min(max(loc, -0.1565), 1.1565)
-            return loc, scale
+    def get_scale_loc(self, samples) -> Tuple[float, float]:
+        normalized_samples = self.normalize_samples(samples)
+        loc, scale = stats.logistic.fit(samples)
 
-    def get_prediction(self, samples):
-        try:
-            normalized_samples = self.normalize_samples(samples)
-            loc, scale = self.fit_single_logistic(normalized_samples)
-        except FloatingPointError:
-            print("Error on " + self.area)
-            traceback.print_exc()
-        else:
-            return {
-                "normalized_samples": normalized_samples,
-                "loc": loc,
-                "scale": scale
-            }
+        # The scale and loc have to be within a certain range for the Metaculus API to accept the prediction.
+        # Based on playing with the API, we think that the ranges specified below are the widest possible.
+        # TODO: confirm that this is actually true, could well be wrong
+        clipped_scale = min(max(scale, 0.02), 10)
+        clipped_loc = min(max(loc, -0.1565), 1.1565)
+        print("get_scale_loc", scale, loc)
+        return (clipped_scale, clipped_loc)
 
-    def show_scaled_submission(self, samples):
+    def get_submission(self, scale, loc) -> ContinuousSubmission:
+        print(scale, loc)
+        distribution = stats.logistic(scale, loc)
+        # We're not really sure what the deal with the low and high is.
+        # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
+        # and ignores porbability mass assigned below/above.
+        # But we're not actually trying to use them to "cut off" our distribution in a smart way;
+        # we're just trying to include as much of our distribution as we can without the API getting unhappy
+        # (we belive that if you set the low higher than the value below [or if you set the high lower],
+        # then the API will reject the prediction, though we haven't tested that extensively)
+        low = max(distribution.cdf(0), 0.01) if self.low_open else 0
+        high = min(distribution.cdf(1), 0.99) if self.high_open else 1
+        return ContinuousSubmission(scale, loc, low, high)
+
+    def get_submission_from_samples(self, samples) -> ContinuousSubmission:
+        scale, loc = self.get_scale_loc(samples)
+        return self.get_submission(scale, loc)
+
+    # Get the prediction on the actual scale of the question,
+    # from the normalized prediction (Metaculus uses the normalized prediction)
+    # TODO: instead of returning a regular logistic,
+    # return a logistic that's cut off below the low and above the high, like for the Metaculus distribution
+    def get_true_scale_prediction(self, normalized_s: float, normalized_x0: float):
+        if self.is_log:
+            raise NotImplementedError(
+                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
+        scaling_factor = self.question_range["max"] - \
+            self.question_range["min"]
+
+        def scale_param(param):
+            return param * scaling_factor + self.question_range["min"]
+
+        return stats.logistic(scale=scale_param(
+            normalized_s), loc=scale_param(normalized_x0))
+
+    def show_submission(self, samples):
+        submission = self.get_submission_from_samples(samples)
+        print(submission)
+        submission_rv = self.get_true_scale_prediction(
+            submission.scale, submission.loc)
         pyplot.figure()
-        submission = self.get_prediction(samples)
-        submission_rv = stats.logistic(submission["loc"], submission["scale"])
+        pyplot.title(f"{self} prediction")
         seaborn.distplot(
-            np.array(submission["normalized_samples"]), label="samples")
+            np.array(samples), label="samples")
         seaborn.distplot(np.array(submission_rv.rvs(1000)), label="prediction")
         pyplot.legend()
         pyplot.show()
 
-    def submit(self, loc, scale):
-        submission = self.get_submission(loc, scale)
+    def submit(self, submission: ContinuousSubmission) -> requests.Response:
         prediction_data = {
             "prediction":
             {
                 "kind": "multi",
                 "d": [
                     {
-                        "kind": "logistic", "x0": submission["submission_loc"], "s": submission["submission_scale"], "w": 1, "low": submission["low"], "high": submission["high"]
+                        "kind": "logistic", "x0": submission.loc, "s": submission.scale, "w": 1, "low": submission.low, "high": submission.high
                     }
                 ]
             },
@@ -240,33 +262,16 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return r
 
-    def get_submission(self, submission_loc, submission_scale):
-        if not self.is_continuous:
-            raise NotImplementedError("Can only submit continuous questions!")
+    def submit_from_samples(self, samples) -> requests.Response:
+        submission = self.get_submission_from_samples(samples)
+        return self.submit(submission)
 
-        submission_scale = min(max(submission_scale, 0.02), 10)
-        submission_loc = min(max(submission_loc, 0), 1)
-        distribution = stats.logistic(submission_loc, submission_scale)
-
-        low = max(distribution.cdf(0), 0.01) if self.low_open else 0
-        high = min(distribution.cdf(1), 0.99) if self.high_open else 1
-        return {
-            "submission_scale": submission_scale,
-            "submission_loc": submission_loc,
-            "low": low,
-            "high": high
-        }
-
-    def submit_from_samples(self, samples):
-        submission = self.get_prediction(samples)
-        return self.submit(submission["loc"], submission["scale"])
-
-    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
+    def score_prediction(self, prediction_dict: Dict, resolution: float) -> ScoredPrediction:
         # TODO: handle predictions with multiple distributions
-        d = prediction["d"][0]
+        d = prediction_dict["d"][0]
         dist = stats.logistic(scale=d["s"], loc=d["x0"])
         score = dist.logpdf(resolution)
-        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
+        return ScoredPrediction(prediction_dict["t"], prediction_dict, resolution, score, self.__str__())
 
     def get_scored_predictions(self):
         resolution = self.resolution
@@ -275,21 +280,14 @@ class ContinuousQuestion(MetaculusQuestion):
         predictions = self.my_predictions["predictions"]
         return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
-    def hydrate_prediction(self, prediction):
-        scaling_factor = self.metaculus_scale["max"] - \
-            self.metaculus_scale["min"]
-
-        def scale_param(param):
-            return param * scaling_factor + self.metaculus_scale["min"]
-
-        d = prediction["d"][0]
-        return stats.logistic(scale=scale_param(
-            d["s"]), loc=scale_param(d["x0"]))
-
+    # TODO: show vs. Metaculus and vs. resolution if available
     def show_performance(self):
         prediction = self.my_predictions["predictions"][0]
-        dist = self.hydrate_prediction(prediction)
+        d = prediction["d"][0]
+        dist = self.get_true_scale_prediction(
+            d["s"], d["x0"])
         pyplot.figure()
+        pyplot.title(f"{self} latest prediction")
         seaborn.distplot(np.array(dist.rvs(1000)), label="prediction")
         pyplot.legend()
         pyplot.show()
@@ -317,53 +315,37 @@ class Metaculus:
 
         self.user_id = r.json()['user_id']
 
-    def get_question(self, id: int, name=None) -> MetaculusQuestion:
-        r = self.s.get(f"{self.api_url}/questions/{id}")
-        data = r.json()
+    def make_question_from_data(self, data=Dict, name=None) -> MetaculusQuestion:
         if(data["possibilities"]["type"] == "binary"):
-            return BinaryQuestion(id, self, data, name)
+            return BinaryQuestion(data["id"], self, data, name)
         if(data["possibilities"]["type"] == "continuous"):
-            return ContinuousQuestion(id, self, data, name)
+            return ContinuousQuestion(data["id"], self, data, name)
         raise NotImplementedError(
             "We couldn't determine whether this question was binary, continuous, or something else")
 
-    def get_predicted_questions(self) -> List[MetaculusQuestion]:
-        r = self.s.get(f"{self.api_url}/questions/?guessed_by={self.user_id}")
-        json_data = r.json()
-        results = json_data["results"]
-        question_ids = [result["id"] for result in results]
-        return [self.get_question(id) for id in question_ids]
-        # TODO: retrieve additional data if next link is not None
+    def get_question(self, id: int, name=None) -> MetaculusQuestion:
+        r = self.s.get(f"{self.api_url}/questions/{id}")
+        data = r.json()
+        return self.make_question_from_data(data)
 
     def get_prediction_results(self) -> pd.DataFrame:
-        questions = self.get_predicted_questions()
+        questions_data = self.get_questions_json(
+            question_status="resolved", player_status="predicted", pages=9999)
+        questions = [self.make_question_from_data(
+            question_data) for question_data in questions_data]
         predictions_per_question = [
             question.get_scored_predictions() for question in questions]
         flat_predictions = [
             prediction for question in predictions_per_question for prediction in question]
         return pd.DataFrame([asdict(prediction) for prediction in flat_predictions])
 
-    def get_questions_for_pages(self, query_string: str, max_pages: int = 1, current_page: int = 1, results=[]) -> List[MetaculusQuestion]:
-        if current_page > max_pages:
-            return results
-
-        r = self.s.get(
-            f"{self.api_url}/questions/?{query_string}&page={current_page}")
-
-        if r.json() == {"detail": "Invalid page."}:
-            return results
-
-        r.raise_for_status()
-
-        return self.get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
-
-    def get_questions(self,
-                      question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
-                      player_status: Literal["any", "predicted",
-                                             "not-predicted", "author", "interested", "private"] = "any",
-                      # 20 results per page
-                      pages: int = 1
-                      ) -> pd.DataFrame:
+    def get_questions_json(self,
+                           question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
+                           player_status: Literal["any", "predicted",
+                                                  "not-predicted", "author", "interested", "private"] = "any",
+                           # 20 results per page
+                           pages: int = 1,
+                           ) -> List[Dict]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
@@ -373,7 +355,24 @@ class Metaculus:
                     f"{self.player_status_to_api_wording[player_status]}={self.user_id}")
 
         query_string = "&".join(query_params)
-        questions_json = self.get_questions_for_pages(query_string, pages)
+
+        def get_questions_for_pages(query_string: str, max_pages: int = 1, current_page: int = 1, results=[]) -> List[Dict]:
+            if current_page > max_pages:
+                return results
+
+            r = self.s.get(
+                f"{self.api_url}/questions/?{query_string}&page={current_page}")
+
+            if r.json() == {"detail": "Invalid page."}:
+                return results
+
+            r.raise_for_status()
+
+            return get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
+
+        return get_questions_for_pages(query_string, pages)
+
+    def make_questions_df(self, questions_json):
         questions_df = pd.DataFrame(questions_json)
         for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
             questions_df[col] = questions_df[col].apply(pendulum.parse)
