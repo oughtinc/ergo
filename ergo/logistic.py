@@ -89,13 +89,16 @@ def structure_mixture_params(components) -> LogisticMixtureParams:
 
 
 def fit_mixture(data, num_components=3, verbose=False, num_samples=5000) -> LogisticMixtureParams:
+    # the data might be something weird, like a pandas dataframe column;
+    # turn it into a regular old numpy array
+    data_as_np_array = np.array(data)
     step_size = 0.01
     components = initialize_components(num_components)
     (init_fun, update_fun, get_params) = sgd(step_size)
     opt_state = init_fun(components)
     for i in tqdm.trange(num_samples):
         components = get_params(opt_state)
-        grads = -grad_mixture_logpdf(data, components)
+        grads = -grad_mixture_logpdf(data_as_np_array, components)
         if np.any(np.isnan(grads)) and verbose:
             print("Encoutered nan gradient, stopping")
             print(grads)
@@ -105,7 +108,7 @@ def fit_mixture(data, num_components=3, verbose=False, num_samples=5000) -> Logi
         opt_state = update_fun(i, grads, opt_state)
         if i % 500 == 0 and verbose:
             pprint(components)
-            score = mixture_logpdf(data, components)
+            score = mixture_logpdf(data_as_np_array, components)
             print(f"Log score: {score:.3f}")
     return structure_mixture_params(components)
 
