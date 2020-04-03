@@ -4,12 +4,15 @@ import pendulum
 import scipy
 # scipy importing guidelines: https://docs.scipy.org/doc/scipy/reference/api.html
 from scipy import stats
-import seaborn  # type: ignore
+import seaborn
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
 
+import ergo.logistic as logistic
+
 from typing import Optional, List, Any, Dict, Tuple
+
 from typing_extensions import Literal
 from dataclasses import dataclass, asdict
 
@@ -164,8 +167,11 @@ class ContinuousQuestion(MetaculusQuestion):
         return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
 
     def get_loc_scale(self, samples) -> Tuple[float, float]:
+        # TODO: Use logistic.fit_mixture, pass LogisticMixtureParams on to other functions
         normalized_samples = self.normalize_samples(samples)
-        loc, scale = stats.logistic.fit(normalized_samples)
+        params = logistic.fit_single_scipy(normalized_samples)
+        loc = params.loc
+        scale = params.scale
 
         # The scale and loc have to be within a certain range for the Metaculus API to accept the prediction.
         # Based on playing with the API, we think that the ranges specified below are the widest possible.

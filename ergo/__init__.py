@@ -3,12 +3,12 @@ __version__ = "0.7.0"
 import ergo.data
 import ergo.metaculus
 import ergo.ppl
+import ergo.logistic
 
 from .metaculus import Metaculus, MetaculusQuestion
 from .ppl import (
     sample,
     tag,
-    model,
     bernoulli,
     normal,
     lognormal,
