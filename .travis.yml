@@ -1,0 +1,10 @@
+language: python
+python:
+- 3.6.9
+before_install:
+- pip install poetry
+install:
+- poetry install
+script:
+- poetry run mypy .
+- poetry run python -m pytest -s .
