@@ -34,9 +34,14 @@ class LogisticMixtureParams():
 def fit_single_scipy(samples) -> LogisticParams:
     with onp.errstate(all='raise'):  # type: ignore
         loc, scale = oscipy.stats.logistic.fit(samples)
+
+        # The scale and loc have to be within a certain range for the Metaculus API to accept the prediction.
+        # Based on playing with the API, we think that the ranges specified below are the widest possible.
+        # TODO: confirm that this is actually true, could well be wrong
         scale = min(max(scale, 0.02), 10)
         loc = min(max(loc, -0.1565), 1.1565)
-        return LogisticParams(loc, scale)
+
+        return LogisticParams(loc, scale, low, high)
 
 
 @jit
