@@ -173,6 +173,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission_params(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
         distribution = stats.logistic(
             logistic_params.loc, logistic_params.scale)
+        # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
+        clipped_loc = logistic_params.loc
+        clipped_scale = max(logistic_params.scale, 0.01)
 
         # We're not really sure what the deal with the low and high is.
         # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
