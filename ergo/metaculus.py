@@ -196,7 +196,9 @@ class ContinuousQuestion(MetaculusQuestion):
 
     def get_submission_from_samples(self, samples, samples_for_fit=5000) -> SubmissionMixtureParams:
         normalized_samples = self.normalize_samples(samples)
-        return self.get_submission(logistic.fit_mixture(normalized_samples, num_samples=samples_for_fit))
+        mixture_params = logistic.fit_mixture(
+            normalized_samples, num_samples=samples_for_fit)
+        return self.get_submission(mixture_params)
 
     # Get the prediction on the actual scale of the question,
     # from the normalized prediction (Metaculus uses the normalized prediction)
