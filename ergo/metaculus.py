@@ -186,7 +186,7 @@ class ContinuousQuestion(MetaculusQuestion):
         # then the API will reject the prediction, though we haven't tested that extensively)
         low = max(distribution.cdf(0), 0.01) if self.low_open else 0
         high = min(distribution.cdf(1), 0.99) if self.high_open else 1
-        return SubmissionLogisticParams(logistic_params.loc, logistic_params.scale, low, high)
+        return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
 
     def get_submission(self, mixture_params: logistic.LogisticMixtureParams) -> SubmissionMixtureParams:
         submission_logistic_params = [self.get_submission_params(
