@@ -27,10 +27,10 @@ def test_fit_single_compare():
 def test_fit_mixture_small():
     params = fit_mixture(np.array([0.1, 0.2, 0.8, 0.9]), num_components=2)
     for prob in params.probs:
-        assert prob == pytest.approx(0.5, 0.05)
+        assert prob == pytest.approx(0.5, 0.1)
     locs = sorted([component.loc for component in params.components])
-    assert locs[0] == pytest.approx(0.15, abs=0.05)
-    assert locs[1] == pytest.approx(0.85, abs=0.05)
+    assert locs[0] == pytest.approx(0.15, abs=0.1)
+    assert locs[1] == pytest.approx(0.85, abs=0.1)
 
 
 def test_fit_mixture_large():
@@ -40,10 +40,10 @@ def test_fit_mixture_large():
     params = fit_mixture(data, num_components=2)
     locs = sorted([component.loc for component in params.components])
     scales = sorted([component.scale for component in params.components])
-    assert locs[0] == pytest.approx(0.4, abs=0.1)
-    assert locs[1] == pytest.approx(0.7, abs=0.1)
-    assert scales[0] == pytest.approx(0.1, abs=0.1)
-    assert scales[1] == pytest.approx(0.2, abs=0.1)
+    assert locs[0] == pytest.approx(0.4, abs=0.2)
+    assert locs[1] == pytest.approx(0.7, abs=0.2)
+    assert scales[0] == pytest.approx(0.1, abs=0.2)
+    assert scales[1] == pytest.approx(0.2, abs=0.2)
 
 # visual tests, comment out usually
 
