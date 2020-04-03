@@ -174,12 +174,6 @@ class ContinuousQuestion(MetaculusQuestion):
         distribution = stats.logistic(
             logistic_params.loc, logistic_params.scale)
 
-        # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
-        # Based on playing with the API, we think that the ranges specified below are the widest possible.
-        # TODO: confirm that this is actually true, could well be wrong
-        clipped_loc = min(max(logistic_params.loc, -0.1565), 1.1565)
-        clipped_scale = min(max(logistic_params.scale, 0.02), 10)
-
         # We're not really sure what the deal with the low and high is.
         # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
         # and ignores porbability mass assigned below/above.
@@ -187,9 +181,9 @@ class ContinuousQuestion(MetaculusQuestion):
         # we're just trying to include as much of our distribution as we can without the API getting unhappy
         # (we belive that if you set the low higher than the value below [or if you set the high lower],
         # then the API will reject the prediction, though we haven't tested that extensively)
-        low = 0.01 if self.low_open else 0
-        high = 0.99 if self.high_open else 1
-        return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
+        low = max(distribution.cdf(0), 0.01) if self.low_open else 0
+        high = min(distribution.cdf(1), 0.99) if self.high_open else 1
+        return SubmissionLogisticParams(logistic_params.loc, logistic_params.scale, low, high)
 
     def get_submission(self, mixture_params: logistic.LogisticMixtureParams) -> SubmissionMixtureParams:
         submission_logistic_params = [self.get_submission_params(
