@@ -71,13 +71,13 @@ class TestMetaculus:
         # smoke test
         self.binary_question.get_scored_predictions()
 
-    def test_score_continuous(self):
-        # smoke test
-        self.continuous_linear_open_question.get_scored_predictions()
+    # def test_score_continuous(self):
+    #     # smoke test
+    #     self.continuous_linear_open_question.get_scored_predictions()
 
-    def test_get_prediction_results(self):
-        # smoke test
-        self.metaculus.get_prediction_results()
+    # def test_get_prediction_results(self):
+    #     # smoke test
+    #     self.metaculus.get_prediction_results()
 
     def test_get_questions_json(self):
         questions = self.metaculus.get_questions_json()

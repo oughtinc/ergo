@@ -99,8 +99,8 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
-    def get_scored_predictions(self) -> List[ScoredPrediction]:
-        raise NotImplementedError("This should be implemented by a subclass")
+    # def get_scored_predictions(self) -> List[ScoredPrediction]:
+    #     raise NotImplementedError("This should be implemented by a subclass")
 
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
@@ -205,31 +205,31 @@ class ContinuousQuestion(MetaculusQuestion):
     # from the normalized prediction (Metaculus uses the normalized prediction)
     # TODO: instead of returning a regular logistic,
     # return a logistic that's cut off below the low and above the high, like for the Metaculus distribution
-    def get_true_scale_prediction(self, normalized_s: float, normalized_x0: float):
-        if self.is_log:
-            raise NotImplementedError(
-                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
-        scaling_factor = self.question_range["max"] - \
-            self.question_range["min"]
+    # def get_true_scale_prediction(self, normalized_s: float, normalized_x0: float):
+    #     if self.is_log:
+    #         raise NotImplementedError(
+    #             "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
+    #     scaling_factor = self.question_range["max"] - \
+    #         self.question_range["min"]
 
-        def scale_param(param):
-            return param * scaling_factor + self.question_range["min"]
+    #     def scale_param(param):
+    #         return param * scaling_factor + self.question_range["min"]
 
-        return stats.logistic(scale=scale_param(
-            normalized_s), loc=scale_param(normalized_x0))
+    #     return stats.logistic(scale=scale_param(
+    #         normalized_s), loc=scale_param(normalized_x0))
 
-    def show_submission(self, samples):
-        submission = self.get_submission_from_samples(samples)
-        submission_rv = self.get_true_scale_prediction(
-            submission.scale, submission.loc)
-        pyplot.figure()
-        pyplot.title(f"{self} prediction")
-        seaborn.distplot(
-            np.array(samples), label="samples")
-        seaborn.distplot(np.array(submission_rv.rvs(1000)),
-                         label="prediction")
-        pyplot.legend()
-        pyplot.show()
+    # def show_submission(self, samples):
+    #     submission = self.get_submission_from_samples(samples)
+    #     submission_rv = self.get_true_scale_prediction(
+    #         submission.scale, submission.loc)
+    #     pyplot.figure()
+    #     pyplot.title(f"{self} prediction")
+    #     seaborn.distplot(
+    #         np.array(samples), label="samples")
+    #     seaborn.distplot(np.array(submission_rv.rvs(1000)),
+    #                      label="prediction")
+    #     pyplot.legend()
+    #     pyplot.show()
 
     @staticmethod
     def format_logistic_for_api(submission: SubmissionLogisticParams, weight: float) -> dict:
@@ -265,31 +265,31 @@ class ContinuousQuestion(MetaculusQuestion):
         submission = self.get_submission_from_samples(samples, samples_in_fit)
         return self.submit(submission)
 
-    def score_prediction(self, prediction_dict: Dict, resolution: float) -> ScoredPrediction:
-        # TODO: handle predictions with multiple distributions
-        d = prediction_dict["d"][0]
-        dist = stats.logistic(scale=d["s"], loc=d["x0"])
-        score = dist.logpdf(resolution)
-        return ScoredPrediction(prediction_dict["t"], prediction_dict, resolution, score, self.__str__())
+    # def score_prediction(self, prediction_dict: Dict, resolution: float) -> ScoredPrediction:
+    #     # TODO: handle predictions with multiple distributions
+    #     d = prediction_dict["d"][0]
+    #     dist = stats.logistic(scale=d["s"], loc=d["x0"])
+    #     score = dist.logpdf(resolution)
+    #     return ScoredPrediction(prediction_dict["t"], prediction_dict, resolution, score, self.__str__())
 
-    def get_scored_predictions(self):
-        resolution = self.resolution
-        if resolution is None:
-            resolution = self.latest_community_prediction["q2"]
-        predictions = self.my_predictions["predictions"]
-        return [self.score_prediction(prediction, resolution) for prediction in predictions]
+    # def get_scored_predictions(self):
+    #     resolution = self.resolution
+    #     if resolution is None:
+    #         resolution = self.latest_community_prediction["q2"]
+    #     predictions = self.my_predictions["predictions"]
+    #     return [self.score_prediction(prediction, resolution) for prediction in predictions]
 
-    # TODO: show vs. Metaculus and vs. resolution if available
-    def show_performance(self):
-        prediction = self.my_predictions["predictions"][0]
-        d = prediction["d"][0]
-        dist = self.get_true_scale_prediction(
-            d["s"], d["x0"])
-        pyplot.figure()
-        pyplot.title(f"{self} latest prediction")
-        seaborn.distplot(np.array(dist.rvs(1000)), label="prediction")
-        pyplot.legend()
-        pyplot.show()
+    # # TODO: show vs. Metaculus and vs. resolution if available
+    # def show_performance(self):
+    #     prediction = self.my_predictions["predictions"][0]
+    #     d = prediction["d"][0]
+    #     dist = self.get_true_scale_prediction(
+    #         d["s"], d["x0"])
+    #     pyplot.figure()
+    #     pyplot.title(f"{self} latest prediction")
+    #     seaborn.distplot(np.array(dist.rvs(1000)), label="prediction")
+    #     pyplot.legend()
+    #     pyplot.show()
 
 
 class Metaculus:
