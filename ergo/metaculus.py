@@ -170,9 +170,16 @@ class ContinuousQuestion(MetaculusQuestion):
             return np.log(samples) / np.log(self.deriv_ratio)
         return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
 
-    def add_low_high(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
+    def get_submission_params(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
         distribution = stats.logistic(
             logistic_params.loc, logistic_params.scale)
+
+        # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
+        # Based on playing with the API, we think that the ranges specified below are the widest possible.
+        # TODO: confirm that this is actually true, could well be wrong
+        clipped_loc = min(max(logistic_params.loc, -0.1565), 1.1565)
+        clipped_scale = min(max(logistic_params.scale, 0.02), 10)
+
         # We're not really sure what the deal with the low and high is.
         # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
         # and ignores porbability mass assigned below/above.
@@ -182,17 +189,17 @@ class ContinuousQuestion(MetaculusQuestion):
         # then the API will reject the prediction, though we haven't tested that extensively)
         low = 0.01 if self.low_open else 0
         high = 0.99 if self.high_open else 1
-        return SubmissionLogisticParams(logistic_params.loc, logistic_params.scale, low, high)
+        return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
 
     def get_submission(self, mixture_params: logistic.LogisticMixtureParams) -> SubmissionMixtureParams:
-        submission_logistic_params = [self.add_low_high(
+        submission_logistic_params = [self.get_submission_params(
             logistic_params) for logistic_params in mixture_params.components]
 
         return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
 
-    def get_submission_from_samples(self, samples) -> SubmissionMixtureParams:
+    def get_submission_from_samples(self, samples, samples_in_fit=None) -> SubmissionMixtureParams:
         normalized_samples = self.normalize_samples(samples)
-        return self.get_submission(logistic.fit_mixture(normalized_samples))
+        return self.get_submission(logistic.fit_mixture(normalized_samples, num_samples=samples_in_fit))
 
     # Get the prediction on the actual scale of the question,
     # from the normalized prediction (Metaculus uses the normalized prediction)
@@ -226,17 +233,19 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def format_logistic_for_api(submission: SubmissionLogisticParams, weight: float) -> dict:
+
+        # convert all the numbers to floats here so that you can be sure that wherever they originated
+        # (e.g. numpy), they'll be regular old floats that can be converted to json by json.dumps
         return {
             "kind": "logistic",
-            "x0": submission.loc,
-            "s": submission.scale,
-            "w": weight,
-            "low": submission.low,
-            "high": submission.high
+            "x0": float(submission.loc),
+            "s": float(submission.scale),
+            "w": float(weight),
+            "low": float(submission.low),
+            "high": float(submission.high)
         }
 
     def submit(self, submission: SubmissionMixtureParams) -> requests.Response:
-
         prediction_data = {
             "prediction":
             {
@@ -252,8 +261,8 @@ class ContinuousQuestion(MetaculusQuestion):
             prediction_data
         )
 
-    def submit_from_samples(self, samples) -> requests.Response:
-        submission = self.get_submission_from_samples(samples)
+    def submit_from_samples(self, samples, samples_in_fit=None) -> requests.Response:
+        submission = self.get_submission_from_samples(samples, samples_in_fit)
         return self.submit(submission)
 
     def score_prediction(self, prediction_dict: Dict, resolution: float) -> ScoredPrediction:
