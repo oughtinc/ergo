@@ -41,7 +41,7 @@ def fit_single_scipy(samples) -> LogisticParams:
         scale = min(max(scale, 0.02), 10)
         loc = min(max(loc, -0.1565), 1.1565)
 
-        return LogisticParams(loc, scale, low, high)
+        return LogisticParams(loc, scale)
 
 
 @jit

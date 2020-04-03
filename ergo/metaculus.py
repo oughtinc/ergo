@@ -170,31 +170,29 @@ class ContinuousQuestion(MetaculusQuestion):
             return np.log(samples) / np.log(self.deriv_ratio)
         return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
 
-    def get_submission_mixture_params(self, samples) -> SubmissionMixtureParams:
-        normalized_samples = self.normalize_samples(samples)
-        return logistic.fit_mixture(normalized_samples)
+    def add_low_high(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
+        distribution = stats.logistic(
+            logistic_params.loc, logistic_params.scale)
+        # We're not really sure what the deal with the low and high is.
+        # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
+        # and ignores porbability mass assigned below/above.
+        # But we're not actually trying to use them to "cut off" our distribution in a smart way;
+        # we're just trying to include as much of our distribution as we can without the API getting unhappy
+        # (we belive that if you set the low higher than the value below [or if you set the high lower],
+        # then the API will reject the prediction, though we haven't tested that extensively)
+        low = 0.01 if self.low_open else 0
+        high = 0.99 if self.high_open else 1
+        return SubmissionLogisticParams(logistic_params.loc, logistic_params.scale, low, high)
 
     def get_submission(self, mixture_params: logistic.LogisticMixtureParams) -> SubmissionMixtureParams:
-        def add_low_high(logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
-            distribution = stats.logistic(
-                logistic_params.loc, logistic_params.scale)
-            # We're not really sure what the deal with the low and high is.
-            # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
-            # and ignores porbability mass assigned below/above.
-            # But we're not actually trying to use them to "cut off" our distribution in a smart way;
-            # we're just trying to include as much of our distribution as we can without the API getting unhappy
-            # (we belive that if you set the low higher than the value below [or if you set the high lower],
-            # then the API will reject the prediction, though we haven't tested that extensively)
-            low = 0.01 if self.low_open else 0
-            high = 0.99 if self.high_open else 1
-            return SubmissionLogisticParams()
+        submission_logistic_params = [self.add_low_high(
+            logistic_params) for logistic_params in mixture_params.components]
 
-        return ContinuousSubmission(loc, scale, low, high)
+        return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
 
-    def get_submission_from_samples(self, samples, num_components=5) -> ContinuousSubmission:
+    def get_submission_from_samples(self, samples) -> SubmissionMixtureParams:
         normalized_samples = self.normalize_samples(samples)
-        loc, scale = self.get_loc_scale(samples)
-        return self.get_submission(scale, loc)
+        return self.get_submission(logistic.fit_mixture(normalized_samples))
 
     # Get the prediction on the actual scale of the question,
     # from the normalized prediction (Metaculus uses the normalized prediction)
@@ -226,16 +224,25 @@ class ContinuousQuestion(MetaculusQuestion):
         pyplot.legend()
         pyplot.show()
 
-    def submit(self, submission: ContinuousSubmission) -> requests.Response:
+    @staticmethod
+    def format_logistic_for_api(submission: SubmissionLogisticParams, weight: float) -> dict:
+        return {
+            "kind": "logistic",
+            "x0": submission.loc,
+            "s": submission.scale,
+            "w": weight,
+            "low": submission.low,
+            "high": submission.high
+        }
+
+    def submit(self, submission: SubmissionMixtureParams) -> requests.Response:
+
         prediction_data = {
             "prediction":
             {
                 "kind": "multi",
-                "d": [
-                    {
-                        "kind": "logistic", "x0": submission.loc, "s": submission.scale, "w": 1, "low": submission.low, "high": submission.high
-                    }
-                ]
+                "d": [self.format_logistic_for_api(logistic_params, submission.probs[idx])
+                      for idx, logistic_params in enumerate(submission.components)]
             },
             "void": False
         }

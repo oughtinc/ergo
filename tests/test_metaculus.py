@@ -7,13 +7,19 @@ import tests.mocks
 
 pp = pprint.PrettyPrinter(indent=4)
 
-test_uname = "oughttest"
-test_pwd = "6vCo39Mz^rrb"
-test_user_id = 112420
+uname = "oughttest"
+pwd = "6vCo39Mz^rrb"
+user_id = 112420
+
+mock_mixture_params = ergo.logistic.LogisticMixtureParams(
+    components=[ergo.logistic.LogisticParams(loc=0.15, scale=0.037034005),
+                ergo.logistic.LogisticParams(loc=0.85, scale=0.032395907)],
+    probs=[0.5000871, 0.49991286]
+)
 
 
 class TestMetaculus:
-    metaculus = ergo.Metaculus(test_uname, test_pwd)
+    metaculus = ergo.Metaculus(uname, pwd)
     continuous_linear_closed_question = metaculus.get_question(3963)
     continuous_linear_open_question = metaculus.get_question(3962)
     continuous_log_open_question = metaculus.get_question(3961)
@@ -21,7 +27,7 @@ class TestMetaculus:
     binary_question = metaculus.get_question(3966)
 
     def test_login(self):
-        assert self.metaculus.user_id == test_user_id
+        assert self.metaculus.user_id == user_id
 
     def test_get_question(self):
         # make sure we're getting the user-specific data
@@ -29,19 +35,19 @@ class TestMetaculus:
 
     def test_submit_continuous_linear_open(self):
         submission = self.continuous_linear_open_question.get_submission(
-            0.534894790856232, 0.02)
+            mock_mixture_params)
         r = self.continuous_linear_open_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_linear_closed(self):
         submission = self.continuous_linear_closed_question.get_submission(
-            0.534894790856232, 0.02)
+            mock_mixture_params)
         r = self.continuous_linear_closed_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_log_open(self):
         submission = self.continuous_log_open_question.get_submission(
-            0.534894790856232, 0.02)
+            mock_mixture_params)
         r = self.continuous_log_open_question.submit(submission)
         assert r.status_code == 202
 
@@ -52,7 +58,7 @@ class TestMetaculus:
     def test_submit_closed_question_fails(self):
         with pytest.raises(requests.exceptions.HTTPError):
             submission = self.closed_question.get_submission(
-                0.534894790856232, 0.02)
+                mock_mixture_params)
             r = self.closed_question.submit(submission)
             print(r)
 
@@ -99,7 +105,7 @@ class TestMetaculus:
 
 
 class TestPandemic:
-    metaculus = ergo.Metaculus(test_uname, test_pwd, api_domain="pandemic")
+    metaculus = ergo.Metaculus(uname, pwd, api_domain="pandemic")
     sf_question = metaculus.get_question(3931)
 
     # def test_show_submission(self):
