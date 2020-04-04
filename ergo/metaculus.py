@@ -1,4 +1,6 @@
+import functools
 import json
+import torch
 import requests
 import pendulum
 import scipy
@@ -9,7 +11,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
 
+import pyro.distributions as dist
 import ergo.logistic as logistic
+import ergo.ppl as ppl
 
 from typing import Optional, List, Any, Dict, Tuple
 
@@ -102,13 +106,26 @@ class MetaculusQuestion:
     def get_scored_predictions(self) -> List[ScoredPrediction]:
         raise NotImplementedError("This should be implemented by a subclass")
 
+    def sample_community(self):
+        raise NotImplementedError("This should be implemented by a subclass")
+
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
-        columns = ["id", "name", "title", "resolve_time"]
-        data = []
+        show_names = False
         for question in questions:
-            data.append([question.id, question.name,
-                         question.title, question.resolve_time])
+            if question.name:
+                show_names = True
+                break
+        data = []            
+        if show_names:
+            columns = ["id", "name", "title", "resolve_time"]
+            for question in questions:
+                data.append([question.id, question.name,
+                             question.title, question.resolve_time])            
+        else:
+            columns = ["id", "title", "resolve_time"]
+            for question in questions:
+                data.append([question.id, question.title, question.resolve_time])
         return pd.DataFrame(data, columns=columns)
 
 
@@ -166,6 +183,25 @@ class ContinuousQuestion(MetaculusQuestion):
             return np.log(samples) / np.log(self.deriv_ratio)
         return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
 
+    # Map normalized samples back to actual scale    
+    def denormalize_samples(self, samples):
+      if self.is_log:
+          return self.question_range["min"] * (np.exp(samples * np.log(self.question_range["deriv_ratio"])))
+      return self.question_range["min"] + (self.question_range["max"] - self.question_range["min"]) * samples
+
+    @functools.lru_cache(None)
+    def community_dist(self):
+        # distribution on integers referencing 0...(len(self.prediction_histogram)-1)
+        df = pd.DataFrame(self.prediction_histogram, columns=["x", "y1", "y2"])
+        return dist.Categorical(probs=torch.Tensor(df["y2"]))
+
+    def sample_community(self):
+        normalized_sample = ppl.sample(self.community_dist()) / float(len(self.prediction_histogram))
+        sample = self.denormalize_samples(normalized_sample)
+        if self.name:
+            ppl.tag(sample, self.name)
+        return sample
+  
     def get_loc_scale(self, samples) -> Tuple[float, float]:
         # TODO: Use logistic.fit_mixture, pass LogisticMixtureParams on to other functions
         normalized_samples = self.normalize_samples(samples)
