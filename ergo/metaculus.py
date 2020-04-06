@@ -176,7 +176,7 @@ class ContinuousQuestion(MetaculusQuestion):
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
         # max loc set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
-        clipped_loc = max(logistic_params.loc, 3)
+        clipped_loc = min(logistic_params.loc, 3)
         clipped_scale = max(logistic_params.scale, 0.01)
 
         # We're not really sure what the deal with the low and high is.
