@@ -175,7 +175,7 @@ class ContinuousQuestion(MetaculusQuestion):
             logistic_params.loc, logistic_params.scale)
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
-        # max loc set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+        # max loc of 3 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         clipped_loc = min(logistic_params.loc, 3)
         clipped_scale = max(logistic_params.scale, 0.01)
 
@@ -187,7 +187,10 @@ class ContinuousQuestion(MetaculusQuestion):
         # (we belive that if you set the low higher than the value below [or if you set the high lower],
         # then the API will reject the prediction, though we haven't tested that extensively)
         low = max(distribution.cdf(0), 0.01) if self.low_open else 0
-        high = min(distribution.cdf(1), 0.99) if self.high_open else 1
+
+        # min high of 0.0099 set based on API response to prediction on https://pandemic.metaculus.com/questions/3996/how-many-covid-19-deaths-will-be-recorded-in-the-month-of-april-worldwide/
+        high = max(min(distribution.cdf(1), 0.99),
+                   0.0099) if self.high_open else 1
         return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
 
     def get_submission(self, mixture_params: logistic.LogisticMixtureParams) -> SubmissionMixtureParams:
