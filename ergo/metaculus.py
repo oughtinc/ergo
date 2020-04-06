@@ -177,7 +177,9 @@ class ContinuousQuestion(MetaculusQuestion):
 
         # max loc of 3 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         clipped_loc = min(logistic_params.loc, 3)
-        clipped_scale = max(logistic_params.scale, 0.01)
+
+        # max scale of 10 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+        clipped_scale = min(max(logistic_params.scale, 0.01), 10)
 
         # We're not really sure what the deal with the low and high is.
         # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
