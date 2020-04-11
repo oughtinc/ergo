@@ -113,9 +113,9 @@ class TestPandemic:
     metaculus = ergo.Metaculus(uname, pwd, api_domain="pandemic")
     sf_question = metaculus.get_question(3931)
 
-    # def test_show_submission(self):
-    #     self.sf_question.show_submission(
-    #         tests.mocks.samples)
+    def test_show_submission(self):
+        self.sf_question.show_submission(
+            tests.mocks.samples)
 
     # def test_show_performance(self):
     #     self.sf_question.show_performance()

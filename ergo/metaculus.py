@@ -163,6 +163,7 @@ class ContinuousQuestion(MetaculusQuestion):
         return self.possibilities["scale"]
 
     # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
+    # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
     def normalize_samples(self, samples, epsilon=1e-9):
         if self.is_log:
             samples = np.maximum(samples, epsilon)
@@ -207,35 +208,33 @@ class ContinuousQuestion(MetaculusQuestion):
             normalized_samples, num_samples=samples_for_fit)
         return self.get_submission(mixture_params)
 
-    # Get the prediction on the actual scale of the question,
-    # from the normalized prediction (Metaculus uses the normalized prediction)
-    # TODO: instead of returning a regular logistic,
-    # return a logistic that's cut off below the low and above the high, like for the Metaculus distribution
-    # def get_true_scale_prediction(self, normalized_s: float, normalized_x0: float):
-    #     if self.is_log:
-    #         raise NotImplementedError(
-    #             "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
-    #     scaling_factor = self.question_range["max"] - \
-    #         self.question_range["min"]
+    # Get the logistic on the actual scale of the question,
+    # from the normalized logistic used in the submission
+    # TODO: also return low and high on the true scale
+    def get_true_scale_logistic_params(self, submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
+        if self.is_log:
+            raise NotImplementedError(
+                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
+        true_width = self.question_range["max"] - \
+            self.question_range["min"]
 
-    #     def scale_param(param):
-    #         return param * scaling_factor + self.question_range["min"]
+        true_loc = submission_logistic_params.loc * \
+            true_width + self.question_range["min"]
 
-    #     return stats.logistic(scale=scale_param(
-    #         normalized_s), loc=scale_param(normalized_x0))
+        true_scale = submission_logistic_params.scale * true_width
 
-    # def show_submission(self, samples):
-    #     submission = self.get_submission_from_samples(samples)
-    #     submission_rv = self.get_true_scale_prediction(
-    #         submission.scale, submission.loc)
-    #     pyplot.figure()
-    #     pyplot.title(f"{self} prediction")
-    #     seaborn.distplot(
-    #         np.array(samples), label="samples")
-    #     seaborn.distplot(np.array(submission_rv.rvs(1000)),
-    #                      label="prediction")
-    #     pyplot.legend()
-    #     pyplot.show()
+        return logistic.LogisticParams(true_loc, true_scale)
+
+    def show_submission(self, samples):
+        submission = self.get_submission_from_samples(samples)
+
+        true_scale_logistics_params = [self.get_true_scale_logistic_params(submission_logistic_params) for submission_logistic_params in submission.components]
+
+        true_scale_prediction = logistic.LogisticMixtureParams(true_scale_logistics_params, submission.probs)
+
+        pyplot.figure()
+        pyplot.title(f"{self} prediction")
+        logistic.plot_mixture(true_scale_prediction, data=samples)
 
     @staticmethod
     def format_logistic_for_api(submission: SubmissionLogisticParams, weight: float) -> dict:
