@@ -196,13 +196,6 @@ class ContinuousQuestion(MetaculusQuestion):
             normalized_samples, num_samples=samples_for_fit)
         return self.get_submission(mixture_params)
 
-    def true_from_normalized_for_log(self, normalized_value):
-        expd = self.deriv_ratio ** normalized_value
-
-        scaled = expd * self.question_range_width
-
-        return scaled
-
     def show_submission(self, samples):
         raise NotImplementedError("This should be implemented by a subclass")
 
@@ -266,14 +259,29 @@ class ContinuousQuestion(MetaculusQuestion):
     #     pyplot.legend()
     #     pyplot.show()
 
+
 class LinearQuestion(ContinuousQuestion):
     def normalize_samples(self, samples, epsilon=1e-9):
-        if self.is_log:
-            samples = np.maximum(samples, epsilon)
-            samples = samples / self.question_range["min"]
-            return np.log(samples) / np.log(self.deriv_ratio)
         return (samples - self.question_range["min"]) / (self.question_range_width)
-    
+
+    def true_from_normalized(self, normalized_value):
+        expd = self.deriv_ratio ** normalized_value
+
+        scaled = expd * self.question_range_width
+
+        return scaled
+
+    # Get the logistic on the actual scale of the question,
+    # from the normalized logistic used in the submission
+    # TODO: also return low and high on the true scale
+    def get_true_scale_logistic_params(self, submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
+        true_loc = submission_logistic_params.loc * \
+            self.question_range_width + self.question_range["min"]
+
+        true_scale = submission_logistic_params.scale * self.question_range_width
+
+        return logistic.LogisticParams(true_loc, true_scale)
+
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
 
@@ -287,33 +295,19 @@ class LinearQuestion(ContinuousQuestion):
         pyplot.title(f"{self} prediction")
         logistic.plot_mixture(true_scale_prediction, data=samples)
 
+
 class LogQuestion(ContinuousQuestion):
     @property
     def deriv_ratio(self) -> Optional[float]:
         if self.is_continuous:
             return self.possibilities["scale"]["deriv_ratio"]
         return None
-    
+
     def normalize_samples(self, samples, epsilon=1e-9):
         samples = np.maximum(samples, epsilon)
         samples = samples / self.question_range["min"]
         return np.log(samples) / np.log(self.deriv_ratio)
-    
-    # Get the logistic on the actual scale of the question,
-    # from the normalized logistic used in the submission
-    # TODO: also return low and high on the true scale
-    def get_true_scale_logistic_params(self, submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
-        if self.is_log:
-            raise NotImplementedError(
-                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
 
-        true_loc = submission_logistic_params.loc * \
-            self.question_range_width + self.question_range["min"]
-
-        true_scale = submission_logistic_params.scale * self.question_range_width
-
-        return logistic.LogisticParams(true_loc, true_scale)
-    
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
 
