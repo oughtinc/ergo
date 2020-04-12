@@ -109,21 +109,25 @@ class TestMetaculus:
 # leave these commented out usually, just use them if they seem useful
 
 
-class TestPandemic:
-    metaculus = ergo.Metaculus(uname, pwd, api_domain="pandemic")
-    sf_question = metaculus.get_question(3931)
-    deaths_question = metaculus.get_question(3996)
+# class TestVisualPandemic:
+#     metaculus = ergo.Metaculus(uname, pwd, api_domain="pandemic")
+#     sf_question = metaculus.get_question(3931)
+#     deaths_question = metaculus.get_question(3996)
+#     show_prediction_question = metaculus.get_question(4112)
+#     show_prediction_log_question = metaculus.get_question(4113)
 
-    def test_show_submission(self):
-        self.sf_question.show_submission(
-            tests.mocks.samples)
+#     def test_show_submission(self):
+#         self.sf_question.show_submission(
+#             tests.mocks.samples)
 
-    def test_show_submission_log(self):
-        self.deaths_question.show_submission(
-            tests.mocks.log_samples)
+#     def test_show_submission_log(self):
+#         self.deaths_question.show_submission(
+#             tests.mocks.log_samples)
 
-    def test_show_performance(self):
-        self.sf_question.show_performance()
+#     def test_show_performance(self):
+#         # should have two humps, one on the left and one on the right
+#         self.show_prediction_question.show_performance()
 
-    def test_show_performance_log(self):
-        self.deaths_question.show_performance()
+#     def test_show_performance_log(self):
+#         # should have a low, flat hump on the left and a skinny hump on the right
+#         self.show_prediction_log_question.show_performance()
