@@ -304,7 +304,7 @@ class LogQuestion(ContinuousQuestion):
     def true_from_normalized(self, normalized_value):
         expd = self.deriv_ratio ** normalized_value
 
-        scaled = expd * self.question_range_width
+        scaled = expd * self.question_range["min"]
 
         return scaled
 
