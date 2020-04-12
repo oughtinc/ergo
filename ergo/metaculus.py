@@ -233,31 +233,25 @@ class ContinuousQuestion(MetaculusQuestion):
         submission = self.get_submission_from_samples(samples, samples_for_fit)
         return self.submit(submission)
 
-    # def score_prediction(self, prediction_dict: Dict, resolution: float) -> ScoredPrediction:
-    #     # TODO: handle predictions with multiple distributions
-    #     d = prediction_dict["d"][0]
-    #     dist = stats.logistic(scale=d["s"], loc=d["x0"])
-    #     score = dist.logpdf(resolution)
-    #     return ScoredPrediction(prediction_dict["t"], prediction_dict, resolution, score, self.__str__())
+    @staticmethod
+    def get_logistic_from_json(logistic_json: Dict) -> SubmissionLogisticParams:
+        return SubmissionLogisticParams(logistic_json["x0"], logistic_json["s"], logistic_json["low"], logistic_json["high"])
 
-    # def get_scored_predictions(self):
-    #     resolution = self.resolution
-    #     if resolution is None:
-    #         resolution = self.latest_community_prediction["q2"]
-    #     predictions = self.my_predictions["predictions"]
-    #     return [self.score_prediction(prediction, resolution) for prediction in predictions]
+    @classmethod
+    def get_submission_from_json(cls, submission_json: Dict) -> SubmissionMixtureParams:
+        components = [cls.get_logistic_from_json(
+            logistic_json) for logistic_json in submission_json]
+        probs = [logistic_json["w"] for logistic_json in submission_json]
+        return SubmissionMixtureParams(components, probs)
 
-    # # TODO: show vs. Metaculus and vs. resolution if available
-    # def show_performance(self):
-    #     prediction = self.my_predictions["predictions"][0]
-    #     d = prediction["d"][0]
-    #     dist = self.get_true_scale_prediction(
-    #         d["s"], d["x0"])
-    #     pyplot.figure()
-    #     pyplot.title(f"{self} latest prediction")
-    #     seaborn.distplot(np.array(dist.rvs(1000)), label="prediction")
-    #     pyplot.legend()
-    #     pyplot.show()
+    def show_prediction(self, prediction: SubmissionMixtureParams):
+        raise NotImplementedError("This should be implemented by a subclass")
+
+    # TODO: show vs. Metaculus and vs. resolution if available
+    def show_performance(self):
+        latest_prediction = self.my_predictions["predictions"][0]["d"]
+        mixture_params = self.get_submission_from_json(latest_prediction)
+        self.show_prediction(mixture_params)
 
 
 class LinearQuestion(ContinuousQuestion):
@@ -275,18 +269,22 @@ class LinearQuestion(ContinuousQuestion):
 
         return logistic.LogisticParams(true_loc, true_scale)
 
+    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
+        true_scale_logistics_params = [self.get_true_scale_logistic_params(
+            submission_logistic_params) for submission_logistic_params in prediction.components]
+
+        true_scale_prediction = logistic.LogisticMixtureParams(
+            true_scale_logistics_params, prediction.probs)
+
+        pyplot.figure()
+        pyplot.title(f"{self} prediction")  # type: ignore
+        logistic.plot_mixture(true_scale_prediction,  # type: ignore
+                              data=samples)  # type: ignore
+
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
 
-        true_scale_logistics_params = [self.get_true_scale_logistic_params(
-            submission_logistic_params) for submission_logistic_params in submission.components]
-
-        true_scale_prediction = logistic.LogisticMixtureParams(
-            true_scale_logistics_params, submission.probs)
-
-        pyplot.figure()
-        pyplot.title(f"{self} prediction")
-        logistic.plot_mixture(true_scale_prediction, data=samples)
+        self.show_prediction(submission, samples)
 
 
 class LogQuestion(ContinuousQuestion):
@@ -303,30 +301,32 @@ class LogQuestion(ContinuousQuestion):
 
     def true_from_normalized(self, normalized_value):
         expd = self.deriv_ratio ** normalized_value
-
         scaled = expd * self.question_range["min"]
-
         return scaled
+
+    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
+        prediction_samples = [logistic.sample_mixture(
+            prediction) for _ in range(0, 5000)]
+
+        true_scale_submission_samples = [self.true_from_normalized(
+            submission_sample) for submission_sample in prediction_samples]
+
+        pyplot.figure()
+        pyplot.title(f"{self} prediction")  # type: ignore
+        ax = seaborn.distplot(
+            true_scale_submission_samples, label="Mixture")
+        ax.set(xlabel='Sample value', ylabel='Density')
+        ax.set_xlim(
+            left=self.question_range["min"], right=self.question_range["max"])
+        seaborn.distplot(samples, label="Data")
+        pyplot.xscale("log")  # type: ignore
+        pyplot.legend()  # type: ignore
+        pyplot.show()
 
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
 
-        submission_samples = [logistic.sample_mixture(
-            submission) for _ in range(0, 5000)]
-
-        true_scale_submission_samples = [self.true_from_normalized(
-            submission_sample) for submission_sample in submission_samples]
-
-        pyplot.figure()
-        pyplot.title(f"{self} prediction")
-        ax = seaborn.distplot(
-            true_scale_submission_samples, label="submission")
-        ax.set(xlabel='Sample value', ylabel='Density')
-        seaborn.distplot(samples, label="samples")
-        pyplot.xscale("log")
-        # for some reason mypy incorrectly thinks that there is no pyplot.legend
-        pyplot.legend()  # type: ignore
-        pyplot.show()
+        self.show_prediction(submission, samples)
 
 
 class Metaculus:
