@@ -87,9 +87,6 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
-    # def get_scored_predictions(self) -> List[ScoredPrediction]:
-    #     raise NotImplementedError("This should be implemented by a subclass")
-
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
         columns = ["id", "name", "title", "resolve_time"]
@@ -299,16 +296,16 @@ class LogQuestion(ContinuousQuestion):
         samples = samples / self.question_range["min"]
         return np.log(samples) / np.log(self.deriv_ratio)
 
-    def true_from_normalized(self, normalized_value):
-        expd = self.deriv_ratio ** normalized_value
-        scaled = expd * self.question_range["min"]
+    def true_from_normalized_value(self, normalized_value):
+        exponentiated = self.deriv_ratio ** normalized_value
+        scaled = exponentiated * self.question_range["min"]
         return scaled
 
     def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
         prediction_samples = [logistic.sample_mixture(
             prediction) for _ in range(0, 5000)]
 
-        true_scale_submission_samples = [self.true_from_normalized(
+        true_scale_submission_samples = [self.true_from_normalized_value(
             submission_sample) for submission_sample in prediction_samples]
 
         pyplot.figure()

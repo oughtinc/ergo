@@ -130,6 +130,5 @@ def plot_mixture(params: LogisticMixtureParams, data=None):
     ax.set(xlabel='Sample value', ylabel='Density')
     if data is not None:
         seaborn.distplot(data, label="Data")
-    # for some reason mypy incorrectly thinks that there is no pyplot.legend
     pyplot.legend()  # type: ignore
     pyplot.show()
