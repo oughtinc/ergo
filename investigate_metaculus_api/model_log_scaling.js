@@ -12,6 +12,8 @@ submission = prediction_request.prediction.d[0]
 submission_loc = submission.x0
 submission_scale = submission.s
 
+
+
 // https://www.metaculus.com/api2/questions/3961/
 abridged_question_api_response = () => {
 
