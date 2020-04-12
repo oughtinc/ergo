@@ -264,13 +264,6 @@ class LinearQuestion(ContinuousQuestion):
     def normalize_samples(self, samples, epsilon=1e-9):
         return (samples - self.question_range["min"]) / (self.question_range_width)
 
-    def true_from_normalized(self, normalized_value):
-        expd = self.deriv_ratio ** normalized_value
-
-        scaled = expd * self.question_range_width
-
-        return scaled
-
     # Get the logistic on the actual scale of the question,
     # from the normalized logistic used in the submission
     # TODO: also return low and high on the true scale
@@ -308,13 +301,20 @@ class LogQuestion(ContinuousQuestion):
         samples = samples / self.question_range["min"]
         return np.log(samples) / np.log(self.deriv_ratio)
 
+    def true_from_normalized(self, normalized_value):
+        expd = self.deriv_ratio ** normalized_value
+
+        scaled = expd * self.question_range_width
+
+        return scaled
+
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
 
         submission_samples = [logistic.sample_mixture(
-            submission) for _ in range(0, 1000)]
+            submission) for _ in range(0, 5000)]
 
-        true_scale_submission_samples = [self.true_from_normalized_for_log(
+        true_scale_submission_samples = [self.true_from_normalized(
             submission_sample) for submission_sample in submission_samples]
 
         pyplot.figure()

@@ -118,9 +118,9 @@ class TestPandemic:
         self.sf_question.show_submission(
             tests.mocks.samples)
 
+    # def test_show_performance(self):
+    #     self.sf_question.show_performance()
+
     def test_show_submission_log(self):
         self.deaths_question.show_submission(
             tests.mocks.log_samples)
-
-    # def test_show_performance(self):
-    #     self.sf_question.show_performance()
