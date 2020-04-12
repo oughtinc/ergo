@@ -71,18 +71,6 @@ class MetaculusQuestion:
         return self.possibilities["type"]
 
     @property
-    def deriv_ratio(self) -> Optional[float]:
-        if self.is_continuous:
-            return self.possibilities["scale"]["deriv_ratio"]
-        return None
-
-    @property
-    def is_log(self) -> bool:
-        if self.is_continuous:
-            return self.deriv_ratio != 1
-        return False
-
-    @property
     def latest_community_prediction(self):
         return self.prediction_timeseries[-1]["community_prediction"]
 
@@ -151,6 +139,18 @@ class SubmissionMixtureParams:
 
 class ContinuousQuestion(MetaculusQuestion):
     @property
+    def deriv_ratio(self) -> Optional[float]:
+        if self.is_continuous:
+            return self.possibilities["scale"]["deriv_ratio"]
+        return None
+
+    @property
+    def is_log(self) -> bool:
+        if self.is_continuous:
+            return self.deriv_ratio != 1
+        return False
+
+    @property
     def low_open(self) -> bool:
         return self.possibilities["low"] == "tail"
 
@@ -162,6 +162,10 @@ class ContinuousQuestion(MetaculusQuestion):
     def question_range(self):
         return self.possibilities["scale"]
 
+    @property
+    def question_range_width(self):
+        return self.question_range["max"] - self.question_range["min"]
+
     # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
     # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
     def normalize_samples(self, samples, epsilon=1e-9):
@@ -169,7 +173,7 @@ class ContinuousQuestion(MetaculusQuestion):
             samples = np.maximum(samples, epsilon)
             samples = samples / self.question_range["min"]
             return np.log(samples) / np.log(self.deriv_ratio)
-        return (samples - self.question_range["min"]) / (self.question_range["max"] - self.question_range["min"])
+        return (samples - self.question_range["min"]) / (self.question_range_width)
 
     def get_submission_params(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
         distribution = stats.logistic(
@@ -215,22 +219,52 @@ class ContinuousQuestion(MetaculusQuestion):
         if self.is_log:
             raise NotImplementedError(
                 "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
-        true_width = self.question_range["max"] - \
-            self.question_range["min"]
 
         true_loc = submission_logistic_params.loc * \
-            true_width + self.question_range["min"]
+            self.question_range_width + self.question_range["min"]
 
-        true_scale = submission_logistic_params.scale * true_width
+        true_scale = submission_logistic_params.scale * self.question_range_width
 
         return logistic.LogisticParams(true_loc, true_scale)
 
-    def show_submission(self, samples):
+    def true_from_normalized_for_log(self, normalized_value):
+        expd = self.deriv_ratio ** normalized_value
+
+        scaled = expd * self.question_range_width
+
+        return scaled
+
+    def show_submission_log(self, samples):
         submission = self.get_submission_from_samples(samples)
 
-        true_scale_logistics_params = [self.get_true_scale_logistic_params(submission_logistic_params) for submission_logistic_params in submission.components]
+        submission_samples = [logistic.sample_mixture(
+            submission) for _ in range(0, 1000)]
 
-        true_scale_prediction = logistic.LogisticMixtureParams(true_scale_logistics_params, submission.probs)
+        true_scale_submission_samples = [self.true_from_normalized_for_log(
+            submission_sample) for submission_sample in submission_samples]
+
+        pyplot.figure()
+        pyplot.title(f"{self} prediction")
+        ax = seaborn.distplot(
+            true_scale_submission_samples, label="submission")
+        ax.set(xlabel='Sample value', ylabel='Density')
+        seaborn.distplot(samples, label="samples")
+        pyplot.xscale("log")
+        # for some reason mypy incorrectly thinks that there is no pyplot.legend
+        pyplot.legend()  # type: ignore
+        pyplot.show()
+
+    def show_submission(self, samples):
+        if self.is_log:
+            return self.show_submission_log(samples)
+
+        submission = self.get_submission_from_samples(samples)
+
+        true_scale_logistics_params = [self.get_true_scale_logistic_params(
+            submission_logistic_params) for submission_logistic_params in submission.components]
+
+        true_scale_prediction = logistic.LogisticMixtureParams(
+            true_scale_logistics_params, submission.probs)
 
         pyplot.figure()
         pyplot.title(f"{self} prediction")
