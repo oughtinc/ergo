@@ -104,6 +104,15 @@ print(get_true_loc(submission_loc, scale))
 prediction_request_loc_1900 = {"prediction": {"kind": "multi", "d": [
     {"kind": "logistic", "x0": 0.9278, "s": 0.3727, "w": 1, "low": 0.061, "high": 0.553}]}, "void": False}
 
-submission_loc_1900 = prediction_request_loc_1900["prediction"]["d"][0]
+submission_median_1900 = prediction_request_loc_1900["prediction"]["d"][0]
 
-print(get_true_loc(submission_loc_1900["x0"], scale))
+print(get_true_loc(submission_median_1900["x0"], scale))
+
+
+def get_true_scale(submission_scale, scale):
+    expd = scale["deriv_ratio"] ** submission_scale
+
+    width = scale["max"] - scale["min"]
+    scaled = expd * width
+
+    return scaled
