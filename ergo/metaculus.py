@@ -383,17 +383,6 @@ class Metaculus:
         data = r.json()
         return self.make_question_from_data(data, name)
 
-    def get_prediction_results(self) -> pd.DataFrame:
-        questions_data = self.get_questions_json(
-            question_status="resolved", player_status="predicted", pages=9999)
-        questions = [self.make_question_from_data(
-            question_data) for question_data in questions_data]
-        predictions_per_question = [
-            question.get_scored_predictions() for question in questions]
-        flat_predictions = [
-            prediction for question in predictions_per_question for prediction in question]
-        return pd.DataFrame([asdict(prediction) for prediction in flat_predictions])
-
     def get_questions_json(self,
                            question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
                            player_status: Literal["any", "predicted",
