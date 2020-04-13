@@ -92,7 +92,7 @@ class TestMetaculus:
             self.metaculus.get_questions_json(question_status="closed"))
         assert(closed["close_time"] < pendulum.now()).all()
 
-    def test_submit_equals_predict_linear(self):
+    def test_submitted_equals_predicted_linear(self):
         true_params = tests.mocks.mock_true_params
         submission_samples = np.array([ergo.logistic.sample_mixture(
             true_params) for _ in range(0, 5000)])
@@ -106,6 +106,18 @@ class TestMetaculus:
 
         assert np.mean(submission_samples) == pytest.approx(
             np.mean(prediction_samples), np.mean(prediction_samples)/10)
+
+    def test_submitted_equals_predicted_log(self):
+        submission_samples = tests.mocks.log_samples
+        r = self.continuous_log_open_question.submit_from_samples(
+            submission_samples)
+        latest_prediction = self.continuous_log_open_question.get_latest_normalized_prediction()
+        prediction_samples = np.array([self.continuous_log_open_question.true_from_normalized_value(ergo.logistic.sample_mixture(
+            latest_prediction)) for _ in range(0, 5000)])
+
+        assert np.mean(submission_samples) == pytest.approx(
+            np.mean(prediction_samples), np.mean(prediction_samples)/10)
+
 # Visual tests -- eyeball the results from these to see if they seem reasonable
 # leave these commented out usually, just use them if they seem useful
 
