@@ -3,6 +3,7 @@ import pytest
 import requests
 import pendulum
 import pprint
+import numpy as np
 import tests.mocks
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -10,12 +11,6 @@ pp = pprint.PrettyPrinter(indent=4)
 uname = "oughttest"
 pwd = "6vCo39Mz^rrb"
 user_id = 112420
-
-mock_mixture_params = ergo.logistic.LogisticMixtureParams(
-    components=[ergo.logistic.LogisticParams(loc=0.15, scale=0.037034005),
-                ergo.logistic.LogisticParams(loc=0.85, scale=0.032395907)],
-    probs=[0.5000871, 0.49991286]
-)
 
 
 class TestMetaculus:
@@ -35,19 +30,19 @@ class TestMetaculus:
 
     def test_submit_continuous_linear_open(self):
         submission = self.continuous_linear_open_question.get_submission(
-            mock_mixture_params)
+            tests.mocks.mock_mixture_params)
         r = self.continuous_linear_open_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_linear_closed(self):
         submission = self.continuous_linear_closed_question.get_submission(
-            mock_mixture_params)
+            tests.mocks.mock_mixture_params)
         r = self.continuous_linear_closed_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_log_open(self):
         submission = self.continuous_log_open_question.get_submission(
-            mock_mixture_params)
+            tests.mocks.mock_mixture_params)
         r = self.continuous_log_open_question.submit(submission)
         assert r.status_code == 202
 
@@ -63,7 +58,7 @@ class TestMetaculus:
     def test_submit_closed_question_fails(self):
         with pytest.raises(requests.exceptions.HTTPError):
             submission = self.closed_question.get_submission(
-                mock_mixture_params)
+                tests.mocks.mock_mixture_params)
             r = self.closed_question.submit(submission)
             print(r)
 
@@ -97,6 +92,20 @@ class TestMetaculus:
             self.metaculus.get_questions_json(question_status="closed"))
         assert(closed["close_time"] < pendulum.now()).all()
 
+    def test_submit_equals_predict_linear(self):
+        true_params = tests.mocks.mock_true_params
+        submission_samples = np.array([ergo.logistic.sample_mixture(
+            true_params) for _ in range(0, 5000)])
+        r = self.continuous_linear_open_question.submit_from_samples(
+            submission_samples)
+        latest_prediction = self.continuous_linear_open_question.get_latest_normalized_prediction()
+        scaled_params = self.continuous_linear_open_question.get_true_scale_mixture(
+            latest_prediction)
+        prediction_samples = np.array([ergo.logistic.sample_mixture(
+            scaled_params) for _ in range(0, 5000)])
+
+        assert np.mean(submission_samples) == pytest.approx(
+            np.mean(prediction_samples), np.mean(prediction_samples)/10)
 # Visual tests -- eyeball the results from these to see if they seem reasonable
 # leave these commented out usually, just use them if they seem useful
 

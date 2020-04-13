@@ -87,6 +87,11 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
+    def refresh_question(self):
+        r = self.metaculus.s.get(
+            f"{self.metaculus.api_url}/questions/{self.id}")
+        self.data = r.json()
+
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
         columns = ["id", "name", "title", "resolve_time"]
@@ -221,10 +226,14 @@ class ContinuousQuestion(MetaculusQuestion):
             "void": False
         }
 
-        return self.metaculus.post(
+        r = self.metaculus.post(
             f"""{self.metaculus.api_url}/questions/{self.id}/predict/""",
             prediction_data
         )
+
+        self.refresh_question()
+
+        return r
 
     def submit_from_samples(self, samples, samples_for_fit=5000) -> requests.Response:
         submission = self.get_submission_from_samples(samples, samples_for_fit)
@@ -244,10 +253,13 @@ class ContinuousQuestion(MetaculusQuestion):
     def show_prediction(self, prediction: SubmissionMixtureParams):
         raise NotImplementedError("This should be implemented by a subclass")
 
+    def get_latest_normalized_prediction(self) -> SubmissionMixtureParams:
+        latest_prediction = self.my_predictions["predictions"][-1]["d"]
+        return self.get_submission_from_json(latest_prediction)
+
     # TODO: show vs. Metaculus and vs. resolution if available
     def show_performance(self):
-        latest_prediction = self.my_predictions["predictions"][0]["d"]
-        mixture_params = self.get_submission_from_json(latest_prediction)
+        mixture_params = self.get_latest_normalized_prediction()
         self.show_prediction(mixture_params)
 
 
@@ -266,12 +278,15 @@ class LinearQuestion(ContinuousQuestion):
 
         return logistic.LogisticParams(true_loc, true_scale)
 
-    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
+    def get_true_scale_mixture(self, submission_params: SubmissionMixtureParams) -> logistic.LogisticMixtureParams:
         true_scale_logistics_params = [self.get_true_scale_logistic_params(
-            submission_logistic_params) for submission_logistic_params in prediction.components]
+            submission_logistic_params) for submission_logistic_params in submission_params.components]
 
-        true_scale_prediction = logistic.LogisticMixtureParams(
-            true_scale_logistics_params, prediction.probs)
+        return logistic.LogisticMixtureParams(
+            true_scale_logistics_params, submission_params.probs)
+
+    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
+        true_scale_prediction = self.get_true_scale_mixture(prediction)
 
         pyplot.figure()
         pyplot.title(f"{self} prediction")  # type: ignore
@@ -315,7 +330,8 @@ class LogQuestion(ContinuousQuestion):
         ax.set(xlabel='Sample value', ylabel='Density')
         ax.set_xlim(
             left=self.question_range["min"], right=self.question_range["max"])
-        seaborn.distplot(samples, label="Data")
+        if samples is not None:
+            seaborn.distplot(samples, label="Data")
         pyplot.xscale("log")  # type: ignore
         pyplot.legend()  # type: ignore
         pyplot.show()
