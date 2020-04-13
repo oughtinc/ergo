@@ -31,7 +31,7 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
 
 def tag(value, name: str):
     if not isinstance(value, torch.Tensor):
-        value = torch.Tensor(value)
+        value = torch.Tensor(value)  # type: ignore
     return pyro.deterministic(name, value)
 
 
