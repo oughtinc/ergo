@@ -327,13 +327,16 @@ class LogQuestion(ContinuousQuestion):
         pyplot.title(f"{self} prediction")  # type: ignore
         pyplot.xscale("log")  # type: ignore
         pyplot.legend()  # type: ignore
+
         ax = seaborn.distplot(
             true_scale_submission_samples, label="Mixture")
         ax.set(xlabel='Sample value', ylabel='Density')
         ax.set_xlim(
             left=self.question_range["min"], right=self.question_range["max"])
+
         if samples is not None:
             seaborn.distplot(samples, label="Data")
+
         pyplot.show()
 
     def show_submission(self, samples):
