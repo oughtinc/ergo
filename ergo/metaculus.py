@@ -350,6 +350,8 @@ class LinearQuestion(ContinuousQuestion):
         ax = seaborn.distplot(
             community_samples, label="Community")
 
+        pyplot.legend()
+
         return ax
 
 
@@ -394,7 +396,6 @@ class LogQuestion(ContinuousQuestion):
 
         pyplot.xscale("log")  # type: ignore
         pyplot.legend()  # type: ignore
-        pyplot.show()
 
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
@@ -411,6 +412,8 @@ class LogQuestion(ContinuousQuestion):
 
         ax = seaborn.distplot(
             community_samples, label="Community")
+
+        pyplot.legend()
 
         return ax
 
