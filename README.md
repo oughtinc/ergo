@@ -21,3 +21,8 @@ This way, you can quickly make changes to ergo and see them reflected in your Co
 6. Whenever you change `ergo` and want to load the change in your Colab, in the Colab, `Runtime` > `Restart Runtime...`
 
 If you get an error in the Colab, try following the instructions provided in the error. If that doesn't work, try the [official instructions for connecting to a local runtime](https://research.google.com/colaboratory/local-runtimes.html).
+
+### Before submitting a PR
+1. Format code according to [PEP8](https://www.python.org/dev/peps/pep-0008/). You could use autopep8.
+2. Run mypy: `mypy .`. There should be 0 errors or warnings, you should get `Success: no issues found`
+3. Run tests: `pytest -s`. All tests should pass.
