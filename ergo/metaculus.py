@@ -217,7 +217,7 @@ class ContinuousQuestion(MetaculusQuestion):
     def sample_community(self):
         normalized_sample = ppl.sample(
             self.community_dist()) / float(len(self.prediction_histogram))
-        sample = self.denormalize_samples(normalized_sample)
+        sample = self.denormalize_samples([normalized_sample])[0]
         if self.name:
             ppl.tag(sample, self.name)
         return sample
@@ -351,7 +351,7 @@ class LogQuestion(ContinuousQuestion):
         return np.log(samples) / np.log(self.deriv_ratio)
 
     def denormalize_samples(self, samples):
-        return [self.true_from_normalized_value(sample) for sample in samples]
+        return [self.true_from_normalized_value(sample) for sample in list(samples)]
 
     def true_from_normalized_value(self, normalized_value):
         exponentiated = self.deriv_ratio ** normalized_value
