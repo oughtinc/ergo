@@ -140,14 +140,15 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     2. Return dataframe with one row for each execution
     """
     model = name_count(model)
-    samples: Dict[str, List[float]] = {}
+    samples: List[Dict[str, float]] = []
     for i in tqdm.trange(num_samples):
+        sample: Dict[str, float] = {}
         trace = pyro.poutine.trace(model).get_trace()
         for name in trace.nodes.keys():
             if trace.nodes[name]["type"] == "sample":
                 if not ignore_unnamed or not name.startswith("_var"):
-                    samples.setdefault(name, [])
-                    samples[name].append(trace.nodes[name]["value"].item())  # FIXME
+                    sample[name] = trace.nodes[name]["value"].item()
+        samples.append(sample)
     return pd.DataFrame(samples)  # type: ignore
 
 
@@ -175,7 +176,7 @@ def infer_and_run(
             print(f"{k}: {v[1]:.4f} [{v[0]:.4f}, {v[2]:.4f}]")
 
     model = name_count(model)
-    
+
     # Automatically chooses a normal distribution for each variable
     guide = pyro.infer.autoguide.AutoNormal(
         model, init_loc_fn=pyro.infer.autoguide.init_to_median
@@ -213,4 +214,3 @@ def infer_and_run(
     predictive = Predictive(model, guide=guide, num_samples=num_samples)
     raw_samples = predictive(training=False)
     return pd.DataFrame(to_numpy(raw_samples))
-
