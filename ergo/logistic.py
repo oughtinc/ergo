@@ -34,6 +34,8 @@ class LogisticMixtureParams():
 def fit_single_scipy(samples) -> LogisticParams:
     with onp.errstate(all='raise'):  # type: ignore
         loc, scale = oscipy.stats.logistic.fit(samples)
+        scale = min(max(scale, 0.02), 10)
+        loc = min(max(loc, -0.1565), 1.1565)
         return LogisticParams(loc, scale)
 
 
@@ -89,18 +91,15 @@ def structure_mixture_params(components) -> LogisticMixtureParams:
 
 
 def fit_mixture(data, num_components=3, verbose=False, num_samples=5000) -> LogisticMixtureParams:
-    # the data might be something weird, like a pandas dataframe column;
-    # turn it into a regular old numpy array
-    data_as_np_array = np.array(data)
     step_size = 0.01
     components = initialize_components(num_components)
     (init_fun, update_fun, get_params) = sgd(step_size)
     opt_state = init_fun(components)
     for i in tqdm.trange(num_samples):
         components = get_params(opt_state)
-        grads = -grad_mixture_logpdf(data_as_np_array, components)
-        if np.any(np.isnan(grads)):
-            print("Encoutered nan gradient, stopping early")
+        grads = -grad_mixture_logpdf(data, components)
+        if np.any(np.isnan(grads)) and verbose:
+            print("Encoutered nan gradient, stopping")
             print(grads)
             print(components)
             break
@@ -108,7 +107,7 @@ def fit_mixture(data, num_components=3, verbose=False, num_samples=5000) -> Logi
         opt_state = update_fun(i, grads, opt_state)
         if i % 500 == 0 and verbose:
             pprint(components)
-            score = mixture_logpdf(data_as_np_array, components)
+            score = mixture_logpdf(data, components)
             print(f"Log score: {score:.3f}")
     return structure_mixture_params(components)
 
@@ -130,5 +129,6 @@ def plot_mixture(params: LogisticMixtureParams, data=None):
     ax.set(xlabel='Sample value', ylabel='Density')
     if data is not None:
         seaborn.distplot(data, label="Data")
+    # for some reason mypy incorrectly thinks that there is no pyplot.legend
     pyplot.legend()  # type: ignore
     pyplot.show()
