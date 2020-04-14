@@ -367,8 +367,6 @@ class LogQuestion(ContinuousQuestion):
 
         pyplot.figure()
         pyplot.title(f"{self} prediction")  # type: ignore
-        pyplot.xscale("log")  # type: ignore
-        pyplot.legend()  # type: ignore
 
         ax = seaborn.distplot(
             true_scale_submission_samples, label="Mixture")
@@ -379,6 +377,8 @@ class LogQuestion(ContinuousQuestion):
         if samples is not None:
             seaborn.distplot(samples, label="Data")
 
+        pyplot.xscale("log")  # type: ignore
+        pyplot.legend()  # type: ignore
         pyplot.show()
 
     def show_submission(self, samples):
