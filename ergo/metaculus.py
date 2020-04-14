@@ -351,7 +351,7 @@ class LogQuestion(ContinuousQuestion):
         return np.log(samples) / np.log(self.deriv_ratio)
 
     def denormalize_samples(self, samples):
-        return [self.true_from_normalized_value(sample) for sample in list(samples)]
+        return [self.true_from_normalized_value(sample) for sample in samples]
 
     def true_from_normalized_value(self, normalized_value):
         exponentiated = self.deriv_ratio ** normalized_value
