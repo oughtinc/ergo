@@ -363,12 +363,12 @@ class LogQuestion(ContinuousQuestion):
         return self.possibilities["scale"]["deriv_ratio"]
 
     def normalized_from_true_value(self, true_value) -> float:
-        floored_true = max(true_value, 1e-9)
-        shifted = floored_true - self.question_range["min"]
+        shifted = true_value - self.question_range["min"]
         numerator = shifted * (self.deriv_ratio - 1)
         scaled = numerator / self.question_range_width
         timber = 1 + scaled
-        return math.log(timber, self.deriv_ratio)
+        floored_timber = max(timber, 1e-9)
+        return math.log(floored_timber, self.deriv_ratio)
 
     def true_from_normalized_value(self, normalized_value):
         deriv_term = (self.deriv_ratio ** normalized_value - 1) / \
