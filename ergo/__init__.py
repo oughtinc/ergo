@@ -1,4 +1,4 @@
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 import ergo.data
 import ergo.metaculus
@@ -6,6 +6,7 @@ import ergo.ppl
 import ergo.logistic
 
 from .metaculus import Metaculus, MetaculusQuestion
+from .foretold import ForetoldDistribution
 from .ppl import (
     sample,
     tag,
