@@ -177,7 +177,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
     # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
     # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
-    def normalize_samples(self, samples, epsilon=1e-9):
+    def normalize_samples(self, samples):
         raise NotImplementedError("This should be implemented by a subclass")
 
     def get_submission_params(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
@@ -200,9 +200,10 @@ class ContinuousQuestion(MetaculusQuestion):
         # then the API will reject the prediction, though we haven't tested that extensively)
         low = max(distribution.cdf(0), 0.01) if self.low_open else 0
 
-        # min high of 0.0099 set based on API response to prediction on https://pandemic.metaculus.com/questions/3996/how-many-covid-19-deaths-will-be-recorded-in-the-month-of-april-worldwide/
+        # min high of low + 0.01 set based on API response for https://www.metaculus.com/api2/questions/3961/predict/ --
+        # {'prediction': ['high minus low must be at least 0.01']}"
         high = max(min(distribution.cdf(1), 0.99),
-                   0.0099) if self.high_open else 1
+                   low + 0.01) if self.high_open else 1
         return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
 
     # Map normalized samples back to actual scale
@@ -304,7 +305,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
 
 class LinearQuestion(ContinuousQuestion):
-    def normalize_samples(self, samples, epsilon=1e-9):
+    def normalize_samples(self, samples):
         return (samples - self.question_range["min"]) / (self.question_range_width)
 
     def denormalize_samples(self, samples):
@@ -362,11 +363,11 @@ class LogQuestion(ContinuousQuestion):
         return self.possibilities["scale"]["deriv_ratio"]
 
     def normalized_from_true_value(self, true_value) -> float:
-        return math.log(1 + self.question_range_width/((true_value - self.question_range["min"])/(self.deriv_ratio - 1)), self.deriv_ratio)
+        floored_true = max(true_value, 1e-8)
+        return math.log(1 + self.question_range_width/((floored_true - self.question_range["min"])/(self.deriv_ratio - 1)), self.deriv_ratio)
 
-    def normalize_samples(self, samples, epsilon=1e-9):
-        floored = np.maximum(samples, epsilon)
-        return [self.normalized_from_true_value(sample) for sample in floored]
+    def normalize_samples(self, samples):
+        return [self.normalized_from_true_value(sample) for sample in samples]
 
     def denormalize_samples(self, samples):
         return [self.true_from_normalized_value(sample) for sample in samples]
