@@ -19,11 +19,11 @@ q_ratio = metaculus.get_question(3755, name="Covid-19 ratio of fatalities to inf
 
 # Relate the three questions using a generative model
 def deaths_from_infections():
-  infections = q_infections.sample_community()
-  ratio = q_ratio.sample_community()
-  deaths = infections * ratio
-  ergo.tag(deaths, "Covid-19 deaths in 2020")
-  return deaths
+    infections = q_infections.sample_community()
+    ratio = q_ratio.sample_community()
+    deaths = infections * ratio
+    ergo.tag(deaths, "Covid-19 deaths in 2020")
+    return deaths
 
 # Compute model predictions for the `deaths` question
 samples = ergo.run(deaths_from_infections, num_samples=5000)
