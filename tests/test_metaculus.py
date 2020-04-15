@@ -22,6 +22,8 @@ class TestMetaculus:
     binary_question = metaculus.get_question(3966)
     mock_samples = np.array([ergo.logistic.sample_mixture(
         tests.mocks.mock_true_params) for _ in range(0, 5000)])
+    mock_log_question = metaculus.make_question_from_data(
+        tests.mocks.mock_log_question_data)
 
     def test_login(self):
         assert self.metaculus.user_id == user_id
@@ -29,6 +31,13 @@ class TestMetaculus:
     def test_get_question(self):
         # make sure we're getting the user-specific data
         assert "my_predictions" in self.continuous_linear_open_question.data
+
+    def test_normalize_denormalize(self):
+        samples = [0, 1, 5, 10, 20]
+        normalized = self.mock_log_question.normalize_samples(samples)
+        print(normalized)
+        denormalized = self.mock_log_question.denormalize_samples(normalized)
+        assert denormalized == samples
 
     def test_submit_continuous_linear_open(self):
         submission = self.continuous_linear_open_question.get_submission(
