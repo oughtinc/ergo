@@ -363,24 +363,22 @@ class LogQuestion(ContinuousQuestion):
         return self.possibilities["scale"]["deriv_ratio"]
 
     def normalized_from_true_value(self, true_value) -> float:
-        floored_true = max(true_value, 1e-9)
         denominator = (
-            floored_true - self.question_range["min"])/(self.deriv_ratio - 1)
-        tree = 1 + self.question_range_width/denominator
-        print(denominator, tree)
-        return math.log(tree, self.deriv_ratio)
-
-    def normalize_samples(self, samples):
-        return [self.normalized_from_true_value(sample) for sample in samples]
-
-    def denormalize_samples(self, samples):
-        return [self.true_from_normalized_value(sample) for sample in samples]
+            true_value - self.question_range["min"])*(self.deriv_ratio - 1)
+        timber = 1 + self.question_range_width/denominator
+        return math.log(timber, self.deriv_ratio)
 
     def true_from_normalized_value(self, normalized_value):
         denominator = (self.deriv_ratio - 1) * \
             (self.deriv_ratio ** normalized_value - 1)
         scaled = self.question_range_width / denominator
         return self.question_range["min"] + scaled
+
+    def normalize_samples(self, samples):
+        return [self.normalized_from_true_value(sample) for sample in samples]
+
+    def denormalize_samples(self, samples):
+        return [self.true_from_normalized_value(sample) for sample in samples]
 
     def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
         prediction_samples = [logistic.sample_mixture(

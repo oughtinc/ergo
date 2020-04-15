@@ -19,7 +19,7 @@ mock_log_question_data = {
     "possibilities": {
         "type": "continuous",
         "scale": {
-            "deriv_ratio": 2,
+            "deriv_ratio": 10,
             "min": 1,
             "max": 10
         }
