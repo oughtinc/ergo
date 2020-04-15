@@ -57,10 +57,12 @@ class ForetoldDistribution:
         ys = torch.tensor(self.floatCdf["ys"])
         y = uniform()
         i = np.argmax(ys > y)
+        if i == len(ys) - 1:
+            return xs[i]
         x0 = xs[i]
-        x1 = xs[np.min([i + 1, len(xs) - 1])]
+        x1 = xs[i + 1]
         y0 = ys[i]
-        y1 = ys[np.min([i + 1, len(ys) - 1])]
+        y1 = ys[i + 1]
         w = (y - y0) / (y1 - y0)
         return x1 * w + x0 * (1 - w)
 
