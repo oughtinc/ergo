@@ -44,7 +44,7 @@ The theory behind Ergo:
     - Deep neural nets as expressive function approximators
 2. But they haven't been connected yet in a productive workflow:
     - It's difficult to get data in and out of prediction platforms
-    - Submitting and monitoring questions to these platforms takes a long time
+    - Submitting questions to these platforms takes a long time
     - The questions on prediction platforms mostly aren't connected to decisions
     - Human judgments don't scale
     - Models often can't take into account all relevant considerations
