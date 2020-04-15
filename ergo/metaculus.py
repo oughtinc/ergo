@@ -1,3 +1,4 @@
+import math
 import functools
 import json
 import torch
@@ -357,23 +358,24 @@ class LinearQuestion(ContinuousQuestion):
 
 class LogQuestion(ContinuousQuestion):
     @property
-    def deriv_ratio(self) -> Optional[float]:
-        if self.is_continuous:
-            return self.possibilities["scale"]["deriv_ratio"]
-        return None
+    def deriv_ratio(self) -> float:
+        return self.possibilities["scale"]["deriv_ratio"]
+
+    def normalized_from_true_value(self, true_value) -> float:
+        return math.log(1 + self.question_range_width/((true_value - self.question_range["min"])/(self.deriv_ratio - 1)), self.deriv_ratio)
 
     def normalize_samples(self, samples, epsilon=1e-9):
-        samples = np.maximum(samples, epsilon)
-        samples = samples / self.question_range["min"]
-        return np.log(samples) / np.log(self.deriv_ratio)
+        floored = np.maximum(samples, epsilon)
+        return [self.normalized_from_true_value(sample) for sample in floored]
 
     def denormalize_samples(self, samples):
         return [self.true_from_normalized_value(sample) for sample in samples]
 
     def true_from_normalized_value(self, normalized_value):
-        exponentiated = self.deriv_ratio ** normalized_value
-        scaled = exponentiated * self.question_range["min"]
-        return scaled
+        denominator = (self.deriv_ratio - 1) * \
+            (self.deriv_ratio ** normalized_value - 1)
+        scaled = self.question_range_width / denominator
+        return self.question_range["min"] + scaled
 
     def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
         prediction_samples = [logistic.sample_mixture(
