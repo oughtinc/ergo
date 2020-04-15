@@ -33,11 +33,10 @@ class TestMetaculus:
         assert "my_predictions" in self.continuous_linear_open_question.data
 
     def test_normalize_denormalize(self):
-        samples = [0, 1, 2, 5, 7, 10, 20]  # [0, 1, 2, 5, 7, 10, 20]
+        samples = [0, 0.5, 1, 2, 5, 7, 10, 20]
         normalized = self.mock_log_question.normalize_samples(samples)
-        print(normalized)
         denormalized = self.mock_log_question.denormalize_samples(normalized)
-        assert denormalized == pytest.approx(samples, 1e-5)
+        assert denormalized == pytest.approx(samples, abs=1e-5)
 
     def test_submit_continuous_linear_open(self):
         submission = self.continuous_linear_open_question.get_submission(
