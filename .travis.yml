@@ -15,3 +15,6 @@ install:
 script:
 - poetry run mypy .
 - poetry run python -m pytest -s .
+
+after_success:
+  - poetry run codecov
