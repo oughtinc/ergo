@@ -111,7 +111,7 @@ The following notebooks have been created at different points in time and use Er
     - This notebook shows a simple example. 
     - As in [Guesstimate](https://www.getguesstimate.com), you can define distributions from 90% confidence intervals.
 
-2. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
+2. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community_distributions_v2.ipynb)
     - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
 
 3. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
