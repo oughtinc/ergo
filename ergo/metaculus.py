@@ -323,7 +323,7 @@ class LinearQuestion(ContinuousQuestion):
         return (samples - self.question_range["min"]) / (self.question_range_width)
 
     def denormalize_samples(self, samples):
-        # in case
+        # in case samples are in some other array-like format
         samples = np.array(samples)
         return self.question_range["min"] + (self.question_range["max"] - self.question_range["min"]) * samples
 
