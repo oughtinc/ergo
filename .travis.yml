@@ -14,7 +14,7 @@ install:
 
 script:
 - poetry run mypy .
-- poetry run python -m pytest -cov=ergo -s .
+- poetry run python -m pytest --cov=ergo -s .
 
 after_success:
   - poetry run codecov
