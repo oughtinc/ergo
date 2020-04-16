@@ -6,7 +6,7 @@ import ergo.ppl
 import ergo.logistic
 
 from .metaculus import Metaculus, MetaculusQuestion
-from .foretold import ForetoldDistribution
+from .foretold import Foretold, ForetoldQuestion
 from .ppl import (
     sample,
     tag,
