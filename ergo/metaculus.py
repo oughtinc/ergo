@@ -211,15 +211,29 @@ class ContinuousQuestion(MetaculusQuestion):
         raise NotImplementedError("This should be implemented by a subclass")
 
     @functools.lru_cache(None)
-    def community_dist(self):
+    def community_dist_in_range(self):
         # distribution on integers referencing 0...(len(self.prediction_histogram)-1)
         df = pd.DataFrame(self.prediction_histogram, columns=["x", "y1", "y2"])
         return dist.Categorical(probs=torch.Tensor(df["y2"]))
 
+    def sample_normalized_community(self):
+        sample_below_range = -1 * \
+            abs(np.random.logistic(0, 0.02))
+        sample_above_range = abs(np.random.logistic(
+            1, 0.02))
+        sample_in_range = ppl.sample(self.community_dist_in_range(
+        )) / float(len(self.prediction_histogram))
+
+        p_below = self.latest_community_prediction["low"]
+        p_above = 1 - self.latest_community_prediction["high"]
+        p_in_range = 1 - p_below - p_above
+
+        return ppl.random_choice([sample_below_range, sample_in_range, sample_above_range], ps=[p_below, p_in_range, p_above])
+
     def sample_community(self):
-        normalized_sample = ppl.sample(
-            self.community_dist()) / float(len(self.prediction_histogram))
-        sample = self.denormalize_samples([normalized_sample])[0]
+        normalized_sample = self.sample_normalized_community()
+        sample = torch.Tensor(
+            self.denormalize_samples([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
         return sample
@@ -309,6 +323,8 @@ class LinearQuestion(ContinuousQuestion):
         return (samples - self.question_range["min"]) / (self.question_range_width)
 
     def denormalize_samples(self, samples):
+        # in case
+        samples = np.array(samples)
         return self.question_range["min"] + (self.question_range["max"] - self.question_range["min"]) * samples
 
     # Get the logistic on the actual scale of the question,
@@ -353,6 +369,9 @@ class LinearQuestion(ContinuousQuestion):
             community_samples, label="Community")
 
         pyplot.legend()
+
+        if only_show_this:
+            pyplot.show()
 
         return ax
 
