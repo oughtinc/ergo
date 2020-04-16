@@ -20,6 +20,7 @@ typing_extensions = "^3.7.4"
 jax = "^0.1.62"
 jaxlib = "^0.1.43"
 pandas = "~=1.0.0"
+pytest-cov = "^2.8.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
