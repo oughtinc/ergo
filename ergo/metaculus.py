@@ -349,7 +349,7 @@ class LinearQuestion(ContinuousQuestion):
         true_scale_prediction = self.get_true_scale_mixture(prediction)
 
         pyplot.figure()
-        pyplot.title(f"{self} prediction")  # type: ignore
+        pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
         logistic.plot_mixture(true_scale_prediction,  # type: ignore
                               data=samples)  # type: ignore
 
@@ -361,13 +361,15 @@ class LinearQuestion(ContinuousQuestion):
     def show_community_prediction(self, only_show_this=True):
         if only_show_this:
             pyplot.figure()
-            pyplot.title(f"{self} community prediction")
+            pyplot.title(f"{self} community prediction", y=1.07)
 
-        community_samples = [self.sample_community() for _ in range(0, 1000)]
+        community_samples = [self.sample_community() for _ in range(0, 10000)]
 
         ax = seaborn.distplot(
-            community_samples, label="Community")
+            community_samples, label="Community", bins=500)
 
+        pyplot.xlim(
+            self.question_range["min"] - self.question_range_width/4, self.question_range["max"] + self.question_range_width/4)
         pyplot.legend()
 
         if only_show_this:
@@ -409,7 +411,7 @@ class LogQuestion(ContinuousQuestion):
             submission_sample) for submission_sample in prediction_samples]
 
         pyplot.figure()
-        pyplot.title(f"{self} prediction")  # type: ignore
+        pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
 
         ax = seaborn.distplot(
             true_scale_submission_samples, label="Mixture")
@@ -431,14 +433,19 @@ class LogQuestion(ContinuousQuestion):
     def show_community_prediction(self, only_show_this=True):
         if only_show_this:
             pyplot.figure()
-            pyplot.title(f"{self} community prediction")
+            pyplot.title(f"{self} community prediction", y=1.07)
 
-        community_samples = [self.sample_community() for _ in range(0, 1000)]
+        community_samples = [self.sample_community() for _ in range(0, 10000)]
         pyplot.xscale("log")  # type: ignore
 
         ax = seaborn.distplot(
-            community_samples, label="Community")
+            community_samples, label="Community", bins=500)
 
+        lower_xlim = max(
+            1, self.question_range["min"] - self.question_range_width/40)
+
+        pyplot.xlim(
+            lower_xlim, self.question_range["max"] + self.question_range_width/4)
         pyplot.legend()
 
         return ax
