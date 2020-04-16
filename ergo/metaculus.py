@@ -363,13 +363,11 @@ class LinearQuestion(ContinuousQuestion):
             pyplot.figure()
             pyplot.title(f"{self} community prediction", y=1.07)
 
-        community_samples = [self.sample_community() for _ in range(0, 10000)]
+        community_samples = [self.sample_community() for _ in range(0, 1000)]
 
         ax = seaborn.distplot(
-            community_samples, label="Community", bins=500)
+            community_samples, label="Community")
 
-        pyplot.xlim(
-            self.question_range["min"] - self.question_range_width/4, self.question_range["max"] + self.question_range_width/4)
         pyplot.legend()
 
         if only_show_this:
@@ -403,52 +401,59 @@ class LogQuestion(ContinuousQuestion):
     def denormalize_samples(self, samples):
         return [self.true_from_normalized_value(sample) for sample in samples]
 
-    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
-        prediction_samples = [logistic.sample_mixture(
-            prediction) for _ in range(0, 5000)]
+    @staticmethod
+    def set_true_x_ticks():
+        true_tick_values = [
+            f"{np.exp(log_tick):.1e}" for log_tick in pyplot.xticks()[0]]
 
-        true_scale_submission_samples = [self.true_from_normalized_value(
-            submission_sample) for submission_sample in prediction_samples]
+        pyplot.xticks(pyplot.xticks()[0],
+                      true_tick_values, rotation="vertical")
 
-        pyplot.figure()
-        pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
+    def plot_log_prediction(self, prediction: SubmissionMixtureParams, samples=None):
+        prediction_normed_samples = np.array([logistic.sample_mixture(
+            prediction) for _ in range(0, 5000)])
+
+        prediction_true_scale_samples = np.array([self.true_from_normalized_value(
+            submission_sample) for submission_sample in prediction_normed_samples])
 
         ax = seaborn.distplot(
-            true_scale_submission_samples, label="Mixture")
+            np.log(prediction_true_scale_samples), label="Mixture")
         ax.set(xlabel='Sample value', ylabel='Density')
-        ax.set_xlim(
-            left=self.question_range["min"], right=self.question_range["max"])
 
         if samples is not None:
-            seaborn.distplot(samples, label="Data")
+            seaborn.distplot(np.log(samples), label="Data")
 
-        pyplot.xscale("log")  # type: ignore
         pyplot.legend()  # type: ignore
 
-    def show_submission(self, samples):
-        submission = self.get_submission_from_samples(samples)
-
-        self.show_prediction(submission, samples)
-
-    def show_community_prediction(self, only_show_this=True):
-        if only_show_this:
-            pyplot.figure()
-            pyplot.title(f"{self} community prediction", y=1.07)
-
-        community_samples = [self.sample_community() for _ in range(0, 10000)]
-        pyplot.xscale("log")  # type: ignore
+    def plot_log_community_prediction(self):
+        community_samples = np.log([self.sample_community()
+                                    for _ in range(0, 1000)])
 
         ax = seaborn.distplot(
-            community_samples, label="Community", bins=500)
+            community_samples, label="Community")
 
-        lower_xlim = max(
-            1, self.question_range["min"] - self.question_range_width/40)
-
-        pyplot.xlim(
-            lower_xlim, self.question_range["max"] + self.question_range_width/4)
         pyplot.legend()
 
         return ax
+
+    def show_submission(self, samples, show_community=False):
+        submission = self.get_submission_from_samples(samples)
+        pyplot.figure()
+        pyplot.title(f"{self} prediction", y=1.07)
+        self.plot_log_prediction(submission, samples)
+
+        if show_community:
+            self.plot_log_community_prediction()
+
+        self.set_true_x_ticks()
+        pyplot.show()
+
+    def show_community_prediction(self):
+        pyplot.figure()
+        pyplot.title(f"{self} community prediction", y=1.07)
+        self.plot_log_community_prediction()
+        self.set_true_x_ticks()
+        pyplot.show()
 
 
 class Metaculus:
