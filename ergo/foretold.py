@@ -56,7 +56,7 @@ class ForetoldQuestion:
             self.channelId = measurable["channelId"]
             self.floatCdf = measurable["previousAggregate"]["value"]["floatCdf"]
         except KeyError:
-            raise (f"Error loading distribution {self.id} from Foretold")
+            raise (ValueError(f"Error loading distribution {self.id} from Foretold"))
 
     @property
     def url(self):
@@ -69,21 +69,19 @@ class ForetoldQuestion:
         ys are the y coordinates of the left edge. First sample between 0 and 1, 
         find the corresponding bin, then linearly interpolate within the bin.
 
-        A sample from the last bin will be just be at the left edge in the bin,
-        but we don't know what the end of the bin should be. Foretold distributions
-        seem to have 1000 points, so we shouldn't often be in the last bin so this
-        shouldn't make a huge difference.
         """
         xs = torch.tensor(self.floatCdf["xs"])
         ys = torch.tensor(self.floatCdf["ys"])
         y = uniform()
+        # Finds the first index in ys where the value is greater than y.
+        # y then falls between ys[i-1] and ys[i]
         i = np.argmax(ys > y)
-        if i == len(ys) - 1:
-            return xs[i]
-        x0 = xs[i]
-        x1 = xs[i + 1]
-        y0 = ys[i]
-        y1 = ys[i + 1]
+        if i == 0:
+            return xs[0]
+        x0 = xs[i - 1]
+        x1 = xs[i]
+        y0 = ys[i - 1]
+        y1 = ys[i]
         w = (y - y0) / (y1 - y0)
         return x1 * w + x0 * (1 - w)
 
