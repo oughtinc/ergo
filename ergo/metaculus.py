@@ -526,6 +526,55 @@ class LogQuestion(ContinuousQuestion):
         pyplot.show()
 
 
+class ContinuousDateQuestion(ContinuousQuestion):
+    # TODO: add log functionality (if some psychopath makes a log date question)
+
+    @property
+    def question_range(self):
+        return {
+            "min": 0,
+            "max": 1,
+            "date_min": pendulum.parse(self.possibilities["scale"]["min"], exact=True),
+            "date_max": pendulum.parse(self.possibilities["scale"]["max"], exact=True)
+        }
+
+    # Make sure we are dealing with pendulum dates
+    # TODO use @functools.singledispatchmethod to provide functionality for single dates
+    def ensure_date_format(self, data):
+        print(type(data))
+        if type(data) != pd.Series:
+            raise ValueError(
+                "Was expecting a vector of Dates")
+        elif type(data[0]) == pendulum.Date:
+            return data
+        else:
+            try:
+                return data.apply(lambda x: pendulum.parse(x, exact=True))
+            except:
+                raise ValueError(
+                    "The samples need to be convertable dates for this question")
+
+    # User helper-function that goes from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
+    # Assumes pd.Series of Dates
+    # TODO use @functools.singledispatchmethod to provide functionality for single dates
+    def normalize_dates(self, dates):
+        if self.is_log:
+            raise NotImplementedError(
+                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
+        dates = self.ensure_date_format(dates)
+
+        def normalize(date: pendulum.Date):
+            return (date - self.question_range["date_min"]).in_days() / (self.question_range["date_max"] - self.question_range["date_min"]).in_days()
+        return dates.apply(lambda x: normalize(x))
+
+    # Map normalized samples back to question date scale
+    def denormalize_samples_to_date_scale(self, samples):
+        if self.is_log:
+            raise NotImplementedError(
+                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
+        return self.question_range["date_min"].add(days=round((self.question_range["date_max"] - self.question_range["date_min"]).in_days() * samples))
+
+
 class Metaculus:
     """
     The main class for interacting with Metaculus
@@ -586,8 +635,16 @@ class Metaculus:
             return BinaryQuestion(data["id"], self, data, name)
         if data["possibilities"]["type"] == "continuous":
             if data["possibilities"]["scale"]["deriv_ratio"] != 1:
-                return LogQuestion(data["id"], self, data, name)
-            return LinearQuestion(data["id"], self, data, name)
+                if(data["possibilities"]["format"] == "date"):
+                    raise NotImplementedError(
+                        "Support for logarithmic date-valued questions is not currently supported"
+                    )
+                else:
+                    return LogQuestion(data["id"], self, data, name)
+            if(data["possibilities"]["format"] == "date"):
+                return ContinuousDateQuestion(data["id"], self, data, name)
+            else:
+                return LinearQuestion(data["id"], self, data, name)
         raise NotImplementedError(
             "We couldn't determine whether this question was binary, continuous, or something else"
         )
@@ -602,7 +659,7 @@ class Metaculus:
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         if not data.get("possibilities"):
-             raise ValueError(
+            raise ValueError(
                 "There was not a question with that id. HINT are you using the right api_domain?")
         return self.make_question_from_data(data, name)
 
