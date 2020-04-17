@@ -41,6 +41,7 @@ class Foretold:
                                 }
                             }""",
             },
+            headers=headers,
         )
         return response.json()["data"]["measurable"]
 
