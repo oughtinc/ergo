@@ -530,7 +530,7 @@ class Metaculus:
         loginURL = f"{self.api_url}/accounts/login/"
         r = self.s.post(
             loginURL,
-            headers={"Content-Type": "application/json",},
+            headers={"Content-Type": "application/json"},
             data=json.dumps({"username": username, "password": password}),
         )
 
