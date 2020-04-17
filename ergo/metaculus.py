@@ -282,6 +282,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission_from_samples(
         self, samples, samples_for_fit=5000
     ) -> SubmissionMixtureParams:
+        if not type(samples) in [pd.Series, np.ndarray]:
+            raise ValueError(
+                "Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
         mixture_params = logistic.fit_mixture(
             normalized_samples, num_samples=samples_for_fit
@@ -521,8 +524,8 @@ class LogQuestion(ContinuousQuestion):
         pyplot.show()
 
 
-class ContinuousDateQuestion(ContinuousQuestion):
-    # TODO: add log functionality (if some psychopath makes a log date question)
+class LinearDateQuestion(LinearQuestion):
+    # TODO: add log functionality (if some psychopath makes a log scaled date question)
 
     @property
     def question_range(self):
@@ -535,46 +538,29 @@ class ContinuousDateQuestion(ContinuousQuestion):
         qr['date_range'] = (qr["date_max"] - qr["date_min"]).days
         return qr
 
-    # Make sure we are dealing with datetime objects
-    # TODO use @functools.singledispatchmethod to provide functionality for single dates
-    def ensure_date_format(self, data):
-        if isinstance(data[0], dt.date):
-            return data
-        else:
-            try:
-                return pd.to_datetime(data).dt.date
-            except:
-                raise ValueError(
-                    "The samples need to be convertable dates for this question")
-
     # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
+    # TODO consider using @functools.singledispatchmethod
     def normalize_samples(self, samples, epsilon=1e-9):
-        if type(samples) != pd.Series:
-            raise ValueError(
-                "Was expecting a vector of samples")
-        elif not isinstance(samples[0], dt.date):
-            return super().normalize_samples(samples)
-        else:
+        if isinstance(samples[0], dt.date):
+            if type(samples) != pd.Series:
+                try:
+                    samples = pd.Series(samples)
+                except:
+                    raise ValueError(
+                        "Could not process samples vector")
             return self.normalize_dates(samples)
+        else:
+            return super().normalize_samples(samples)
 
+           
     # takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
     # Assumes pd.Series of datetime dates
-    # TODO consider using @functools.singledispatchmethod
-
     def normalize_dates(self, dates):
-        if self.is_log:
-            raise NotImplementedError(
-                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
-        dates = self.ensure_date_format(dates)
         return (dates - self.question_range["date_min"]).dt.days / self.question_range['date_range']
 
     # Map normalized samples back to dates
-
-    def denormalize_samples_to_date_scale(self, samples):
-        if self.is_log:
-            raise NotImplementedError(
-                "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
-
+    def denormalize_samples(self, samples):
+        samples = pd.Series(samples)
         def denorm(sample):
             return self.question_range["date_min"] + timedelta(days=round(self.question_range['date_range'] * sample))
         return samples.apply(lambda x: denorm(x))
@@ -632,14 +618,14 @@ class Metaculus:
             return BinaryQuestion(data["id"], self, data, name)
         if data["possibilities"]["type"] == "continuous":
             if data["possibilities"]["scale"]["deriv_ratio"] != 1:
-                if(data["possibilities"]["format"] == "date"):
+                if(data["possibilities"].get("format") == "date"):
                     raise NotImplementedError(
                         "Support for logarithmic date-valued questions is not currently supported"
                     )
                 else:
                     return LogQuestion(data["id"], self, data, name)
-            if(data["possibilities"]["format"] == "date"):
-                return ContinuousDateQuestion(data["id"], self, data, name)
+            if(data["possibilities"].get("format") == "date"):
+                return LinearDateQuestion(data["id"], self, data, name)
             else:
                 return LinearQuestion(data["id"], self, data, name)
         raise NotImplementedError(
