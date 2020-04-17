@@ -685,8 +685,7 @@ class Metaculus:
     def make_questions_df(self, questions_json):
         questions_df = pd.DataFrame(questions_json)
         for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
-            # TODO check if this is doing the right thing with timezones
-            questions_df[col] = pd.to_datetime(questions_df[col])
+            questions_df[col] = questions_df[col].apply(lambda x: datetime.strptime(x[:19], '%Y-%m-%dT%H:%M:%S'))
         questions_df["i_created"] = questions_df["author"] == self.user_id
         questions_df["i_predicted"] = questions_df["my_predictions"].apply(
             lambda x: x is not None
