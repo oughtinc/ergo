@@ -9,7 +9,7 @@ class Foretold:
     """Interface to Foretold"""
 
     def __init__(self, token=None):
-        """token supports Bot tokens from foretold"""
+        """token (string): Specify an authorization token (supports Bot tokens from Foretold)"""
         self.token = token
         self.api_url = "https://prediction-backend.herokuapp.com/graphql"
 
