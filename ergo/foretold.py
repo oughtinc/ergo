@@ -8,32 +8,24 @@ from ergo.ppl import uniform
 class Foretold:
     """Interface to Foretold"""
 
-    def __init__(self):
-        pass
+    def __init__(self, token=None):
+        """token supports Bot tokens from foretold"""
+        self.token = token
+        self.api_url = "https://prediction-backend.herokuapp.com/graphql"
 
     def get_question(self, id):
-        question = ForetoldQuestion(id)
+        question = ForetoldQuestion(id, self)
         question.refresh_question()
         return question
 
-
-class ForetoldQuestion:
-    """"Information about foretold question, including aggregated distribution"""
-
-    def __init__(self, id):
-        """
-            id: measurableId, the second id in the URL for a foretold question
-        """
-        self.id = id
-        self.floatCdf = None
-        self.channelId = None
-
-    def refresh_question(self):
-        # previousAggregate is the most recent aggregated distribution
+    def get_measurable(self, id):
+        headers = {}
+        if self.token is not None:
+            headers["Authorization"] = f"Bearer {self.token}"
         response = requests.post(
-            "https://prediction-backend.herokuapp.com/graphql",
+            self.api_url,
             json={
-                "variables": {"measurableId": self.id},
+                "variables": {"measurableId": id},
                 "query": """query ($measurableId: String!) {
                                 measurable(id:$measurableId) {
                                     id
@@ -50,9 +42,25 @@ class ForetoldQuestion:
                             }""",
             },
         )
-        response_json = response.json()
+        return response.json()["data"]["measurable"]
+
+
+class ForetoldQuestion:
+    """"Information about foretold question, including aggregated distribution"""
+
+    def __init__(self, id, foretold):
+        """
+            id: measurableId, the second id in the URL for a foretold question
+        """
+        self.id = id
+        self.foretold = foretold
+        self.floatCdf = None
+        self.channelId = None
+
+    def refresh_question(self):
+        # previousAggregate is the most recent aggregated distribution
         try:
-            measurable = response_json["data"]["measurable"]
+            measurable = self.foretold.get_measurable(self.id)
             self.channelId = measurable["channelId"]
             self.floatCdf = measurable["previousAggregate"]["value"]["floatCdf"]
         except KeyError:
