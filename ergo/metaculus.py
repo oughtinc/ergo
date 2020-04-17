@@ -4,7 +4,6 @@ import json
 import torch
 import requests
 import pendulum
-import scipy
 # scipy importing guidelines: https://docs.scipy.org/doc/scipy/reference/api.html
 from scipy import stats
 import seaborn
@@ -16,7 +15,7 @@ import pyro.distributions as dist
 import ergo.logistic as logistic
 import ergo.ppl as ppl
 
-from typing import Optional, List, Any, Dict, Tuple
+from typing import Optional, List, Any, Dict
 
 from typing_extensions import Literal
 from dataclasses import dataclass, asdict
@@ -97,28 +96,21 @@ class MetaculusQuestion:
             f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
-    def sample_community(self):
-        raise NotImplementedError("This should be implemented by a subclass")
-
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
-        show_names = False
-        for question in questions:
-            if question.name:
-                show_names = True
-                break
-        data = []
+        show_names = any(q.name for q in questions)
         if show_names:
             columns = ["id", "name", "title", "resolve_time"]
-            for question in questions:
-                data.append([question.id, question.name,
-                             question.title, question.resolve_time])
+            data = [[question.id, question.name,
+                     question.title, question.resolve_time] for question in questions]
         else:
             columns = ["id", "title", "resolve_time"]
-            for question in questions:
-                data.append(
-                    [question.id, question.title, question.resolve_time])
+            data = [[question.id, question.title, question.resolve_time]
+                    for question in questions]
         return pd.DataFrame(data, columns=columns)
+
+    def sample_community(self):
+        raise NotImplementedError("This should be implemented by a subclass")
 
 
 class BinaryQuestion(MetaculusQuestion):
@@ -175,9 +167,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def question_range_width(self):
         return self.question_range["max"] - self.question_range["min"]
 
-    # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
-    # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
     def normalize_samples(self, samples):
+        """The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
+        TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?"""
         raise NotImplementedError("This should be implemented by a subclass")
 
     def get_submission_params(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
@@ -186,41 +178,61 @@ class ContinuousQuestion(MetaculusQuestion):
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
         # max loc of 3 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
-        clipped_loc = min(logistic_params.loc, 3)
+        max_loc = 3
+        clipped_loc = min(logistic_params.loc, max_loc)
+
+        min_scale = 0.01
 
         # max scale of 10 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
-        clipped_scale = min(max(logistic_params.scale, 0.01), 10)
+        max_scale = 10
+        clipped_scale = min(max(logistic_params.scale, min_scale), max_scale)
 
-        # We're not really sure what the deal with the low and high is.
-        # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
-        # and ignores porbability mass assigned below/above.
-        # But we're not actually trying to use them to "cut off" our distribution in a smart way;
-        # we're just trying to include as much of our distribution as we can without the API getting unhappy
-        # (we belive that if you set the low higher than the value below [or if you set the high lower],
-        # then the API will reject the prediction, though we haven't tested that extensively)
-        low = max(distribution.cdf(0), 0.01) if self.low_open else 0
+        if self.low_open:
+            # We're not really sure what the deal with the low and high is.
+            # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
+            # and ignores porbability mass assigned below/above.
+            # But we're not actually trying to use them to "cut off" our distribution in a smart way;
+            # we're just trying to include as much of our distribution as we can without the API getting unhappy
+            # (we belive that if you set the low higher than the value below [or if you set the high lower],
+            # then the API will reject the prediction, though we haven't tested that extensively)
+            min_open_low = 0.01
+            low = max(distribution.cdf(0), min_open_low)
+        else:
+            low = 0
 
-        # min high of low + 0.01 set based on API response for https://www.metaculus.com/api2/questions/3961/predict/ --
-        # {'prediction': ['high minus low must be at least 0.01']}"
-        high = max(min(distribution.cdf(1), 0.99),
-                   low + 0.01) if self.high_open else 1
+        if self.high_open:
+            # min high of (low + 0.01) set based on API response for https://www.metaculus.com/api2/questions/3961/predict/ --
+            # {'prediction': ['high minus low must be at least 0.01']}"
+            min_open_high = low + 0.01
+
+            max_open_high = 0.99
+            high = max(min(distribution.cdf(1), max_open_high),
+                       min_open_high)
+        else:
+            high = 1
+
         return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
 
-    # Map normalized samples back to actual scale
-    def denormalize_samples(self, samples):
+    def denormalize_samples(self, samples) -> np.ndarray:
+        """Map normalized samples back to actual scale"""
         raise NotImplementedError("This should be implemented by a subclass")
 
     @functools.lru_cache(None)
     def community_dist_in_range(self):
-        # distribution on integers referencing 0...(len(self.prediction_histogram)-1)
-        df = pd.DataFrame(self.prediction_histogram, columns=["x", "y1", "y2"])
-        return dist.Categorical(probs=torch.Tensor(df["y2"]))
+        """distribution on integers referencing 0...(len(self.prediction_histogram)-1)"""
+        y2 = [p[2] for p in self.prediction_histogram]
+        return dist.Categorical(probs=torch.Tensor(y2))
 
     def sample_normalized_community(self):
-        sample_below_range = -1 * \
-            abs(np.random.logistic(0, 0.02))
+        # 0.02 is chosen pretty arbitrarily based on what I think will work best
+        # from playing around with the Metaculus API previously.
+        # Feel free to tweak if something else seems better.
+        # Ideally this wouldn't be a fixed number and would depend on how spread out we actually expect the probability mass to be
+        outside_range_scale = 0.02
+
+        sample_below_range = -abs(np.random.logistic(0, outside_range_scale))
         sample_above_range = abs(np.random.logistic(
-            1, 0.02))
+            1, outside_range_scale))
         sample_in_range = ppl.sample(self.community_dist_in_range(
         )) / float(len(self.prediction_histogram))
 
@@ -250,12 +262,8 @@ class ContinuousQuestion(MetaculusQuestion):
             normalized_samples, num_samples=samples_for_fit)
         return self.get_submission(mixture_params)
 
-    def show_submission(self, samples):
-        raise NotImplementedError("This should be implemented by a subclass")
-
     @staticmethod
     def format_logistic_for_api(submission: SubmissionLogisticParams, weight: float) -> dict:
-
         # convert all the numbers to floats here so that you can be sure that wherever they originated
         # (e.g. numpy), they'll be regular old floats that can be converted to json by json.dumps
         return {
@@ -302,20 +310,23 @@ class ContinuousQuestion(MetaculusQuestion):
         probs = [logistic_json["w"] for logistic_json in submission_json]
         return SubmissionMixtureParams(components, probs)
 
-    def show_prediction(self, prediction: SubmissionMixtureParams):
-        raise NotImplementedError("This should be implemented by a subclass")
-
     def get_latest_normalized_prediction(self) -> SubmissionMixtureParams:
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
         return self.get_submission_from_json(latest_prediction)
 
+    def show_performance(self):
+        """TODO: show vs. Metaculus and vs. resolution if available"""
+        mixture_params = self.get_latest_normalized_prediction()
+        self.show_prediction(mixture_params)
+
+    def show_submission(self, samples):
+        raise NotImplementedError("This should be implemented by a subclass")
+
     def show_community_prediction(self):
         raise NotImplementedError("This should be implemented by a subclass")
 
-    # TODO: show vs. Metaculus and vs. resolution if available
-    def show_performance(self):
-        mixture_params = self.get_latest_normalized_prediction()
-        self.show_prediction(mixture_params)
+    def show_prediction(self, prediction: SubmissionMixtureParams):
+        raise NotImplementedError("This should be implemented by a subclass")
 
 
 class LinearQuestion(ContinuousQuestion):
@@ -325,12 +336,13 @@ class LinearQuestion(ContinuousQuestion):
     def denormalize_samples(self, samples):
         # in case samples are in some other array-like format
         samples = np.array(samples)
-        return self.question_range["min"] + (self.question_range["max"] - self.question_range["min"]) * samples
+        return self.question_range["min"] + (self.question_range_width) * samples
 
-    # Get the logistic on the actual scale of the question,
-    # from the normalized logistic used in the submission
-    # TODO: also return low and high on the true scale
     def get_true_scale_logistic_params(self, submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
+        """Get the logistic on the actual scale of the question,
+        from the normalized logistic used in the submission
+        TODO: also return low and high on the true scale"""
+
         true_loc = submission_logistic_params.loc * \
             self.question_range_width + self.question_range["min"]
 
@@ -438,20 +450,24 @@ class LogQuestion(ContinuousQuestion):
 
     def show_submission(self, samples, show_community=False):
         submission = self.get_submission_from_samples(samples)
-        pyplot.figure()
-        pyplot.title(f"{self} prediction", y=1.07)
-        self.plot_log_prediction(submission, samples)
 
-        if show_community:
-            self.plot_log_community_prediction()
-
-        self.set_true_x_ticks()
-        pyplot.show()
+        self.show_prediction(submission, samples, show_community)
 
     def show_community_prediction(self):
         pyplot.figure()
         pyplot.title(f"{self} community prediction", y=1.07)
         self.plot_log_community_prediction()
+        self.set_true_x_ticks()
+        pyplot.show()
+
+    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None, show_community=False):
+        pyplot.figure()
+        pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
+        self.plot_log_prediction(prediction, samples)
+
+        if show_community:
+            self.plot_log_community_prediction()
+
         self.set_true_x_ticks()
         pyplot.show()
 

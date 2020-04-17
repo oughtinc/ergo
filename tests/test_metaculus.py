@@ -29,7 +29,7 @@ class TestMetaculus:
         assert self.metaculus.user_id == user_id
 
     def test_get_question(self):
-        # make sure we're getting the user-specific data
+        """make sure we're getting the user-specific data"""
         assert "my_predictions" in self.continuous_linear_open_question.data
 
     def test_normalize_denormalize(self):
@@ -73,7 +73,7 @@ class TestMetaculus:
             print(r)
 
     def test_score_binary(self):
-        # smoke test
+        """smoke test"""
         self.binary_question.get_scored_predictions()
 
     def test_get_questions_json(self):
@@ -140,8 +140,8 @@ class TestMetaculus:
 #     metaculus = ergo.Metaculus(uname, pwd, api_domain="pandemic")
 #     sf_question = metaculus.get_question(3931, name="sf_question")
 #     deaths_question = metaculus.get_question(3996)
-#     show_prediction_question = metaculus.get_question(4112)
-#     show_prediction_log_question = metaculus.get_question(4113)
+#     show_performance_question = metaculus.get_question(4112)
+#     show_performance_log_question = metaculus.get_question(4113)
 #     mock_samples = np.array([ergo.logistic.sample_mixture(
 #         tests.mocks.mock_true_params) for _ in range(0, 5000)])
 
@@ -155,11 +155,11 @@ class TestMetaculus:
 
 #     def test_show_performance(self):
 #         # should have two humps, one on the left and one on the right
-#         self.show_prediction_question.show_performance()
+#         self.show_performance_question.show_performance()
 
 #     def test_show_performance_log(self):
 #         # should have a low, flat hump on the left and a skinny hump on the right
-#         self.show_prediction_log_question.show_performance()
+#         self.show_performance_log_question.show_performance()
 
 #     def test_show_community_prediction(self):
 #         self.sf_question.show_community_prediction()

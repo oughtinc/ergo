@@ -71,23 +71,23 @@ def categorical(ps, **kwargs):
 
 
 def NormalFromInterval(low, high):
-    # This assumes a centered 90% confidence interval, i.e. the left endpoint
-    # marks 0.05% on the CDF, the right 0.95%.
+    """This assumes a centered 90% confidence interval, i.e. the left endpoint
+    marks 0.05% on the CDF, the right 0.95%."""
     mean = (high + low) / 2
     stdev = (high - mean) / 1.645
     return dist.Normal(mean, stdev)
 
 
 def HalfNormalFromInterval(high):
-    # This assumes a 90% confidence interval starting at 0,
-    # i.e. right endpoint marks 90% on the CDF
+    """This assumes a 90% confidence interval starting at 0,
+    i.e. right endpoint marks 90% on the CDF"""
     stdev = high / 1.645
     return dist.HalfNormal(stdev)
 
 
 def LogNormalFromInterval(low, high):
-    # This assumes a centered 90% confidence interval, i.e. the left endpoint
-    # marks 0.05% on the CDF, the right 0.95%.
+    """This assumes a centered 90% confidence interval, i.e. the left endpoint
+    marks 0.05% on the CDF, the right 0.95%."""
     loghigh = math.log(high)
     loglow = math.log(low)
     mean = (loghigh + loglow) / 2
@@ -118,7 +118,7 @@ def beta_from_hits(hits, total, **kwargs):
     return sample(BetaFromHits(hits, total), **kwargs)
 
 
-def random_choice(options, ps=None, **kwargs):
+def random_choice(options, ps=None):
     # in case ps are passed in as some array-like type other than torch.Tensor
     ps = torch.Tensor(ps)
 
@@ -145,7 +145,7 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     """
     model = name_count(model)
     samples: List[Dict[str, float]] = []
-    for i in tqdm.trange(num_samples):
+    for _ in tqdm.trange(num_samples):
         sample: Dict[str, float] = {}
         trace = pyro.poutine.trace(model).get_trace()
         for name in trace.nodes.keys():
