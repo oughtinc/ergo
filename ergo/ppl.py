@@ -119,11 +119,12 @@ def beta_from_hits(hits, total, **kwargs):
 
 
 def random_choice(options, ps=None):
-    # in case ps are passed in as some array-like type other than torch.Tensor
-    ps = torch.Tensor(ps)
-
     if ps is None:
         ps = torch.Tensor([1 / len(options)] * len(options))
+    else:
+        # in case ps are passed in as some array-like type other than torch.Tensor
+        ps = torch.Tensor(ps)
+
     idx = sample(dist.Categorical(ps))
     return options[idx]
 
