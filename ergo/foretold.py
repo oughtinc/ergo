@@ -63,10 +63,10 @@ class ForetoldQuestion:
         return f"https://www.foretold.io/c/{self.channelId}/m/{self.id}"
 
     def sample_community(self):
-        """Sample from CDF 
+        """Sample from CDF
 
-        Assumes that xs are the x coordinates of the left edge of bins, 
-        ys are the y coordinates of the left edge. First sample between 0 and 1, 
+        Assumes that xs are the x coordinates of the left edge of bins,
+        ys are the y coordinates of the left edge. First sample between 0 and 1,
         find the corresponding bin, then linearly interpolate within the bin.
 
         """

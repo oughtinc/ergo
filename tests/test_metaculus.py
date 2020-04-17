@@ -83,7 +83,7 @@ class TestMetaculus:
 
         not_predicted = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
             player_status="not-predicted"))
-        assert (not_predicted["i_predicted"] == False).all()
+        assert (not_predicted["i_predicted"] == False).all()  # noqa: E712
 
     def test_get_questions_question_status(self):
         open = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
@@ -95,8 +95,7 @@ class TestMetaculus:
         assert(closed["close_time"] < pendulum.now()).all()
 
     def test_submitted_equals_predicted_linear(self):
-        r = self.continuous_linear_open_question.submit_from_samples(
-            self.mock_samples)
+        self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
         latest_prediction = self.continuous_linear_open_question.get_latest_normalized_prediction()
         scaled_params = self.continuous_linear_open_question.get_true_scale_mixture(
             latest_prediction)
@@ -107,11 +106,11 @@ class TestMetaculus:
             np.mean(prediction_samples), np.mean(prediction_samples)/10)
 
     def test_submitted_equals_predicted_log(self):
-        r = self.continuous_log_open_question.submit_from_samples(
-            self.mock_samples)
+        self.continuous_log_open_question.submit_from_samples(self.mock_samples)
         latest_prediction = self.continuous_log_open_question.get_latest_normalized_prediction()
-        prediction_samples = np.array([self.continuous_log_open_question.true_from_normalized_value(ergo.logistic.sample_mixture(
-            latest_prediction)) for _ in range(0, 5000)])
+        prediction_samples = np.array([
+            self.continuous_log_open_question.true_from_normalized_value(
+                ergo.logistic.sample_mixture(latest_prediction)) for _ in range(0, 5000)])
 
         assert np.mean(self.mock_samples) == pytest.approx(
             np.mean(prediction_samples), np.mean(prediction_samples)/10)

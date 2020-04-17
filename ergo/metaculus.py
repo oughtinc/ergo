@@ -1,9 +1,6 @@
 import json
 import requests
 import pendulum
-import scipy
-# scipy importing guidelines: https://docs.scipy.org/doc/scipy/reference/api.html
-from scipy import stats
 import seaborn
 import pandas as pd
 import numpy as np
@@ -11,10 +8,11 @@ import matplotlib.pyplot as pyplot
 
 import ergo.logistic as logistic
 
-from typing import Optional, List, Any, Dict, Tuple
+from typing import Optional, List, Any, Dict
+from scipy import stats
 
 from typing_extensions import Literal
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 
 @dataclass
@@ -166,10 +164,12 @@ class ContinuousQuestion(MetaculusQuestion):
             logistic_params.loc, logistic_params.scale)
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
-        # max loc of 3 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+        # max loc of 3 set based on API response to prediction on
+        # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         clipped_loc = min(logistic_params.loc, 3)
 
-        # max scale of 10 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+        # max scale of 10 set based on API response to prediction on
+        # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         clipped_scale = min(max(logistic_params.scale, 0.01), 10)
 
         # We're not really sure what the deal with the low and high is.
@@ -181,7 +181,8 @@ class ContinuousQuestion(MetaculusQuestion):
         # then the API will reject the prediction, though we haven't tested that extensively)
         low = max(distribution.cdf(0), 0.01) if self.low_open else 0
 
-        # min high of 0.0099 set based on API response to prediction on https://pandemic.metaculus.com/questions/3996/how-many-covid-19-deaths-will-be-recorded-in-the-month-of-april-worldwide/
+        # min high of 0.0099 set based on API response to prediction on
+        # https://pandemic.metaculus.com/questions/3996/how-many-covid-19-deaths-will-be-recorded-in-the-month-of-april-worldwide/
         high = max(min(distribution.cdf(1), 0.99),
                    0.0099) if self.high_open else 1
         return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
@@ -241,7 +242,9 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def get_logistic_from_json(logistic_json: Dict) -> SubmissionLogisticParams:
-        return SubmissionLogisticParams(logistic_json["x0"], logistic_json["s"], logistic_json["low"], logistic_json["high"])
+        return SubmissionLogisticParams(logistic_json["x0"],
+                                        logistic_json["s"], logistic_json["low"],
+                                        logistic_json["high"])
 
     @classmethod
     def get_submission_from_json(cls, submission_json: Dict) -> SubmissionMixtureParams:
@@ -270,7 +273,9 @@ class LinearQuestion(ContinuousQuestion):
     # Get the logistic on the actual scale of the question,
     # from the normalized logistic used in the submission
     # TODO: also return low and high on the true scale
-    def get_true_scale_logistic_params(self, submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
+    def get_true_scale_logistic_params(self,
+                                       submission_logistic_params:
+                                       SubmissionLogisticParams) -> logistic.LogisticParams:
         true_loc = submission_logistic_params.loc * \
             self.question_range_width + self.question_range["min"]
 
@@ -403,12 +408,13 @@ class Metaculus:
         return self.make_question_from_data(data, name)
 
     def get_questions_json(self,
-                           question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
+                           question_status: Literal["all",
+                                                    "upcoming", "open", "closed", "resolved",
+                                                    "discussion"] = "all",
                            player_status: Literal["any", "predicted",
-                                                  "not-predicted", "author", "interested", "private"] = "any",
-                           # 20 results per page
-                           pages: int = 1,
-                           ) -> List[Dict]:
+                                                  "not-predicted", "author", "interested",
+                                                  "private"] = "any",  # 20 results per page
+                           pages: int = 1, ) -> List[Dict]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
@@ -419,7 +425,8 @@ class Metaculus:
 
         query_string = "&".join(query_params)
 
-        def get_questions_for_pages(query_string: str, max_pages: int = 1, current_page: int = 1, results=[]) -> List[Dict]:
+        def get_questions_for_pages(query_string: str, max_pages: int = 1,
+                                    current_page: int = 1, results=[]) -> List[Dict]:
             if current_page > max_pages:
                 return results
 

@@ -157,7 +157,7 @@ def infer_and_run(
     learning_rate=0.01,
     early_stopping_patience=200,
 ) -> pd.DataFrame:
-    """ 
+    """
     debug - whether to output debug information
     num_iterations - Number of optimizer iterations
     learning_rate - Optimizer learning rate
@@ -173,7 +173,7 @@ def infer_and_run(
             print(f"{k}: {v[1]:.4f} [{v[0]:.4f}, {v[2]:.4f}]")
 
     model = name_count(model)
-    
+
     # Automatically chooses a normal distribution for each variable
     guide = pyro.infer.autoguide.AutoNormal(
         model, init_loc_fn=pyro.infer.autoguide.init_to_median
@@ -211,4 +211,3 @@ def infer_and_run(
     predictive = Predictive(model, guide=guide, num_samples=num_samples)
     raw_samples = predictive(training=False)
     return pd.DataFrame(to_numpy(raw_samples))
-

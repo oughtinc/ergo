@@ -9,7 +9,7 @@ import jax.numpy as np
 import matplotlib.pyplot as pyplot
 from jax import grad, jit, scipy, nn, vmap
 from jax.interpreters.xla import DeviceArray
-from jax.experimental.optimizers import clip_grads, adam, sgd
+from jax.experimental.optimizers import clip_grads, sgd
 
 from dataclasses import dataclass
 from pprint import pprint
