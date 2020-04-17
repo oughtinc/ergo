@@ -32,6 +32,13 @@ samples = ergo.run(deaths_from_infections, num_samples=5000)
 q_deaths.submit_from_samples(samples)
 ```
 
+## Quickstart
+
+1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/quickstart.ipynb)
+2. Add your Metaculus username and password
+3. Select "Runtime > Run all" in the menu
+4. Edit the code to load other questions, improve the model, etc., and rerun
+
 ## Philosophy
 
 The theory behind Ergo:
