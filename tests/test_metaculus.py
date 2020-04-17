@@ -5,6 +5,8 @@ import pendulum
 import pprint
 import numpy as np
 import tests.mocks
+import datetime
+import pandas as pd
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -17,15 +19,27 @@ class TestMetaculus:
     metaculus = ergo.Metaculus(uname, pwd)
     continuous_linear_closed_question = metaculus.get_question(3963)
     continuous_linear_open_question = metaculus.get_question(3962)
+    continuous_linear_date_open_question = metaculus.get_question(4212)
     continuous_log_open_question = metaculus.get_question(3961)
     closed_question = metaculus.get_question(3965)
     binary_question = metaculus.get_question(3966)
+
     mock_samples = np.array(
         [
             ergo.logistic.sample_mixture(tests.mocks.mock_true_params)
             for _ in range(0, 1000)
         ]
     )
+    
+    mock_date_samples = continuous_linear_date_open_question.denormalize_samples(
+        pd.Series(
+         [
+            ergo.logistic.sample_mixture(tests.mocks.mock_normalized_params)
+            for _ in range(0, 1000)
+         ]
+        )
+    )
+
     mock_log_question = metaculus.make_question_from_data(
         tests.mocks.mock_log_question_data
     )
@@ -37,6 +51,12 @@ class TestMetaculus:
         """make sure we're getting the user-specific data"""
         assert "my_predictions" in self.continuous_linear_open_question.data
 
+    def test_date_normalize_denormalize(self):
+        samples = self.mock_date_samples
+        normalized = self.continuous_linear_date_open_question.normalize_samples(samples)
+        denormalized =  self.continuous_linear_date_open_question.denormalize_samples(normalized)
+        assert all(denormalized == samples)
+    
     def test_normalize_denormalize(self):
         samples = [0, 0.5, 1, 5, 10, 20]
         normalized = self.mock_log_question.normalize_samples(samples)
@@ -48,6 +68,13 @@ class TestMetaculus:
             tests.mocks.mock_normalized_params
         )
         r = self.continuous_linear_open_question.submit(submission)
+        assert r.status_code == 202
+
+    def test_submit_continuous_linear_date_open(self):
+        submission = self.continuous_linear_date_open_question.get_submission(
+            tests.mocks.mock_normalized_params
+        )
+        r = self.continuous_linear_date_open_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_linear_closed(self):
