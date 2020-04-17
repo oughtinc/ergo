@@ -20,10 +20,15 @@ class TestMetaculus:
     continuous_log_open_question = metaculus.get_question(3961)
     closed_question = metaculus.get_question(3965)
     binary_question = metaculus.get_question(3966)
-    mock_samples = np.array([ergo.logistic.sample_mixture(
-        tests.mocks.mock_true_params) for _ in range(0, 1000)])
+    mock_samples = np.array(
+        [
+            ergo.logistic.sample_mixture(tests.mocks.mock_true_params)
+            for _ in range(0, 1000)
+        ]
+    )
     mock_log_question = metaculus.make_question_from_data(
-        tests.mocks.mock_log_question_data)
+        tests.mocks.mock_log_question_data
+    )
 
     def test_login(self):
         assert self.metaculus.user_id == user_id
@@ -40,25 +45,29 @@ class TestMetaculus:
 
     def test_submit_continuous_linear_open(self):
         submission = self.continuous_linear_open_question.get_submission(
-            tests.mocks.mock_normalized_params)
+            tests.mocks.mock_normalized_params
+        )
         r = self.continuous_linear_open_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_linear_closed(self):
         submission = self.continuous_linear_closed_question.get_submission(
-            tests.mocks.mock_normalized_params)
+            tests.mocks.mock_normalized_params
+        )
         r = self.continuous_linear_closed_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_log_open(self):
         submission = self.continuous_log_open_question.get_submission(
-            tests.mocks.mock_normalized_params)
+            tests.mocks.mock_normalized_params
+        )
         r = self.continuous_log_open_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_from_samples(self):
         r = self.continuous_linear_open_question.submit_from_samples(
-            self.mock_samples, samples_for_fit=1000)
+            self.mock_samples, samples_for_fit=1000
+        )
         assert r.status_code == 202
 
     def test_submit_binary(self):
@@ -68,7 +77,8 @@ class TestMetaculus:
     def test_submit_closed_question_fails(self):
         with pytest.raises(requests.exceptions.HTTPError):
             submission = self.closed_question.get_submission(
-                tests.mocks.mock_normalized_params)
+                tests.mocks.mock_normalized_params
+            )
             r = self.closed_question.submit(submission)
             print(r)
 
@@ -85,43 +95,60 @@ class TestMetaculus:
         assert len(two_pages) >= 40
 
     def test_get_questions_player_status(self):
-        qs_i_predicted = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
-            player_status="predicted"))
+        qs_i_predicted = self.metaculus.make_questions_df(
+            self.metaculus.get_questions_json(player_status="predicted")
+        )
         assert qs_i_predicted["i_predicted"].all()
 
-        not_predicted = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
-            player_status="not-predicted"))
+        not_predicted = self.metaculus.make_questions_df(
+            self.metaculus.get_questions_json(player_status="not-predicted")
+        )
         assert (not_predicted["i_predicted"] == False).all()  # noqa: E712
 
     def test_get_questions_question_status(self):
-        open = self.metaculus.make_questions_df(self.metaculus.get_questions_json(
-            question_status="open"))
-        assert(open["close_time"] > pendulum.now()).all()
+        open = self.metaculus.make_questions_df(
+            self.metaculus.get_questions_json(question_status="open")
+        )
+        assert (open["close_time"] > pendulum.now()).all()
 
         closed = self.metaculus.make_questions_df(
-            self.metaculus.get_questions_json(question_status="closed"))
-        assert(closed["close_time"] < pendulum.now()).all()
+            self.metaculus.get_questions_json(question_status="closed")
+        )
+        assert (closed["close_time"] < pendulum.now()).all()
 
     def test_submitted_equals_predicted_linear(self):
         self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
-        latest_prediction = self.continuous_linear_open_question.get_latest_normalized_prediction()
+        latest_prediction = (
+            self.continuous_linear_open_question.get_latest_normalized_prediction()
+        )
         scaled_params = self.continuous_linear_open_question.get_true_scale_mixture(
-            latest_prediction)
-        prediction_samples = np.array([ergo.logistic.sample_mixture(
-            scaled_params) for _ in range(0, 1000)])
+            latest_prediction
+        )
+        prediction_samples = np.array(
+            [ergo.logistic.sample_mixture(scaled_params) for _ in range(0, 1000)]
+        )
 
         assert np.mean(self.mock_samples) == pytest.approx(
-            np.mean(prediction_samples), np.mean(prediction_samples)/10)
+            np.mean(prediction_samples), np.mean(prediction_samples) / 10
+        )
 
     def test_submitted_equals_predicted_log(self):
         self.continuous_log_open_question.submit_from_samples(self.mock_samples)
-        latest_prediction = self.continuous_log_open_question.get_latest_normalized_prediction()
-        prediction_samples = np.array([
-            self.continuous_log_open_question.true_from_normalized_value(
-                ergo.logistic.sample_mixture(latest_prediction)) for _ in range(0, 5000)])
+        latest_prediction = (
+            self.continuous_log_open_question.get_latest_normalized_prediction()
+        )
+        prediction_samples = np.array(
+            [
+                self.continuous_log_open_question.true_from_normalized_value(
+                    ergo.logistic.sample_mixture(latest_prediction)
+                )
+                for _ in range(0, 5000)
+            ]
+        )
 
         assert np.mean(self.mock_samples) == pytest.approx(
-            np.mean(prediction_samples), np.mean(prediction_samples)/10)
+            np.mean(prediction_samples), np.mean(prediction_samples) / 10
+        )
 
     # smoke tests
     def test_get_community_prediction_linear(self):
