@@ -176,13 +176,15 @@ class ContinuousQuestion(MetaculusQuestion):
             logistic_params.loc, logistic_params.scale)
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
-        # max loc of 3 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+        # max loc of 3 set based on API response to prediction on
+        # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         max_loc = 3
         clipped_loc = min(logistic_params.loc, max_loc)
 
         min_scale = 0.01
 
-        # max scale of 10 set based on API response to prediction on https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+        # max scale of 10 set based on API response to prediction on
+        # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         max_scale = 10
         clipped_scale = min(max(logistic_params.scale, min_scale), max_scale)
 
@@ -200,7 +202,8 @@ class ContinuousQuestion(MetaculusQuestion):
             low = 0
 
         if self.high_open:
-            # min high of (low + 0.01) set based on API response for https://www.metaculus.com/api2/questions/3961/predict/ --
+            # min high of (low + 0.01) set based on API response for
+            # https://www.metaculus.com/api2/questions/3961/predict/ --
             # {'prediction': ['high minus low must be at least 0.01']}"
             min_open_high = low + 0.01
 
@@ -226,7 +229,8 @@ class ContinuousQuestion(MetaculusQuestion):
         # 0.02 is chosen pretty arbitrarily based on what I think will work best
         # from playing around with the Metaculus API previously.
         # Feel free to tweak if something else seems better.
-        # Ideally this wouldn't be a fixed number and would depend on how spread out we actually expect the probability mass to be
+        # Ideally this wouldn't be a fixed number and would depend on
+        # how spread out we actually expect the probability mass to be
         outside_range_scale = 0.02
 
         sample_below_range = -abs(np.random.logistic(0, outside_range_scale))
@@ -239,7 +243,9 @@ class ContinuousQuestion(MetaculusQuestion):
         p_above = 1 - self.latest_community_prediction["high"]
         p_in_range = 1 - p_below - p_above
 
-        return ppl.random_choice([sample_below_range, sample_in_range, sample_above_range], ps=[p_below, p_in_range, p_above])
+        return ppl.random_choice(
+            [sample_below_range, sample_in_range, sample_above_range],
+            ps=[p_below, p_in_range, p_above])
 
     def sample_community(self):
         normalized_sample = self.sample_normalized_community()
@@ -339,7 +345,8 @@ class LinearQuestion(ContinuousQuestion):
         samples = np.array(samples)
         return self.question_range["min"] + (self.question_range_width) * samples
 
-    def get_true_scale_logistic_params(self, submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
+    def get_true_scale_logistic_params(self,
+                                       submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
         """Get the logistic on the actual scale of the question,
         from the normalized logistic used in the submission
         TODO: also return low and high on the true scale"""
