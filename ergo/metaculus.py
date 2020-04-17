@@ -106,7 +106,8 @@ class MetaculusQuestion:
             ]
         else:
             columns = ["id", "title", "resolve_time"]
-            data = [[question.id, question.title, question.resolve_time]
+            data = [
+                [question.id, question.title, question.resolve_time]
                 for question in questions
             ]
         return pd.DataFrame(data, columns=columns)
