@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ergo"
-version = "0.8.0"
+version = "0.8.1"
 description = ""
 authors = ["Ought <team@ought.org>"]
 
