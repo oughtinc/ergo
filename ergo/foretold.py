@@ -71,28 +71,14 @@ class ForetoldQuestion:
     def url(self):
         return f"https://www.foretold.io/c/{self.channelId}/m/{self.id}"
 
+    def quantile(self, q):
+        """Quantile of distribution"""
+        return np.interp(q, self.floatCdf["ys"], self.floatCdf["xs"])
+
     def sample_community(self):
-        """Sample from CDF
-
-        Assumes that xs are the x coordinates of the left edge of bins,
-        ys are the y coordinates of the left edge. First sample between 0 and 1,
-        find the corresponding bin, then linearly interpolate within the bin.
-
-        """
-        xs = torch.tensor(self.floatCdf["xs"])
-        ys = torch.tensor(self.floatCdf["ys"])
+        """Sample from CDF"""
         y = uniform()
-        # Finds the first index in ys where the value is greater than y.
-        # y then falls between ys[i-1] and ys[i]
-        i = np.argmax(ys > y)
-        if i == 0:
-            return xs[0]
-        x0 = xs[i - 1]
-        x1 = xs[i]
-        y0 = ys[i - 1]
-        y1 = ys[i]
-        w = (y - y0) / (y1 - y0)
-        return x1 * w + x0 * (1 - w)
+        return torch.tensor(self.quantile(y))
 
     def plotCdf(self):
         seaborn.lineplot(self.floatCdf["xs"], self.floatCdf["ys"])
