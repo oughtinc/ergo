@@ -44,6 +44,7 @@ def test_fit_mixture_large():
     assert scales[0] == pytest.approx(0.1, abs=0.2)
     assert scales[1] == pytest.approx(0.2, abs=0.2)
 
+
 # visual tests, comment out usually
 
 # def test_visual_plot_mixture():

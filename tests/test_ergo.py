@@ -8,6 +8,7 @@ class TestPPL:
             y = ergo.beta_from_hits(2, 10, name="y")
             z = x * y
             ergo.tag(z, "z")
+
         samples = ergo.run(model, num_samples=1000)
         stats = samples.describe()
         assert 3.5 < stats["x"]["mean"] < 4.5

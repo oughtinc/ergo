@@ -54,6 +54,7 @@ class MetaculusQuestion:
     - prediction_histogram
     - anon_prediction_count
     """
+
     id: int
     data: Optional[object]
     metaculus: "Metaculus"
@@ -91,8 +92,7 @@ class MetaculusQuestion:
         return "<MetaculusQuestion>"
 
     def refresh_question(self):
-        r = self.metaculus.s.get(
-            f"{self.metaculus.api_url}/questions/{self.id}")
+        r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
     @staticmethod
@@ -100,12 +100,16 @@ class MetaculusQuestion:
         show_names = any(q.name for q in questions)
         if show_names:
             columns = ["id", "name", "title", "resolve_time"]
-            data = [[question.id, question.name,
-                     question.title, question.resolve_time] for question in questions]
+            data = [
+                [question.id, question.name, question.title, question.resolve_time]
+                for question in questions
+            ]
         else:
             columns = ["id", "title", "resolve_time"]
-            data = [[question.id, question.title, question.resolve_time]
-                    for question in questions]
+            data = [
+                [question.id, question.title, question.resolve_time]
+                for question in questions
+            ]
         return pd.DataFrame(data, columns=columns)
 
     def sample_community(self):
@@ -116,8 +120,10 @@ class BinaryQuestion(MetaculusQuestion):
     def score_prediction(self, prediction, resolution) -> ScoredPrediction:
         predicted = prediction["x"]
         # Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
-        score = (resolution - predicted)**2
-        return ScoredPrediction(prediction["t"], prediction, resolution, score, self.__str__())
+        score = (resolution - predicted) ** 2
+        return ScoredPrediction(
+            prediction["t"], prediction, resolution, score, self.__str__()
+        )
 
     def get_scored_predictions(self):
         resolution = self.resolution
@@ -125,15 +131,14 @@ class BinaryQuestion(MetaculusQuestion):
             last_community_prediction = self.prediction_timeseries[-1]
             resolution = last_community_prediction["distribution"]["avg"]
         predictions = self.my_predictions["predictions"]
-        return [self.score_prediction(prediction, resolution) for prediction in predictions]
+        return [
+            self.score_prediction(prediction, resolution) for prediction in predictions
+        ]
 
     def submit(self, p: float):
         return self.metaculus.post(
             f"{self.metaculus.api_url}/questions/{self.id}/predict/",
-            {
-                "prediction": p,
-                "void": False
-            }
+            {"prediction": p, "void": False},
         )
 
 
@@ -171,9 +176,10 @@ class ContinuousQuestion(MetaculusQuestion):
         TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?"""
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def get_submission_params(self, logistic_params: logistic.LogisticParams) -> SubmissionLogisticParams:
-        distribution = stats.logistic(
-            logistic_params.loc, logistic_params.scale)
+    def get_submission_params(
+        self, logistic_params: logistic.LogisticParams
+    ) -> SubmissionLogisticParams:
+        distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
         # max loc of 3 set based on API response to prediction on
@@ -208,8 +214,7 @@ class ContinuousQuestion(MetaculusQuestion):
             min_open_high = low + 0.01
 
             max_open_high = 0.99
-            high = max(min(distribution.cdf(1), max_open_high),
-                       min_open_high)
+            high = max(min(distribution.cdf(1), max_open_high), min_open_high)
         else:
             high = 1
 
@@ -234,10 +239,10 @@ class ContinuousQuestion(MetaculusQuestion):
         outside_range_scale = 0.02
 
         sample_below_range = -abs(np.random.logistic(0, outside_range_scale))
-        sample_above_range = abs(np.random.logistic(
-            1, outside_range_scale))
-        sample_in_range = ppl.sample(self.community_dist_in_range(
-        )) / float(len(self.prediction_histogram))
+        sample_above_range = abs(np.random.logistic(1, outside_range_scale))
+        sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
+            len(self.prediction_histogram)
+        )
 
         p_below = self.latest_community_prediction["low"]
         p_above = 1 - self.latest_community_prediction["high"]
@@ -245,30 +250,39 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return ppl.random_choice(
             [sample_below_range, sample_in_range, sample_above_range],
-            ps=[p_below, p_in_range, p_above])
+            ps=[p_below, p_in_range, p_above],
+        )
 
     def sample_community(self):
         normalized_sample = self.sample_normalized_community()
-        sample = torch.Tensor(
-            self.denormalize_samples([normalized_sample]))
+        sample = torch.Tensor(self.denormalize_samples([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
         return sample
 
-    def get_submission(self, mixture_params: logistic.LogisticMixtureParams) -> SubmissionMixtureParams:
-        submission_logistic_params = [self.get_submission_params(
-            logistic_params) for logistic_params in mixture_params.components]
+    def get_submission(
+        self, mixture_params: logistic.LogisticMixtureParams
+    ) -> SubmissionMixtureParams:
+        submission_logistic_params = [
+            self.get_submission_params(logistic_params)
+            for logistic_params in mixture_params.components
+        ]
 
         return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
 
-    def get_submission_from_samples(self, samples, samples_for_fit=5000) -> SubmissionMixtureParams:
+    def get_submission_from_samples(
+        self, samples, samples_for_fit=5000
+    ) -> SubmissionMixtureParams:
         normalized_samples = self.normalize_samples(samples)
         mixture_params = logistic.fit_mixture(
-            normalized_samples, num_samples=samples_for_fit)
+            normalized_samples, num_samples=samples_for_fit
+        )
         return self.get_submission(mixture_params)
 
     @staticmethod
-    def format_logistic_for_api(submission: SubmissionLogisticParams, weight: float) -> dict:
+    def format_logistic_for_api(
+        submission: SubmissionLogisticParams, weight: float
+    ) -> dict:
         # convert all the numbers to floats here so that you can be sure that wherever they originated
         # (e.g. numpy), they'll be regular old floats that can be converted to json by json.dumps
         return {
@@ -277,23 +291,24 @@ class ContinuousQuestion(MetaculusQuestion):
             "s": float(submission.scale),
             "w": float(weight),
             "low": float(submission.low),
-            "high": float(submission.high)
+            "high": float(submission.high),
         }
 
     def submit(self, submission: SubmissionMixtureParams) -> requests.Response:
         prediction_data = {
-            "prediction":
-            {
+            "prediction": {
                 "kind": "multi",
-                "d": [self.format_logistic_for_api(logistic_params, submission.probs[idx])
-                      for idx, logistic_params in enumerate(submission.components)]
+                "d": [
+                    self.format_logistic_for_api(logistic_params, submission.probs[idx])
+                    for idx, logistic_params in enumerate(submission.components)
+                ],
             },
-            "void": False
+            "void": False,
         }
 
         r = self.metaculus.post(
             f"""{self.metaculus.api_url}/questions/{self.id}/predict/""",
-            prediction_data
+            prediction_data,
         )
 
         self.refresh_question()
@@ -306,14 +321,19 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def get_logistic_from_json(logistic_json: Dict) -> SubmissionLogisticParams:
-        return SubmissionLogisticParams(logistic_json["x0"],
-                                        logistic_json["s"], logistic_json["low"],
-                                        logistic_json["high"])
+        return SubmissionLogisticParams(
+            logistic_json["x0"],
+            logistic_json["s"],
+            logistic_json["low"],
+            logistic_json["high"],
+        )
 
     @classmethod
     def get_submission_from_json(cls, submission_json: Dict) -> SubmissionMixtureParams:
-        components = [cls.get_logistic_from_json(
-            logistic_json) for logistic_json in submission_json]
+        components = [
+            cls.get_logistic_from_json(logistic_json)
+            for logistic_json in submission_json
+        ]
         probs = [logistic_json["w"] for logistic_json in submission_json]
         return SubmissionMixtureParams(components, probs)
 
@@ -345,33 +365,43 @@ class LinearQuestion(ContinuousQuestion):
         samples = np.array(samples)
         return self.question_range["min"] + (self.question_range_width) * samples
 
-    def get_true_scale_logistic_params(self,
-                                       submission_logistic_params: SubmissionLogisticParams) -> logistic.LogisticParams:
+    def get_true_scale_logistic_params(
+        self, submission_logistic_params: SubmissionLogisticParams
+    ) -> logistic.LogisticParams:
         """Get the logistic on the actual scale of the question,
         from the normalized logistic used in the submission
         TODO: also return low and high on the true scale"""
 
-        true_loc = submission_logistic_params.loc * \
-            self.question_range_width + self.question_range["min"]
+        true_loc = (
+            submission_logistic_params.loc * self.question_range_width
+            + self.question_range["min"]
+        )
 
         true_scale = submission_logistic_params.scale * self.question_range_width
 
         return logistic.LogisticParams(true_loc, true_scale)
 
-    def get_true_scale_mixture(self, submission_params: SubmissionMixtureParams) -> logistic.LogisticMixtureParams:
-        true_scale_logistics_params = [self.get_true_scale_logistic_params(
-            submission_logistic_params) for submission_logistic_params in submission_params.components]
+    def get_true_scale_mixture(
+        self, submission_params: SubmissionMixtureParams
+    ) -> logistic.LogisticMixtureParams:
+        true_scale_logistics_params = [
+            self.get_true_scale_logistic_params(submission_logistic_params)
+            for submission_logistic_params in submission_params.components
+        ]
 
         return logistic.LogisticMixtureParams(
-            true_scale_logistics_params, submission_params.probs)
+            true_scale_logistics_params, submission_params.probs
+        )
 
     def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
         true_scale_prediction = self.get_true_scale_mixture(prediction)
 
         pyplot.figure()
         pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
-        logistic.plot_mixture(true_scale_prediction,  # type: ignore
-                              data=samples)  # type: ignore
+        logistic.plot_mixture(
+            true_scale_prediction,  # type: ignore
+            data=samples,
+        )  # type: ignore
 
     def show_submission(self, samples):
         submission = self.get_submission_from_samples(samples)
@@ -385,8 +415,7 @@ class LinearQuestion(ContinuousQuestion):
 
         community_samples = [self.sample_community() for _ in range(0, 1000)]
 
-        ax = seaborn.distplot(
-            community_samples, label="Community")
+        ax = seaborn.distplot(community_samples, label="Community")
 
         pyplot.legend()
 
@@ -410,8 +439,7 @@ class LogQuestion(ContinuousQuestion):
         return math.log(floored_timber, self.deriv_ratio)
 
     def true_from_normalized_value(self, normalized_value):
-        deriv_term = (self.deriv_ratio ** normalized_value - 1) / \
-            (self.deriv_ratio - 1)
+        deriv_term = (self.deriv_ratio ** normalized_value - 1) / (self.deriv_ratio - 1)
         scaled = self.question_range_width * deriv_term
         return self.question_range["min"] + scaled
 
@@ -424,21 +452,25 @@ class LogQuestion(ContinuousQuestion):
     @staticmethod
     def set_true_x_ticks():
         true_tick_values = [
-            f"{np.exp(log_tick):.1e}" for log_tick in pyplot.xticks()[0]]
+            f"{np.exp(log_tick):.1e}" for log_tick in pyplot.xticks()[0]
+        ]
 
-        pyplot.xticks(pyplot.xticks()[0],
-                      true_tick_values, rotation="vertical")
+        pyplot.xticks(pyplot.xticks()[0], true_tick_values, rotation="vertical")
 
     def plot_log_prediction(self, prediction: SubmissionMixtureParams, samples=None):
-        prediction_normed_samples = np.array([logistic.sample_mixture(
-            prediction) for _ in range(0, 5000)])
+        prediction_normed_samples = np.array(
+            [logistic.sample_mixture(prediction) for _ in range(0, 5000)]
+        )
 
-        prediction_true_scale_samples = np.array([self.true_from_normalized_value(
-            submission_sample) for submission_sample in prediction_normed_samples])
+        prediction_true_scale_samples = np.array(
+            [
+                self.true_from_normalized_value(submission_sample)
+                for submission_sample in prediction_normed_samples
+            ]
+        )
 
-        ax = seaborn.distplot(
-            np.log(prediction_true_scale_samples), label="Mixture")
-        ax.set(xlabel='Sample value', ylabel='Density')
+        ax = seaborn.distplot(np.log(prediction_true_scale_samples), label="Mixture")
+        ax.set(xlabel="Sample value", ylabel="Density")
 
         if samples is not None:
             seaborn.distplot(np.log(samples), label="Data")
@@ -446,11 +478,9 @@ class LogQuestion(ContinuousQuestion):
         pyplot.legend()  # type: ignore
 
     def plot_log_community_prediction(self):
-        community_samples = np.log([self.sample_community()
-                                    for _ in range(0, 1000)])
+        community_samples = np.log([self.sample_community() for _ in range(0, 1000)])
 
-        ax = seaborn.distplot(
-            community_samples, label="Community")
+        ax = seaborn.distplot(community_samples, label="Community")
 
         pyplot.legend()
 
@@ -468,7 +498,9 @@ class LogQuestion(ContinuousQuestion):
         self.set_true_x_ticks()
         pyplot.show()
 
-    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None, show_community=False):
+    def show_prediction(
+        self, prediction: SubmissionMixtureParams, samples=None, show_community=False
+    ):
         pyplot.figure()
         pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
         self.plot_log_prediction(prediction, samples)
@@ -496,11 +528,13 @@ class Metaculus:
 
     def login(self, username, password):
         loginURL = f"{self.api_url}/accounts/login/"
-        r = self.s.post(loginURL,
-                        headers={"Content-Type": "application/json", },
-                        data=json.dumps({"username": username, "password": password}))
+        r = self.s.post(
+            loginURL,
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"username": username, "password": password}),
+        )
 
-        self.user_id = r.json()['user_id']
+        self.user_id = r.json()["user_id"]
 
     def post(self, url: str, data: Dict):
         r = self.s.post(
@@ -508,67 +542,78 @@ class Metaculus:
             headers={
                 "Content-Type": "application/json",
                 "Referer": self.api_url,
-                "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"]
+                "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"],
             },
-            data=json.dumps(data)
+            data=json.dumps(data),
         )
         try:
             r.raise_for_status()
 
         except requests.exceptions.HTTPError as e:
-            e.args = (str(
-                e.args), f"request body: {e.request.body}", f"response json: {e.response.json()}")
+            e.args = (
+                str(e.args),
+                f"request body: {e.request.body}",
+                f"response json: {e.response.json()}",
+            )
             raise
 
         return r
 
     def make_question_from_data(self, data=Dict, name=None) -> MetaculusQuestion:
-        if(data["possibilities"]["type"] == "binary"):
+        if data["possibilities"]["type"] == "binary":
             return BinaryQuestion(data["id"], self, data, name)
-        if(data["possibilities"]["type"] == "continuous"):
-            if(data["possibilities"]["scale"]["deriv_ratio"] != 1):
+        if data["possibilities"]["type"] == "continuous":
+            if data["possibilities"]["scale"]["deriv_ratio"] != 1:
                 return LogQuestion(data["id"], self, data, name)
             return LinearQuestion(data["id"], self, data, name)
         raise NotImplementedError(
-            "We couldn't determine whether this question was binary, continuous, or something else")
+            "We couldn't determine whether this question was binary, continuous, or something else"
+        )
 
     def get_question(self, id: int, name=None) -> MetaculusQuestion:
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         return self.make_question_from_data(data, name)
 
-    def get_questions_json(self,
-                           question_status: Literal["all",
-                                                    "upcoming", "open", "closed", "resolved",
-                                                    "discussion"] = "all",
-                           player_status: Literal["any", "predicted",
-                                                  "not-predicted", "author", "interested",
-                                                  "private"] = "any",  # 20 results per page
-                           pages: int = 1, ) -> List[Dict]:
+    def get_questions_json(
+        self,
+        question_status: Literal[
+            "all", "upcoming", "open", "closed", "resolved", "discussion"
+        ] = "all",
+        player_status: Literal[
+            "any", "predicted", "not-predicted", "author", "interested", "private"
+        ] = "any",  # 20 results per page
+        pages: int = 1,
+    ) -> List[Dict]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
                 query_params.append("access=private")
             else:
                 query_params.append(
-                    f"{self.player_status_to_api_wording[player_status]}={self.user_id}")
+                    f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
+                )
 
         query_string = "&".join(query_params)
 
-        def get_questions_for_pages(query_string: str, max_pages: int = 1,
-                                    current_page: int = 1, results=[]) -> List[Dict]:
+        def get_questions_for_pages(
+            query_string: str, max_pages: int = 1, current_page: int = 1, results=[]
+        ) -> List[Dict]:
             if current_page > max_pages:
                 return results
 
             r = self.s.get(
-                f"{self.api_url}/questions/?{query_string}&page={current_page}")
+                f"{self.api_url}/questions/?{query_string}&page={current_page}"
+            )
 
             if r.json() == {"detail": "Invalid page."}:
                 return results
 
             r.raise_for_status()
 
-            return get_questions_for_pages(query_string, max_pages, current_page + 1, results + r.json()["results"])
+            return get_questions_for_pages(
+                query_string, max_pages, current_page + 1, results + r.json()["results"]
+            )
 
         return get_questions_for_pages(query_string, pages)
 
@@ -579,5 +624,6 @@ class Metaculus:
 
         questions_df["i_created"] = questions_df["author"] == self.user_id
         questions_df["i_predicted"] = questions_df["my_predictions"].apply(
-            lambda x: x is not None)
+            lambda x: x is not None
+        )
         return questions_df

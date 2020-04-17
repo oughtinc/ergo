@@ -20,19 +20,19 @@ from typing import List
 
 
 @dataclass
-class LogisticParams():
+class LogisticParams:
     loc: float
     scale: float
 
 
 @dataclass
-class LogisticMixtureParams():
+class LogisticMixtureParams:
     components: List[LogisticParams]
     probs: List[float]
 
 
 def fit_single_scipy(samples) -> LogisticParams:
-    with onp.errstate(all='raise'):  # type: ignore
+    with onp.errstate(all="raise"):  # type: ignore
         loc, scale = oscipy.stats.logistic.fit(samples)
         return LogisticParams(loc, scale)
 
@@ -47,15 +47,12 @@ def logistic_logpdf(x, loc, scale) -> DeviceArray:
 @jit
 def mixture_logpdf_single(datum, components):
     component_scores = []
-    unnormalized_weights = np.array(
-        [component[2] for component in components])
+    unnormalized_weights = np.array([component[2] for component in components])
     weights = nn.log_softmax(unnormalized_weights)
     for component, weight in zip(components, weights):
         loc = component[0]
-        scale = np.max([component[1], 0.01])   # Find a better solution?
-        component_scores.append(
-            logistic_logpdf(
-                datum, loc, scale) + weight)
+        scale = np.max([component[1], 0.01])  # Find a better solution?
+        component_scores.append(logistic_logpdf(datum, loc, scale) + weight)
     return scipy.special.logsumexp(np.array(component_scores))
 
 
@@ -73,7 +70,7 @@ def initialize_components(num_components):
     # Weights sum to 1 (are given in log space)
     # We use onp to initialize parameters since we don't want to track
     # randomness
-    components = onp.random.rand(num_components, 3) * 0.1 + 1.
+    components = onp.random.rand(num_components, 3) * 0.1 + 1.0
     components[:, 2] = -num_components
     return components
 
@@ -82,13 +79,14 @@ def structure_mixture_params(components) -> LogisticMixtureParams:
     unnormalized_weights = components[:, 2]
     probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
     component_params = [
-        LogisticParams(
-            component[0],
-            component[1]) for component in components]
+        LogisticParams(component[0], component[1]) for component in components
+    ]
     return LogisticMixtureParams(components=component_params, probs=probs)
 
 
-def fit_mixture(data, num_components=3, verbose=False, num_samples=5000) -> LogisticMixtureParams:
+def fit_mixture(
+    data, num_components=3, verbose=False, num_samples=5000
+) -> LogisticMixtureParams:
     # the data might be something weird, like a pandas dataframe column;
     # turn it into a regular old numpy array
     data_as_np_array = np.array(data)
@@ -127,7 +125,7 @@ def sample_mixture(mixture_params):
 def plot_mixture(params: LogisticMixtureParams, data=None):
     learned_samples = np.array([sample_mixture(params) for _ in range(5000)])
     ax = seaborn.distplot(learned_samples, label="Mixture")
-    ax.set(xlabel='Sample value', ylabel='Density')
+    ax.set(xlabel="Sample value", ylabel="Density")
     if data is not None:
         seaborn.distplot(data, label="Data")
     pyplot.legend()  # type: ignore

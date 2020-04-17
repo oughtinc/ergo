@@ -165,6 +165,9 @@ This way, you can quickly make changes to ergo and see them reflected in your Co
 If you get an error in the Colab, try following the instructions provided in the error. If that doesn't work, try the [official instructions for connecting to a local runtime](https://research.google.com/colaboratory/local-runtimes.html).
 
 ### Before submitting a PR
-1. Format code according to [PEP8](https://www.python.org/dev/peps/pep-0008/). You could use autopep8.
-2. Run mypy: `mypy .`. There should be 0 errors or warnings, you should get `Success: no issues found`
-3. Run tests: `pytest -s`. All tests should pass.
+1. Format code using [black](https://github.com/psf/black).
+    * Follow [these instructions](https://code.visualstudio.com/docs/python/editing#_formatting) to set `black` as your formatter in VSCode.
+2. Lint code using [flake8](https://flake8.pycqa.org/en/latest/).
+    * Follow [these instructions](https://code.visualstudio.com/docs/python/linting#_specific-linters) to use flake8 in VSCode
+3. Run mypy: `mypy .`. There should be 0 errors or warnings, you should get `Success: no issues found`
+4. Run tests: `pytest -s`. All tests should pass.
