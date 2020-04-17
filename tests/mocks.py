@@ -11,3 +11,15 @@ mock_normalized_params = ergo.logistic.LogisticMixtureParams(
                 ergo.logistic.LogisticParams(loc=0.85, scale=0.032395907)],
     probs=[0.6, 0.4]
 )
+
+mock_log_question_data = {
+    "id": 0,
+    "possibilities": {
+        "type": "continuous",
+        "scale": {
+            "deriv_ratio": 10,
+            "min": 1,
+            "max": 10
+        }
+    }
+}

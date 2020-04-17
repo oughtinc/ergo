@@ -113,7 +113,7 @@ The following notebooks have been created at different points in time and use Er
     - This notebook shows a simple example. 
     - As in [Guesstimate](https://www.getguesstimate.com), you can define distributions from 90% confidence intervals.
 
-2. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
+2. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community_distributions_v2.ipynb)
     - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
 
 3. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
@@ -150,3 +150,21 @@ Notebooks on the path to Ergo (hosted on Colab):
    
 2. [Fitting mixtures of logistic distributions](https://colab.research.google.com/drive/1xwO-0A36wnut9GPlEaRj6zzZBBLf1T2C)
    - How can we transform arbitrary distributions represented as samples into the "mixtures of logistics" format Metaculus uses for user submissions?
+
+## Development
+### Run a Colab using your local version of `ergo`
+This way, you can quickly make changes to ergo and see them reflected in your Colab without pushing to a Github branch first.
+
+1. `poetry shell`
+2. `python -m jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com'`
+3. open the Colab in your browser. You need editing access to run the Colab -- if you don't, you can make a copy and run that instead.
+4. in the Colab, `Connect` > `Connect to local runtime`
+5. for the `Backend URL` to connect to, paste from your shell the url that looks like “http://localhost:8888/?token=46aa5a3f5ee5b71df3c109fcabf94d0291b73bfced692049”
+6. Whenever you change `ergo` and want to load the change in your Colab, in the Colab, `Runtime` > `Restart Runtime...`
+
+If you get an error in the Colab, try following the instructions provided in the error. If that doesn't work, try the [official instructions for connecting to a local runtime](https://research.google.com/colaboratory/local-runtimes.html).
+
+### Before submitting a PR
+1. Format code according to [PEP8](https://www.python.org/dev/peps/pep-0008/). You could use autopep8.
+2. Run mypy: `mypy .`. There should be 0 errors or warnings, you should get `Success: no issues found`
+3. Run tests: `pytest -s`. All tests should pass.

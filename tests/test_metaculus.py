@@ -21,14 +21,22 @@ class TestMetaculus:
     closed_question = metaculus.get_question(3965)
     binary_question = metaculus.get_question(3966)
     mock_samples = np.array([ergo.logistic.sample_mixture(
-        tests.mocks.mock_true_params) for _ in range(0, 5000)])
+        tests.mocks.mock_true_params) for _ in range(0, 1000)])
+    mock_log_question = metaculus.make_question_from_data(
+        tests.mocks.mock_log_question_data)
 
     def test_login(self):
         assert self.metaculus.user_id == user_id
 
     def test_get_question(self):
-        # make sure we're getting the user-specific data
+        """make sure we're getting the user-specific data"""
         assert "my_predictions" in self.continuous_linear_open_question.data
+
+    def test_normalize_denormalize(self):
+        samples = [0, 0.5, 1, 5, 10, 20]
+        normalized = self.mock_log_question.normalize_samples(samples)
+        denormalized = self.mock_log_question.denormalize_samples(normalized)
+        assert denormalized == pytest.approx(samples, abs=1e-5)
 
     def test_submit_continuous_linear_open(self):
         submission = self.continuous_linear_open_question.get_submission(
@@ -65,7 +73,7 @@ class TestMetaculus:
             print(r)
 
     def test_score_binary(self):
-        # smoke test
+        """smoke test"""
         self.binary_question.get_scored_predictions()
 
     def test_get_questions_json(self):
@@ -100,7 +108,7 @@ class TestMetaculus:
         scaled_params = self.continuous_linear_open_question.get_true_scale_mixture(
             latest_prediction)
         prediction_samples = np.array([ergo.logistic.sample_mixture(
-            scaled_params) for _ in range(0, 5000)])
+            scaled_params) for _ in range(0, 1000)])
 
         assert np.mean(self.mock_samples) == pytest.approx(
             np.mean(prediction_samples), np.mean(prediction_samples)/10)
@@ -115,16 +123,24 @@ class TestMetaculus:
         assert np.mean(self.mock_samples) == pytest.approx(
             np.mean(prediction_samples), np.mean(prediction_samples)/10)
 
+    # smoke tests
+    def test_get_community_prediction_linear(self):
+        assert self.continuous_linear_closed_question.sample_community() > 0
+
+    def test_get_community_prediction_log(self):
+        assert self.continuous_log_open_question.sample_community() > 0
+
+
 # Visual tests -- eyeball the results from these to see if they seem reasonable
 # leave these commented out usually, just use them if they seem useful
 
 
 # class TestVisualPandemic:
 #     metaculus = ergo.Metaculus(uname, pwd, api_domain="pandemic")
-#     sf_question = metaculus.get_question(3931)
+#     sf_question = metaculus.get_question(3931, name="sf_question")
 #     deaths_question = metaculus.get_question(3996)
-#     show_prediction_question = metaculus.get_question(4112)
-#     show_prediction_log_question = metaculus.get_question(4113)
+#     show_performance_question = metaculus.get_question(4112)
+#     show_performance_log_question = metaculus.get_question(4113)
 #     mock_samples = np.array([ergo.logistic.sample_mixture(
 #         tests.mocks.mock_true_params) for _ in range(0, 5000)])
 
@@ -138,8 +154,11 @@ class TestMetaculus:
 
 #     def test_show_performance(self):
 #         # should have two humps, one on the left and one on the right
-#         self.show_prediction_question.show_performance()
+#         self.show_performance_question.show_performance()
 
 #     def test_show_performance_log(self):
 #         # should have a low, flat hump on the left and a skinny hump on the right
-#         self.show_prediction_log_question.show_performance()
+#         self.show_performance_log_question.show_performance()
+
+#     def test_show_community_prediction(self):
+#         self.sf_question.show_community_prediction()

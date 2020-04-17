@@ -30,6 +30,8 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
 
 
 def tag(value, name: str):
+    if not isinstance(value, torch.Tensor):
+        value = torch.Tensor(value)  # type: ignore
     return pyro.deterministic(name, value)
 
 
@@ -69,23 +71,23 @@ def categorical(ps, **kwargs):
 
 
 def NormalFromInterval(low, high):
-    # This assumes a centered 90% confidence interval, i.e. the left endpoint
-    # marks 0.05% on the CDF, the right 0.95%.
+    """This assumes a centered 90% confidence interval, i.e. the left endpoint
+    marks 0.05% on the CDF, the right 0.95%."""
     mean = (high + low) / 2
     stdev = (high - mean) / 1.645
     return dist.Normal(mean, stdev)
 
 
 def HalfNormalFromInterval(high):
-    # This assumes a 90% confidence interval starting at 0,
-    # i.e. right endpoint marks 90% on the CDF
+    """This assumes a 90% confidence interval starting at 0,
+    i.e. right endpoint marks 90% on the CDF"""
     stdev = high / 1.645
     return dist.HalfNormal(stdev)
 
 
 def LogNormalFromInterval(low, high):
-    # This assumes a centered 90% confidence interval, i.e. the left endpoint
-    # marks 0.05% on the CDF, the right 0.95%.
+    """This assumes a centered 90% confidence interval, i.e. the left endpoint
+    marks 0.05% on the CDF, the right 0.95%."""
     loghigh = math.log(high)
     loglow = math.log(low)
     mean = (loghigh + loglow) / 2
@@ -116,8 +118,12 @@ def beta_from_hits(hits, total, **kwargs):
     return sample(BetaFromHits(hits, total), **kwargs)
 
 
-def random_choice(options, **kwargs):
-    ps = torch.Tensor([1 / len(options)] * len(options))
+def random_choice(options, ps=None):
+    # in case ps are passed in as some array-like type other than torch.Tensor
+    ps = torch.Tensor(ps)
+
+    if ps is None:
+        ps = torch.Tensor([1 / len(options)] * len(options))
     idx = sample(dist.Categorical(ps))
     return options[idx]
 
@@ -138,14 +144,15 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     2. Return dataframe with one row for each execution
     """
     model = name_count(model)
-    samples: Dict[str, List[float]] = {}
-    for i in tqdm.trange(num_samples):
+    samples: List[Dict[str, float]] = []
+    for _ in tqdm.trange(num_samples):
+        sample: Dict[str, float] = {}
         trace = pyro.poutine.trace(model).get_trace()
         for name in trace.nodes.keys():
             if trace.nodes[name]["type"] == "sample":
                 if not ignore_unnamed or not name.startswith("_var"):
-                    samples.setdefault(name, [])
-                    samples[name].append(trace.nodes[name]["value"].item())  # FIXME
+                    sample[name] = trace.nodes[name]["value"].item()
+        samples.append(sample)
     return pd.DataFrame(samples)  # type: ignore
 
 
