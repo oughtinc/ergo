@@ -2,9 +2,8 @@ import pytest
 
 import numpy as onp
 import jax.numpy as np
-import numpy as onp
 
-from ergo.logistic import fit_single_scipy, fit_single, fit_mixture, plot_mixture
+from ergo.logistic import fit_single_scipy, fit_single, fit_mixture
 
 
 def test_fit_single_scipy():
