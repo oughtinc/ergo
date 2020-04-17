@@ -11,7 +11,7 @@ class DataLoader:
         self.load()
 
     def warn(self, warning):
-        if not warning in self._warnings:
+        if warning not in self._warnings:
             print(f"WARNING: {warning}")
         self._warnings.add(warning)
 
@@ -29,7 +29,8 @@ class DataLoader:
 
 
 class WHORegionData(DataLoader):
-    url = "https://gist.githubusercontent.com/brachbach/de74ec9fdee315234976084599a9539c/raw/5e12ee7ba283dc0f11d162893984c620b6d9f703/who_regions.csv"
+    url = ("https://gist.githubusercontent.com/brachbach/de74ec9fdee315234976084599a9539c"
+           "/raw/5e12ee7ba283dc0f11d162893984c620b6d9f703/who_regions.csv")
 
     def load(self):
         data = pd.read_csv(self.url)
@@ -40,7 +41,9 @@ class WHORegionData(DataLoader):
 
 
 class HopkinsData(DataLoader):
-    url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
+    url = ("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/"
+           "master/csse_covid_19_data/csse_covid_19_time_series/"
+           "time_series_covid19_confirmed_global.csv")
 
     def load(self):
         data = pd.read_csv(self.url)

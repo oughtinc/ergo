@@ -4,8 +4,6 @@ import json
 import torch
 import requests
 import pendulum
-# scipy importing guidelines: https://docs.scipy.org/doc/scipy/reference/api.html
-from scipy import stats
 import seaborn
 import pandas as pd
 import numpy as np
@@ -16,9 +14,10 @@ import ergo.logistic as logistic
 import ergo.ppl as ppl
 
 from typing import Optional, List, Any, Dict
+from scipy import stats
 
 from typing_extensions import Literal
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 
 @dataclass
@@ -301,7 +300,9 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def get_logistic_from_json(logistic_json: Dict) -> SubmissionLogisticParams:
-        return SubmissionLogisticParams(logistic_json["x0"], logistic_json["s"], logistic_json["low"], logistic_json["high"])
+        return SubmissionLogisticParams(logistic_json["x0"],
+                                        logistic_json["s"], logistic_json["low"],
+                                        logistic_json["high"])
 
     @classmethod
     def get_submission_from_json(cls, submission_json: Dict) -> SubmissionMixtureParams:
@@ -530,12 +531,13 @@ class Metaculus:
         return self.make_question_from_data(data, name)
 
     def get_questions_json(self,
-                           question_status: Literal["all", "upcoming", "open", "closed", "resolved", "discussion"] = "all",
+                           question_status: Literal["all",
+                                                    "upcoming", "open", "closed", "resolved",
+                                                    "discussion"] = "all",
                            player_status: Literal["any", "predicted",
-                                                  "not-predicted", "author", "interested", "private"] = "any",
-                           # 20 results per page
-                           pages: int = 1,
-                           ) -> List[Dict]:
+                                                  "not-predicted", "author", "interested",
+                                                  "private"] = "any",  # 20 results per page
+                           pages: int = 1, ) -> List[Dict]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
@@ -546,7 +548,8 @@ class Metaculus:
 
         query_string = "&".join(query_params)
 
-        def get_questions_for_pages(query_string: str, max_pages: int = 1, current_page: int = 1, results=[]) -> List[Dict]:
+        def get_questions_for_pages(query_string: str, max_pages: int = 1,
+                                    current_page: int = 1, results=[]) -> List[Dict]:
             if current_page > max_pages:
                 return results
 

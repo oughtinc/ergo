@@ -1,5 +1,4 @@
 import ergo
-import pytest
 
 
 class TestPPL:

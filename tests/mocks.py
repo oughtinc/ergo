@@ -1,5 +1,3 @@
-import pandas as pd
-import numpy as np
 import ergo
 
 mock_true_params = ergo.logistic.LogisticMixtureParams(

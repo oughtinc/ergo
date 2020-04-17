@@ -1,6 +1,6 @@
 # Ergo
 
-[![Build Status](https://travis-ci.org/oughtinc/ergo.svg?branch=master)](https://travis-ci.org/oughtinc/ergo)
+[![Build Status](https://travis-ci.org/oughtinc/ergo.svg?branch=master)](https://travis-ci.org/oughtinc/ergo) [![Codecov](https://codecov.io/gh/oughtinc/ergo/branch/master/graph/badge.svg)](https://codecov.io/gh/oughtinc/ergo)
 
 A Python library for integrating model-based and judgmental forecasting
 
@@ -74,14 +74,16 @@ Here's what Ergo provides right now:
   - Submit model predictions to Metaculus
     - We automatically fit a mixture of logistic distributions for continuous-valued questions
   - Plot community distributions
+- Load question data (distributions) from [Foretold](https://www.foretold.io/) prediction platform
 - Some Covid-19-related data utils
 
-WIP:
+[WIP](https://github.com/oughtinc/ergo/projects/1):
 
 - Metaculus API improvements
   - Support questions with distributions on dates
   - Improve community distribution support (accuracy, plotting)
-- Foretold API
+- Foretold API improvements
+  - Submitting data
 
 Planned:
 

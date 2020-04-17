@@ -164,7 +164,7 @@ def infer_and_run(
     learning_rate=0.01,
     early_stopping_patience=200,
 ) -> pd.DataFrame:
-    """ 
+    """
     debug - whether to output debug information
     num_iterations - Number of optimizer iterations
     learning_rate - Optimizer learning rate

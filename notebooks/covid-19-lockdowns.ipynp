@@ -22,7 +22,7 @@
         "colab_type": "text"
       },
       "source": [
-        "<a href=\"https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/covid-19-lockdowns.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+        "<a href=\"https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/covid-19-lockdowns.ipynp\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
       ]
     },
     {
@@ -40,22 +40,52 @@
       "metadata": {
         "id": "fNamgx5_68LI",
         "colab_type": "code",
-        "colab": {}
+        "outputId": "4b16e540-9f85-4a36-effd-c37ca4126ed7",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 347
+        }
       },
       "source": [
         "!pip install --quiet poetry  # Fixes https://github.com/python-poetry/poetry/issues/532\n",
-        "!pip install --quiet git+https://github.com/oughtinc/ergo.git@006430b8701d461073a6c74ececf9fb12c7411c2\n",
+        "!pip install --quiet git+https://github.com/oughtinc/ergo.git@739a1e21c34c3d52771dfad186bbcf3ee03c4813\n",
         "!pip install --quiet seaborn plotnine"
       ],
       "execution_count": 0,
-      "outputs": []
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "\u001b[K     |████████████████████████████████| 225kB 2.6MB/s \n",
+            "\u001b[K     |████████████████████████████████| 61kB 7.7MB/s \n",
+            "\u001b[K     |████████████████████████████████| 61kB 7.8MB/s \n",
+            "\u001b[K     |████████████████████████████████| 112kB 51.6MB/s \n",
+            "\u001b[K     |████████████████████████████████| 92kB 10.5MB/s \n",
+            "\u001b[K     |████████████████████████████████| 2.7MB 55.0MB/s \n",
+            "\u001b[?25h  Building wheel for pyrsistent (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Installing build dependencies ... \u001b[?25l\u001b[?25hdone\n",
+            "  Getting requirements to build wheel ... \u001b[?25l\u001b[?25hdone\n",
+            "    Preparing wheel metadata ... \u001b[?25l\u001b[?25hdone\n",
+            "\u001b[K     |████████████████████████████████| 153kB 2.7MB/s \n",
+            "\u001b[K     |████████████████████████████████| 522kB 42.0MB/s \n",
+            "\u001b[K     |████████████████████████████████| 29.5MB 141kB/s \n",
+            "\u001b[K     |████████████████████████████████| 61kB 7.2MB/s \n",
+            "\u001b[K     |████████████████████████████████| 51kB 6.7MB/s \n",
+            "\u001b[K     |████████████████████████████████| 491kB 50.2MB/s \n",
+            "\u001b[?25h  Building wheel for ergo (PEP 517) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Building wheel for country-converter (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "\u001b[31mERROR: chainer 6.5.0 has requirement typing-extensions<=3.6.6, but you'll have typing-extensions 3.7.4.2 which is incompatible.\u001b[0m\n"
+          ],
+          "name": "stdout"
+        }
+      ]
     },
     {
       "cell_type": "code",
       "metadata": {
         "id": "fe-8LSpW8RHT",
         "colab_type": "code",
-        "outputId": "1229ba2a-2484-412b-c189-31a1ff7e7024",
+        "outputId": "0be06ae0-b278-4870-cc5a-262fadcec000",
         "colab": {
           "base_uri": "https://localhost:8080/",
           "height": 52
@@ -153,7 +183,11 @@
       "metadata": {
         "id": "9P09v3y38zQI",
         "colab_type": "code",
-        "colab": {}
+        "outputId": "0214e6e8-dc05-4dfb-cb1a-9a7d4cc706a2",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 238
+        }
       },
       "source": [
         "question_ids = [\n",
@@ -176,10 +210,103 @@
         "\n",
         "areas = question_names\n",
         "questions = [metaculus.get_question(id, name=name) for (name, id) in zip(question_names, question_ids)]\n",
-        "#ergo.MetaculusQuestion.to_dataframe(questions)\n"
+        "ergo.MetaculusQuestion.to_dataframe(questions)\n"
       ],
       "execution_count": 0,
-      "outputs": []
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/html": [
+              "<div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>name</th>\n",
+              "      <th>title</th>\n",
+              "      <th>resolve_time</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>3935</td>\n",
+              "      <td>The United Kingdom</td>\n",
+              "      <td>When will the current lockdown in the UK be li...</td>\n",
+              "      <td>2021-09-26 22:00:00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>3948</td>\n",
+              "      <td>France</td>\n",
+              "      <td>When will the current lockdown in France be li...</td>\n",
+              "      <td>2021-09-26 22:00:00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>3952</td>\n",
+              "      <td>The State of New York</td>\n",
+              "      <td>When will the current total lockdown in the St...</td>\n",
+              "      <td>2021-09-26 22:00:00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>3941</td>\n",
+              "      <td>Poland</td>\n",
+              "      <td>When will the current lockdown in Poland be li...</td>\n",
+              "      <td>2021-09-26 22:00:00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>3939</td>\n",
+              "      <td>The State of California</td>\n",
+              "      <td>When will the current lockdown in the state of...</td>\n",
+              "      <td>2021-09-26 22:00:00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>3937</td>\n",
+              "      <td>Italy</td>\n",
+              "      <td>When will the current lockdown in Italy be lif...</td>\n",
+              "      <td>2020-04-11 15:12:00</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>"
+            ],
+            "text/plain": [
+              "     id  ...        resolve_time\n",
+              "0  3935  ... 2021-09-26 22:00:00\n",
+              "1  3948  ... 2021-09-26 22:00:00\n",
+              "2  3952  ... 2021-09-26 22:00:00\n",
+              "3  3941  ... 2021-09-26 22:00:00\n",
+              "4  3939  ... 2021-09-26 22:00:00\n",
+              "5  3937  ... 2020-04-11 15:12:00\n",
+              "\n",
+              "[6 rows x 4 columns]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 4
+        }
+      ]
     },
     {
       "cell_type": "markdown",
@@ -408,14 +535,7 @@
         "infections_df['progression'] = infections_df['progression'].apply(lambda x: min(x, 365)) # we don't care about doubling rates longer than a year (at least)\n",
         "\n",
         "# remove all NAs\n",
-        "infections_df.fillna(0)\n",
-        "\n",
-        "# drop first day without ability to lag\n",
-        "#infections_df.drop(infections_df.index[0], inplace=True) \n",
-        "\n",
-        "#pd.set_option('display.max_rows', None)\n",
-        "\n",
-        "\n"
+        "infections_df.fillna(0)"
       ],
       "execution_count": 0,
       "outputs": [
