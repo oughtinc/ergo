@@ -14,7 +14,7 @@ install:
 
 script:
 - poetry run mypy .
-- poetry run flake8
+- poetry run black . --check
 - poetry run python -m pytest --cov=ergo -s .
 
 after_success:
