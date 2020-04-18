@@ -728,6 +728,9 @@ class LinearDateQuestion(LinearQuestion):
 
     @property
     def question_range(self):
+        """
+        Question range from the Metaculus data plus the question's data range
+        """
         qr = {
             "min": 0,
             "max": 1,
@@ -741,9 +744,14 @@ class LinearDateQuestion(LinearQuestion):
         qr["date_range"] = (qr["date_max"] - qr["date_min"]).days
         return qr
 
-    # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
     # TODO consider using @functools.singledispatchmethod
     def normalize_samples(self, samples):
+        """
+        Normalize samples from dates to the normalized scale used by the Metaculus API
+
+        :param samples: dates from the predicted distribution answering the question
+        :return: normalized samples
+        """
         if isinstance(samples[0], date):
             if type(samples) != pd.Series:
                 try:
@@ -754,17 +762,25 @@ class LinearDateQuestion(LinearQuestion):
         else:
             return super().normalize_samples(samples)
 
-    def normalize_dates(self, dates):
+    def normalize_dates(self, dates: pd.Series):
         """
-        takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
-        Assumes pd.Series of datetime dates
+        Put dates on the normalized scale used by the Metaculus API
+
+        :param dates: a pandas series of dates
+        :return: normalized samples
         """
+
         return (dates - self.question_range["date_min"]).dt.days / self.question_range[
             "date_range"
         ]
 
-    # Map normalized samples back to dates
     def denormalize_samples(self, samples):
+        """
+        Map normalized samples to dates using the date range from the question
+
+        :param samples: normalized samples
+        :return: dates
+        """
         samples = pd.Series(samples)
 
         def denorm(sample):
