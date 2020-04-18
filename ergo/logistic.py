@@ -1,22 +1,19 @@
-import tqdm
-
-import numpy as onp
-import scipy as oscipy
-import torch
-import seaborn
-
-import jax.numpy as np
-import matplotlib.pyplot as pyplot
-from jax import grad, jit, scipy, nn, vmap
-from jax.interpreters.xla import DeviceArray
-from jax.experimental.optimizers import clip_grads, sgd
-
 from dataclasses import dataclass
 from pprint import pprint
+from typing import List
+
+from jax import grad, jit, nn, scipy, vmap
+from jax.experimental.optimizers import clip_grads, sgd
+from jax.interpreters.xla import DeviceArray
+import jax.numpy as np
+import matplotlib.pyplot as pyplot
+import numpy as onp
+import scipy as oscipy
+import seaborn
+import torch
+import tqdm
 
 from ergo.ppl import categorical
-
-from typing import List
 
 
 @dataclass

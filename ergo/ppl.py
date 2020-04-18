@@ -4,19 +4,15 @@ programming primitives from Pyro.
 """
 
 import math
-
-import pyro
-import torch
-import tqdm
-
-import pandas as pd
-import pyro.distributions as dist  # type: ignore
-
-from pyro.contrib.autoname import name_count
-from pyro.infer import SVI, Trace_ELBO, Predictive  # type: ignore
-
 from typing import Dict, List
 
+import pandas as pd
+import pyro
+from pyro.contrib.autoname import name_count
+import pyro.distributions as dist  # type: ignore
+from pyro.infer import SVI, Predictive, Trace_ELBO  # type: ignore
+import torch
+import tqdm
 
 # Config
 

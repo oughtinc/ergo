@@ -1,7 +1,8 @@
-import seaborn
-import torch
 import numpy as np
 import requests
+import seaborn
+import torch
+
 from ergo.ppl import uniform
 
 
