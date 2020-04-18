@@ -147,15 +147,27 @@ class MetaculusQuestion:
 
 
 class BinaryQuestion(MetaculusQuestion):
-    def score_prediction(self, prediction, resolution) -> ScoredPrediction:
+    """A binary Metaculus question -- how likely is this event to happen, from 0 to 1?
+    """
+
+    def score_prediction(self, prediction, resolution: float) -> ScoredPrediction:
+        """Score a prediction relative to a resolution using a Brier Score.
+
+        :param prediction: how likely is the event to happen, from 0 to 1?
+        :param resolution: how likely is the event to happen, from 0 to 1? (0 if it didn't, 1 if it did)
+        :return: ScoredPrediction with Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
+        """
         predicted = prediction["x"]
-        # Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
         score = (resolution - predicted) ** 2
         return ScoredPrediction(
             prediction["t"], prediction, resolution, score, self.__str__()
         )
 
-    def get_scored_predictions(self):
+    def score_my_predictions(self):
+        """Score all of my predictions according to the question resolution (or according to the current community prediction if the resolution isn't available)
+
+        :return: List of ScoredPredictions with Brier scores
+        """
         resolution = self.resolution
         if resolution is None:
             last_community_prediction = self.prediction_timeseries[-1]
@@ -165,7 +177,11 @@ class BinaryQuestion(MetaculusQuestion):
             self.score_prediction(prediction, resolution) for prediction in predictions
         ]
 
-    def submit(self, p: float):
+    def submit(self, p: float) -> requests.Response:
+        """Submit a prediction to my Metaculus account
+
+        :param p: how likely is the event to happen, from 0 to 1?
+        """
         return self.metaculus.post(
             f"{self.metaculus.api_url}/questions/{self.id}/predict/",
             {"prediction": p, "void": False},
@@ -174,41 +190,67 @@ class BinaryQuestion(MetaculusQuestion):
 
 @dataclass
 class SubmissionLogisticParams(logistic.LogisticParams):
+    """Parameters needed to submit a logistic to Metaculus as part of a prediction
+    """
+
     low: float
     high: float
 
 
 @dataclass
 class SubmissionMixtureParams:
+    """Parameters needed to submit a prediction to Metaculus (in the form of a logistic mixture)
+    """
+
     components: List[SubmissionLogisticParams]
     probs: List[float]
 
 
 class ContinuousQuestion(MetaculusQuestion):
+    """A continuous Metaculus question -- a question of the form, what's your distribution on this event?
+    """
+
     @property
     def low_open(self) -> bool:
+        """Are you allowed to place probability mass below the bottom of this question's range?
+        """
         return self.possibilities["low"] == "tail"
 
     @property
     def high_open(self) -> bool:
+        """Are you allowed to place probability mass above the top of this question's range?
+        """
         return self.possibilities["high"] == "tail"
 
     @property
     def question_range(self):
+        """Range of answers specified when the question was created
+        """
         return self.possibilities["scale"]
 
     @property
     def question_range_width(self):
+        """Width of the range of answers specified when the question was created
+        """
         return self.question_range["max"] - self.question_range["min"]
 
+    # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
     def normalize_samples(self, samples):
-        """The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
-        TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?"""
+        """The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question. Normalize samples to fit that scale.
+
+        :param samples: samples from the true-scale prediction distribution
+        :raises NotImplementedError: This should be implemented by a subclass
+        """
         raise NotImplementedError("This should be implemented by a subclass")
 
     def get_submission_params(
         self, logistic_params: logistic.LogisticParams
     ) -> SubmissionLogisticParams:
+        """Get the params needed to submit a logistic to Metaculus as part of a prediction. See comments for more explanation of how the params need to be transformed for Metaculus to accept them
+
+        :param logistic_params: params for a logistic on the normalized scale
+        :return: params to submit the logistic to Metaculus as part of a prediction
+        """
         distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
@@ -251,16 +293,29 @@ class ContinuousQuestion(MetaculusQuestion):
         return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
 
     def denormalize_samples(self, samples) -> np.ndarray:
-        """Map normalized samples back to actual scale"""
+        """Map normalized samples back to actual scale
+
+        :raises NotImplementedError: This should be implemented by a subclass
+        """
         raise NotImplementedError("This should be implemented by a subclass")
 
     @functools.lru_cache(None)
-    def community_dist_in_range(self):
-        """distribution on integers referencing 0...(len(self.prediction_histogram)-1)"""
+    def community_dist_in_range(self) -> dist.Categorical:
+        """The portion of the current normalized community prediction that's within the question's range.
+
+        :return: distribution on integers referencing 0...(len(self.prediction_histogram)-1)
+        """
         y2 = [p[2] for p in self.prediction_histogram]
         return dist.Categorical(probs=torch.Tensor(y2))
 
     def sample_normalized_community(self):
+        """Sample an approximation of the entire current community prediction, on the normalized scale.
+        The main reason that it's just an approximation is that we don't know
+        exactly where probability mass outside of the question range should be, so we place it arbitrarily
+
+        :return: One sample on the normalized scale
+        """
+
         # 0.02 is chosen pretty arbitrarily based on what I think will work best
         # from playing around with the Metaculus API previously.
         # Feel free to tweak if something else seems better.
@@ -284,6 +339,13 @@ class ContinuousQuestion(MetaculusQuestion):
         )
 
     def sample_community(self):
+        """Sample an approximation of the entire current community prediction,
+        on the true scale of the question.
+        The main reason that it's just an approximation is that we don't know
+        exactly where probability mass outside of the question range should be, so we place it arbitrarily
+
+        :return: One sample on the true scale
+        """
         normalized_sample = self.sample_normalized_community()
         sample = torch.Tensor(self.denormalize_samples([normalized_sample]))
         if self.name:
@@ -293,6 +355,11 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission(
         self, mixture_params: logistic.LogisticMixtureParams
     ) -> SubmissionMixtureParams:
+        """Get parameters to submit a prediction to the Metaculus API using a logistic mixture
+
+        :param mixture_params: raw mixture parameters
+        :return: parameters clipped and formatted for the API
+        """
         submission_logistic_params = [
             self.get_submission_params(logistic_params)
             for logistic_params in mixture_params.components
@@ -574,7 +641,7 @@ class Metaculus:
 
         self.user_id = r.json()["user_id"]
 
-    def post(self, url: str, data: Dict):
+    def post(self, url: str, data: Dict) -> requests.Response:
         r = self.s.post(
             url,
             headers={
