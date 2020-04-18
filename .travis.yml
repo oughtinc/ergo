@@ -13,10 +13,9 @@ install:
 - poetry install
 
 script:
-- poetry run mypy .
-- poetry run flake8
-- poetry run black . --check
-- poetry run python -m pytest --cov=ergo -s .
+- make lint
+- make docs
+- make test
 
 after_success:
   - poetry run codecov
