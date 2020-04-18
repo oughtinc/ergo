@@ -583,6 +583,7 @@ class Metaculus:
         player_status: Literal[
             "any", "predicted", "not-predicted", "author", "interested", "private"
         ] = "any",  # 20 results per page
+        cat: str = "any",
         pages: int = 1,
     ) -> List[Dict]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
@@ -593,6 +594,9 @@ class Metaculus:
                 query_params.append(
                     f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
                 )
+
+        if cat != "any":
+            query_params.append(f"search=cat:{cat}")
 
         query_string = "&".join(query_params)
 
@@ -616,6 +620,9 @@ class Metaculus:
             )
 
         return get_questions_for_pages(query_string, pages)
+
+    def get_questions_json_in_cat(self, cat: str) -> List[Dict]:
+        return self.get_questions_json(cat=cat)
 
     def make_questions_df(self, questions_json):
         questions_df = pd.DataFrame(questions_json)
