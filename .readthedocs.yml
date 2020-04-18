@@ -9,6 +9,7 @@ build:
 formats: all
 
 python:
+  version: 3.6.9
   install:
     - method: pip
       path: .
