@@ -11,10 +11,6 @@ tag
 ---
 .. autofunction:: ergo.ppl.tag
 
-tag
----
-.. autofunction:: ergo.ppl.tag
-
 bernoulli
 ---------
 .. autofunction:: ergo.ppl.bernoulli
