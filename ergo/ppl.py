@@ -1,5 +1,5 @@
 """
-This module provides a few lightweight wrappers around probabilistic 
+This module provides a few lightweight wrappers around probabilistic
 programming primitives from Pyro.
 """
 
