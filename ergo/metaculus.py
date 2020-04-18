@@ -21,7 +21,8 @@ import ergo.ppl as ppl
 
 @dataclass
 class ScoredPrediction:
-    """A prediction scored according to how it resolved or according to the current community prediction
+    """
+    A prediction scored according to how it resolved or according to the current community prediction
     """
 
     time: float
@@ -83,12 +84,14 @@ class MetaculusQuestion:
 
     @property
     def latest_community_percentiles(self):
-        """:return: Some percentiles for the metaculus commununity's latest rough prediction. `prediction_histogram` returns a more fine-grained histogram of the community prediction
+        """
+        :return: Some percentiles for the metaculus commununity's latest rough prediction. `prediction_histogram` returns a more fine-grained histogram of the community prediction
         """
         return self.prediction_timeseries[-1]["community_prediction"]
 
     def __getattr__(self, name):
-        """If an attribute isn't directly on the class, check whether it's in the raw question data. If it's a time, format it appropriately.
+        """
+        If an attribute isn't directly on the class, check whether it's in the raw question data. If it's a time, format it appropriately.
 
         :param name: attr name
         :raises AttributeError: Attribute is neither directly on this class nor in the raw question data
@@ -118,20 +121,23 @@ class MetaculusQuestion:
             )
 
     def __str__(self):
-        """:return: The question title from Metaculus if that's available, else a generic string
+        """
+        :return: The question title from Metaculus if that's available, else a generic string
         """
         if self.data:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
     def refresh_question(self):
-        """Refetch the question data from Metaculus, used when the question data might have changed
+        """
+        Refetch the question data from Metaculus, used when the question data might have changed
         """
         r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
     def sample_community(self):
-        """Get one sample from the distribution of the Metaculus community's prediction on this question (sample is denormalized/on the the true scale of the question)
+        """
+        Get one sample from the distribution of the Metaculus community's prediction on this question (sample is denormalized/on the the true scale of the question)
 
         :raises NotImplementedError: "This should be implemented by a subclass"
         """
@@ -139,7 +145,8 @@ class MetaculusQuestion:
 
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
-        """Summarize a list of questions in a dataframe
+        """
+        Summarize a list of questions in a dataframe
 
         :param questions: questions to summarize
         :return: pandas dataframe summarizing the questions
@@ -161,11 +168,13 @@ class MetaculusQuestion:
 
 
 class BinaryQuestion(MetaculusQuestion):
-    """A binary Metaculus question -- how likely is this event to happen, from 0 to 1?
+    """
+    A binary Metaculus question -- how likely is this event to happen, from 0 to 1?
     """
 
     def score_prediction(self, prediction, resolution: float) -> ScoredPrediction:
-        """Score a prediction relative to a resolution using a Brier Score.
+        """
+        Score a prediction relative to a resolution using a Brier Score.
 
         :param prediction: how likely is the event to happen, from 0 to 1?
         :param resolution: how likely is the event to happen, from 0 to 1? (0 if it didn't, 1 if it did)
@@ -178,7 +187,8 @@ class BinaryQuestion(MetaculusQuestion):
         )
 
     def score_my_predictions(self):
-        """Score all of my predictions according to the question resolution (or according to the current community prediction if the resolution isn't available)
+        """
+        Score all of my predictions according to the question resolution (or according to the current community prediction if the resolution isn't available)
 
         :return: List of ScoredPredictions with Brier scores
         """
@@ -192,7 +202,8 @@ class BinaryQuestion(MetaculusQuestion):
         ]
 
     def submit(self, p: float) -> requests.Response:
-        """Submit a prediction to my Metaculus account
+        """
+        Submit a prediction to my Metaculus account
 
         :param p: how likely is the event to happen, from 0 to 1?
         """
@@ -204,7 +215,8 @@ class BinaryQuestion(MetaculusQuestion):
 
 @dataclass
 class SubmissionLogisticParams(logistic.LogisticParams):
-    """Parameters needed to submit a logistic to Metaculus as part of a prediction
+    """
+    Parameters needed to submit a logistic to Metaculus as part of a prediction
     """
 
     low: float
@@ -213,7 +225,8 @@ class SubmissionLogisticParams(logistic.LogisticParams):
 
 @dataclass
 class SubmissionMixtureParams:
-    """Parameters needed to submit a prediction to Metaculus (in the form of a logistic mixture)
+    """
+    Parameters needed to submit a prediction to Metaculus (in the form of a logistic mixture)
     """
 
     components: List[SubmissionLogisticParams]
@@ -221,36 +234,42 @@ class SubmissionMixtureParams:
 
 
 class ContinuousQuestion(MetaculusQuestion):
-    """A continuous Metaculus question -- a question of the form, what's your distribution on this event?
+    """
+    A continuous Metaculus question -- a question of the form, what's your distribution on this event?
     """
 
     @property
     def low_open(self) -> bool:
-        """Are you allowed to place probability mass below the bottom of this question's range?
+        """
+        Are you allowed to place probability mass below the bottom of this question's range?
         """
         return self.possibilities["low"] == "tail"
 
     @property
     def high_open(self) -> bool:
-        """Are you allowed to place probability mass above the top of this question's range?
+        """
+        Are you allowed to place probability mass above the top of this question's range?
         """
         return self.possibilities["high"] == "tail"
 
     @property
     def question_range(self):
-        """Range of answers specified when the question was created
+        """
+        Range of answers specified when the question was created
         """
         return self.possibilities["scale"]
 
     @property
     def question_range_width(self):
-        """Width of the range of answers specified when the question was created
+        """
+        Width of the range of answers specified when the question was created
         """
         return self.question_range["max"] - self.question_range["min"]
 
     # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
     def normalize_samples(self, samples):
-        """The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question. Normalize samples to fit that scale.
+        """
+        The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question. Normalize samples to fit that scale.
 
         :param samples: samples from the true-scale prediction distribution
         :raises NotImplementedError: This should be implemented by a subclass
@@ -260,7 +279,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission_params(
         self, logistic_params: logistic.LogisticParams
     ) -> SubmissionLogisticParams:
-        """Get the params needed to submit a logistic to Metaculus as part of a prediction. See comments for more explanation of how the params need to be transformed for Metaculus to accept them
+        """
+        Get the params needed to submit a logistic to Metaculus as part of a prediction. See comments for more explanation of how the params need to be transformed for Metaculus to accept them
 
         :param logistic_params: params for a logistic on the normalized scale
         :return: params to submit the logistic to Metaculus as part of a prediction
@@ -307,7 +327,8 @@ class ContinuousQuestion(MetaculusQuestion):
         return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
 
     def denormalize_samples(self, samples) -> np.ndarray:
-        """Map normalized samples back to actual scale
+        """
+        Map normalized samples back to actual scale
 
         :raises NotImplementedError: This should be implemented by a subclass
         """
@@ -315,7 +336,8 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @functools.lru_cache(None)
     def community_dist_in_range(self) -> dist.Categorical:
-        """The portion of the current normalized community prediction that's within the question's range.
+        """
+        The portion of the current normalized community prediction that's within the question's range.
 
         :return: distribution on integers referencing 0...(len(self.prediction_histogram)-1)
         """
@@ -323,7 +345,8 @@ class ContinuousQuestion(MetaculusQuestion):
         return dist.Categorical(probs=torch.Tensor(y2))
 
     def sample_normalized_community(self):
-        """Sample an approximation of the entire current community prediction, on the normalized scale.
+        """
+        Sample an approximation of the entire current community prediction, on the normalized scale.
         The main reason that it's just an approximation is that we don't know
         exactly where probability mass outside of the question range should be, so we place it arbitrarily
 
@@ -353,7 +376,8 @@ class ContinuousQuestion(MetaculusQuestion):
         )
 
     def sample_community(self):
-        """Sample an approximation of the entire current community prediction,
+        """
+        Sample an approximation of the entire current community prediction,
         on the true scale of the question.
         The main reason that it's just an approximation is that we don't know
         exactly where probability mass outside of the question range should be, so we place it arbitrarily
@@ -369,7 +393,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission(
         self, mixture_params: logistic.LogisticMixtureParams
     ) -> SubmissionMixtureParams:
-        """Get parameters to submit a prediction to the Metaculus API using a logistic mixture
+        """
+        Get parameters to submit a prediction to the Metaculus API using a logistic mixture
 
         :param mixture_params: raw mixture parameters
         :return: parameters clipped and formatted for the API
