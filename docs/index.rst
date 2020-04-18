@@ -9,6 +9,13 @@ Ergo documentation
 .. toctree::
    :glob:
    :maxdepth: 2
+   :caption: Usage
+
+   gettingstarted
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
    :caption: Prediction Platforms
 
    metaculus
