@@ -829,7 +829,7 @@ wcwidth = "*"
 [[package]]
 category = "dev"
 description = "Run a subprocess in a pseudo terminal"
-marker = "python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\" and (python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\")"
+marker = "sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\""
 name = "ptyprocess"
 optional = false
 python-versions = "*"
@@ -1375,8 +1375,8 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "cbe6a8749837681546a4e332055a8f79d5231b162dd864493e0d25ea2f08c438"
-python-versions = "3.6.8, 3.6.8"
+content-hash = "b6ffd826b0e41cea1254b2a928f45c11c81e0d43fd8a8924d7a31f9777121683"
+python-versions = "~3.6.8"
 
 [metadata.files]
 absl-py = [
