@@ -6,3 +6,4 @@ ergo.egg-info/
 dist/
 conda/
 .coverage
+docs/build
