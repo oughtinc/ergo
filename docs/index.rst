@@ -4,6 +4,8 @@
 Ergo documentation
 ==================
 
+`Ergo <https://github.com/oughtinc/ergo>`_ is a Python library for integrating model-based and judgmental forecasting.
+
 .. toctree::
    :glob:
    :maxdepth: 2
@@ -19,11 +21,3 @@ Ergo documentation
 
    inference
    distributions
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`
