@@ -77,7 +77,7 @@ Here's what Ergo provides right now:
   - Specify distributions using 90% confidence intervals, e.g. `ergo.lognormal_from_interval(10, 100)`
   - For Bayesian inference, Ergo provides a wrapper around Pyro's variational inference algorithm
   - Get model results as Pandas dataframes
-- Interact with the Metaculus prediction platform
+- Interact with the Metaculus and Foretold prediction platforms
   - Load question data given question ids
   - Use community distributions as variables in generative models
   - Submit model predictions to Metaculus
@@ -88,11 +88,10 @@ Here's what Ergo provides right now:
 
 [WIP](https://github.com/oughtinc/ergo/projects/1):
 
-- Metaculus API improvements
-  - Support questions with distributions on dates
-  - Improve community distribution support (accuracy, plotting)
-- Foretold API improvements
-  - Submitting data
+- Documentation
+- More complete Metaculus and Foretold API
+  - Submitting data to Foretold
+- Clearer modeling API
 
 Planned:
 
