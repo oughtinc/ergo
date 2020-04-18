@@ -39,7 +39,7 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
 
 def tag(value, name: str):
     if not isinstance(value, torch.Tensor):
-        value = torch.Tensor(value)  # type: ignore
+        value = torch.tensor(value)  # type: ignore
     return pyro.deterministic(name, value)
 
 
@@ -132,10 +132,10 @@ def beta_from_hits(hits, total, **kwargs):
 
 def random_choice(options, ps=None):
     if ps is None:
-        ps = torch.Tensor([1 / len(options)] * len(options))
+        ps = torch.tensor([1 / len(options)] * len(options))
     else:
-        # in case ps are passed in as some array-like type other than torch.Tensor
-        ps = torch.Tensor(ps)
+        # in case ps are passed in as some array-like type other than torch.tensor
+        ps = torch.tensor(ps)
 
     idx = sample(dist.Categorical(ps))
     return options[idx]

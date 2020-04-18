@@ -114,7 +114,7 @@ def fit_single(samples) -> LogisticParams:
 
 
 def sample_mixture(mixture_params):
-    i = categorical(torch.Tensor(mixture_params.probs))
+    i = categorical(torch.tensor(mixture_params.probs))
     component_params = mixture_params.components[i]
     return onp.random.logistic(loc=component_params.loc, scale=component_params.scale)
 

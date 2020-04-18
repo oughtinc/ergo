@@ -121,9 +121,6 @@ class MetaculusQuestion:
             )
 
     def __str__(self):
-        """
-        :return: The question title from Metaculus if that's available, else a generic string
-        """
         if self.data:
             return self.data["title"]
         return "<MetaculusQuestion>"
@@ -342,7 +339,7 @@ class ContinuousQuestion(MetaculusQuestion):
         :return: distribution on integers referencing 0...(len(self.prediction_histogram)-1)
         """
         y2 = [p[2] for p in self.prediction_histogram]
-        return dist.Categorical(probs=torch.Tensor(y2))
+        return dist.Categorical(probs=torch.tensor(y2))
 
     def sample_normalized_community(self):
         """
@@ -385,7 +382,7 @@ class ContinuousQuestion(MetaculusQuestion):
         :return: One sample on the true scale
         """
         normalized_sample = self.sample_normalized_community()
-        sample = torch.Tensor(self.denormalize_samples([normalized_sample]))
+        sample = torch.tensor(self.denormalize_samples([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
         return sample
