@@ -8,6 +8,7 @@ import requests
 import ergo
 import tests.mocks
 import pandas as pd
+from http import HTTPStatus
 from datetime import datetime
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -74,14 +75,14 @@ class TestMetaculus:
             tests.mocks.mock_normalized_params
         )
         r = self.continuous_linear_open_question.submit(submission)
-        assert r.status_code == 202
+        assert r.status_code == HTTPStatus.ACCEPTED
 
     def test_submit_continuous_linear_date_open(self):
         submission = self.continuous_linear_date_open_question.get_submission(
             tests.mocks.mock_normalized_params
         )
         r = self.continuous_linear_date_open_question.submit(submission)
-        assert r.status_code == 202
+        assert r.status_code == HTTPStatus.ACCEPTED
 
     def test_submit_continuous_linear_closed(self):
         submission = self.continuous_linear_closed_question.get_submission(

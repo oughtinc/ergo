@@ -17,11 +17,10 @@ from typing_extensions import Literal
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as pyplot
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 import ergo.logistic as logistic
 import ergo.ppl as ppl
-import datetime as dt
 
 
 @dataclass
@@ -97,9 +96,11 @@ class MetaculusQuestion:
                 # could use dateutil.parser to deal with timezones better,
                 # but opted for lightweight since datetime.fromisoformat will fix this in python 3.7
                 try:
+                    # attempt to parse with microseconds
                     return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%S%fZ")
                 except ValueError:
                     try:
+                        # attempt to parse without microseconds
                         return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%SZ")
                     except ValueError:
                         print(
@@ -305,7 +306,7 @@ class ContinuousQuestion(MetaculusQuestion):
         self, samples, samples_for_fit=5000
     ) -> SubmissionMixtureParams:
         if not type(samples) in [pd.Series, np.ndarray]:
-            raise ValueError("Please submit a vector of samples")
+            raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
         mixture_params = logistic.fit_mixture(
             normalized_samples, num_samples=samples_for_fit
@@ -565,8 +566,8 @@ class LinearDateQuestion(LinearQuestion):
 
     # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
     # TODO consider using @functools.singledispatchmethod
-    def normalize_samples(self, samples, epsilon=1e-9):
-        if isinstance(samples[0], dt.date):
+    def normalize_samples(self, samples):
+        if isinstance(samples[0], date):
             if type(samples) != pd.Series:
                 try:
                     samples = pd.Series(samples)
@@ -576,9 +577,9 @@ class LinearDateQuestion(LinearQuestion):
         else:
             return super().normalize_samples(samples)
 
-    # takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
-    # Assumes pd.Series of datetime dates
     def normalize_dates(self, dates):
+        """takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
+        Assumes pd.Series of datetime dates"""
         return (dates - self.question_range["date_min"]).dt.days / self.question_range[
             "date_range"
         ]
@@ -592,7 +593,7 @@ class LinearDateQuestion(LinearQuestion):
                 days=round(self.question_range["date_range"] * sample)
             )
 
-        return samples.apply(lambda x: denorm(x))
+        return samples.apply(denorm)
 
 
 class Metaculus:
@@ -657,7 +658,7 @@ class Metaculus:
             if data["possibilities"]["scale"]["deriv_ratio"] != 1:
                 if data["possibilities"].get("format") == "date":
                     raise NotImplementedError(
-                        "Support for logarithmic date-valued questions is not currently supported"
+                        "Logarithmic date-valued questions are not currently supported"
                     )
                 else:
                     return LogQuestion(data["id"], self, data, name)
@@ -680,7 +681,7 @@ class Metaculus:
         data = r.json()
         if not data.get("possibilities"):
             raise ValueError(
-                "There was not a question with that id. HINT are you using the right api_domain?"
+                "Unable to find a question with that id. Are you using the right api_domain?"
             )
         return self.make_question_from_data(data, name)
 
