@@ -1,8 +1,10 @@
+[![Build Status](https://travis-ci.org/oughtinc/ergo.svg?branch=master)](https://travis-ci.org/oughtinc/ergo) [![Documentation Status](https://readthedocs.com/projects/ought-ergo/badge/?version=latest&token=259162a0cd579e231ba0828410ff8b8f813f5eac663dcc8882b1244decdc97ae)](https://ought-ergo.readthedocs-hosted.com/en/latest/?badge=latest) [![Codecov Status](https://codecov.io/gh/oughtinc/ergo/branch/master/graph/badge.svg)](https://codecov.io/gh/oughtinc/ergo)
+
 # Ergo
 
-[![Build Status](https://travis-ci.org/oughtinc/ergo.svg?branch=master)](https://travis-ci.org/oughtinc/ergo) [![Codecov](https://codecov.io/gh/oughtinc/ergo/branch/master/graph/badge.svg)](https://codecov.io/gh/oughtinc/ergo)
-
 A Python library for integrating model-based and judgmental forecasting
+
+[Quickstart](#quickstart) | [Docs](https://ought-ergo.readthedocs-hosted.com/en/latest/?badge=latest) | [Examples](#notebooks-using-ergo)
 
 ## Example
 
@@ -31,6 +33,13 @@ samples = ergo.run(deaths_from_infections, num_samples=5000)
 # Submit model predictions to Metaculus
 q_deaths.submit_from_samples(samples)
 ```
+
+## Quickstart
+
+1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/quickstart.ipynb)
+2. Add your Metaculus username and password
+3. Select "Runtime > Run all" in the menu
+4. Edit the code to load other questions, improve the model, etc., and rerun
 
 ## Philosophy
 
@@ -108,66 +117,38 @@ If there's something you want Ergo to do, [let us know](https://github.com/ought
 
 The following notebooks have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
 
-1. [Generative models in Ergo](notebooks/generative-models.ipynb)
-    - Models in Ergo are expressed as probabilistic programs. 
-    - This notebook shows a simple example. 
-    - As in [Guesstimate](https://www.getguesstimate.com), you can define distributions from 90% confidence intervals.
-
-2. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community_distributions_v2.ipynb)
+1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
     - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
 
-3. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
+2. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
    - End-to-end example: 
      1. Load multiple questions from Metaculus
      2. Compute model predictions based on assumptions and external data
      3. Submit predictions to Metaculus
 
-4. [Model-based predictions of Covid-19 spread using inference from observed cases](notebooks/covid-19-inference.ipynb)
+3. [Model-based predictions of Covid-19 spread using inference from observed cases](notebooks/covid-19-inference.ipynb)
    - A version of the previous notebook that infers growth rates before and after lockdown decisions
 
-5. [Predicting how long lockdowns will last in multiple locations](notebooks/covid-19-lockdowns.ipynb) (WIP)
-   - Make predictions on multiple Metaculus questions using external data (IHME) and a single model.
-
-6. [Estimating the number of active Covid-19 infections in each country using multiple sources](notebooks/covid-19-active.ipynb) (WIP)
-   - Integrate qualitative judgments and simple model-based extrapolation to estimate the number of active cases for a large number of countries.
-   
-7. [How long will the average American spend under lockdown?](notebooks/covid-19-average-lockdown.ipynb) (WIP)
-   - Show how related questions and how their community prediction has changed since making a prediction.
-   
-8. [Assorted predictions](notebooks/assorted-predictions.ipynb)
-   - Nine quick predictions
-
-9. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
+4. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
    - Show Metaculus prediction results as a dataframe
    - Filter Metaculus questions by date and status.
 
-   
+Outdated Ergo notebooks:
 
-Notebooks on the path to Ergo (hosted on Colab):
+1. [Generative models in Ergo](notebooks/generative-models.ipynb)
+
+2. [Predicting how long lockdowns will last in multiple locations](notebooks/covid-19-lockdowns.ipynb)
+
+3. [Estimating the number of active Covid-19 infections in each country using multiple sources](notebooks/covid-19-active.ipynb)
+
+4. [How long will the average American spend under lockdown?](notebooks/covid-19-average-lockdown.ipynb)
+
+5. [Assorted COVID predictions](notebooks/assorted-predictions.ipynb)
+
+
+Notebooks on the path to Ergo:
 
 1. [Guesstimate in Colab](https://colab.research.google.com/drive/1V9eR6T1RAbtfpZYFaueL8miBJ6wgLXIm)
-   - How can we get Guesstimate's sampling and visualization functionality in a Colab?
-   
+  
 2. [Fitting mixtures of logistic distributions](https://colab.research.google.com/drive/1xwO-0A36wnut9GPlEaRj6zzZBBLf1T2C)
    - How can we transform arbitrary distributions represented as samples into the "mixtures of logistics" format Metaculus uses for user submissions?
-
-## Development
-### Run a Colab using your local version of `ergo`
-This way, you can quickly make changes to ergo and see them reflected in your Colab without pushing to a Github branch first.
-
-1. `poetry shell`
-2. `python -m jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com'`
-3. open the Colab in your browser. You need editing access to run the Colab -- if you don't, you can make a copy and run that instead.
-4. in the Colab, `Connect` > `Connect to local runtime`
-5. for the `Backend URL` to connect to, paste from your shell the url that looks like “http://localhost:8888/?token=46aa5a3f5ee5b71df3c109fcabf94d0291b73bfced692049”
-6. Whenever you change `ergo` and want to load the change in your Colab, in the Colab, `Runtime` > `Restart Runtime...`
-
-If you get an error in the Colab, try following the instructions provided in the error. If that doesn't work, try the [official instructions for connecting to a local runtime](https://research.google.com/colaboratory/local-runtimes.html).
-
-### Before submitting a PR
-1. Format code using [black](https://github.com/psf/black).
-    * Follow [these instructions](https://code.visualstudio.com/docs/python/editing#_formatting) to set `black` as your formatter in VSCode.
-2. Lint code using [flake8](https://flake8.pycqa.org/en/latest/).
-    * Follow [these instructions](https://code.visualstudio.com/docs/python/linting#_specific-linters) to use flake8 in VSCode
-3. Run mypy: `mypy .`. There should be 0 errors or warnings, you should get `Success: no issues found`
-4. Run tests: `pytest -s`. All tests should pass.

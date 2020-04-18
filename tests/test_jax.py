@@ -1,5 +1,5 @@
-import pytest
 from jax import grad, jit
+import pytest
 
 
 def f(x, y):

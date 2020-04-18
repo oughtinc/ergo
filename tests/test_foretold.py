@@ -1,6 +1,7 @@
-import ergo
-import pytest
 import numpy as np
+import pytest
+
+import ergo
 
 
 class TestForetold:
@@ -10,6 +11,9 @@ class TestForetold:
         # Distribution is mm(10 to 20, 200 to 210), a mixture model with most mass split between
         # 10 - 20 and 200 - 210.
         dist = foretold.get_question("cf86da3f-c257-4787-b526-3ef3cb670cb4")
+        assert dist.quantile(0.25) < 100
+        assert dist.quantile(0.75) > 100
+
         num_samples = 20000
         samples = ergo.run(
             lambda: ergo.tag(dist.sample_community(), "sample"), num_samples=num_samples

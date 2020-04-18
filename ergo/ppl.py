@@ -1,17 +1,18 @@
+"""
+This module provides a few lightweight wrappers around probabilistic
+programming primitives from Pyro.
+"""
+
 import math
-
-import pyro
-import torch
-import tqdm
-
-import pandas as pd
-import pyro.distributions as dist  # type: ignore
-
-from pyro.contrib.autoname import name_count
-from pyro.infer import SVI, Trace_ELBO, Predictive  # type: ignore
-
 from typing import Dict, List
 
+import pandas as pd
+import pyro
+from pyro.contrib.autoname import name_count
+import pyro.distributions as dist  # type: ignore
+from pyro.infer import SVI, Predictive, Trace_ELBO  # type: ignore
+import torch
+import tqdm
 
 # Config
 
@@ -22,6 +23,13 @@ pyro.enable_validation(True)
 
 
 def sample(dist: dist.Distribution, name: str = None, **kwargs):
+    """
+    Sample from a primitive distribution
+
+    :param dist: A Pyro distribution
+    :param name: Name to assign to this sampling site in the execution trace
+    :return: A sample from the distribution (usually Torch tensor)
+    """
     if not name:
         # If no name is provided, the model should use the @name_count
         # decorator to avoid using the same name for multiple variables
@@ -55,12 +63,16 @@ def lognormal(mean=0, stdev=1, **kwargs):
     return sample(dist.LogNormal(mean, stdev), **kwargs)
 
 
+def halfnormal(stdev, **kwargs):
+    return sample(dist.HalfNormal(stdev), **kwargs)
+
+
 def uniform(low=0, high=1, **kwargs):
     return sample(dist.Uniform(low, high), **kwargs)
 
 
-def beta(alpha=1, beta=1, **kwargs):
-    return sample(dist.Beta(alpha, beta), **kwargs)
+def beta(a=1, b=1, **kwargs):
+    return sample(dist.Beta(a, b), **kwargs)
 
 
 def categorical(ps, **kwargs):
@@ -119,11 +131,12 @@ def beta_from_hits(hits, total, **kwargs):
 
 
 def random_choice(options, ps=None):
-    # in case ps are passed in as some array-like type other than torch.Tensor
-    ps = torch.Tensor(ps)
-
     if ps is None:
         ps = torch.Tensor([1 / len(options)] * len(options))
+    else:
+        # in case ps are passed in as some array-like type other than torch.Tensor
+        ps = torch.Tensor(ps)
+
     idx = sample(dist.Categorical(ps))
     return options[idx]
 
