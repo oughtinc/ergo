@@ -13,7 +13,7 @@ import pyro.distributions as dist
 import ergo.logistic as logistic
 import ergo.ppl as ppl
 
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Union
 from scipy import stats
 
 from typing_extensions import Literal
@@ -583,7 +583,7 @@ class Metaculus:
         player_status: Literal[
             "any", "predicted", "not-predicted", "author", "interested", "private"
         ] = "any",  # 20 results per page
-        cat: str = "any",
+        cat: Union[str, None] = None,
         pages: int = 1,
     ) -> List[Dict]:
         query_params = [f"status={question_status}", "order_by=-publish_time"]
@@ -595,7 +595,7 @@ class Metaculus:
                     f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
                 )
 
-        if cat != "any":
+        if cat is not None:
             query_params.append(f"search=cat:{cat}")
 
         query_string = "&".join(query_params)
