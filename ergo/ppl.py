@@ -67,6 +67,10 @@ def lognormal(mean=0, stdev=1, **kwargs):
     return sample(dist.LogNormal(mean, stdev), **kwargs)
 
 
+def halfnormal(stdev, **kwargs):
+    return sample(dist.HalfNormal(stdev), **kwargs)
+
+
 def uniform(low=0, high=1, **kwargs):
     return sample(dist.Uniform(low, high), **kwargs)
 
