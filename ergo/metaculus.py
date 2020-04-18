@@ -764,7 +764,7 @@ class LinearDateQuestion(LinearQuestion):
 
     def normalize_dates(self, dates: pd.Series):
         """
-        Put dates on the normalized scale used by the Metaculus API
+        Map dates to the normalized scale used by the Metaculus API
 
         :param dates: a pandas series of dates
         :return: normalized samples
