@@ -21,3 +21,10 @@ Ergo documentation
 
    inference
    distributions
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Development
+
+   workflow
