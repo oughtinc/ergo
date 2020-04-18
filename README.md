@@ -180,6 +180,7 @@ If you get an error in the Colab, try following the instructions provided in the
 
 ### Before submitting a PR
 
-1. Run linting using `make lint` (flake8, mypy, black)
-2. Run tests using `make test`
-3. Generate docs using `make docs`, review `docs/build/html/index.html`
+1. Format code using `make format` (black, isort)
+2. Run linting using `make lint` (flake8, mypy, black check)
+3. Run tests using `make test`
+4. Generate docs using `make docs`, review `docs/build/html/index.html`
