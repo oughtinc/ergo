@@ -1,6 +1,7 @@
-import ergo
-import pytest
 import numpy as np
+import pytest
+
+import ergo
 
 
 class TestForetold:

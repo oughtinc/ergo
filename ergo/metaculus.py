@@ -1,23 +1,22 @@
-import math
+from dataclasses import dataclass
 import functools
 import json
-import torch
-import requests
-import pendulum
-import seaborn
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as pyplot
+import math
+from typing import Any, Dict, List, Optional
 
+import matplotlib.pyplot as pyplot
+import numpy as np
+import pandas as pd
+import pendulum
 import pyro.distributions as dist
+import requests
+from scipy import stats
+import seaborn
+import torch
+from typing_extensions import Literal
+
 import ergo.logistic as logistic
 import ergo.ppl as ppl
-
-from typing import Optional, List, Any, Dict
-from scipy import stats
-
-from typing_extensions import Literal
-from dataclasses import dataclass
 
 
 @dataclass

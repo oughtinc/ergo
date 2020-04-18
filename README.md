@@ -180,9 +180,7 @@ If you get an error in the Colab, try following the instructions provided in the
 
 ### Before submitting a PR
 
-1. Format code using [black](https://github.com/psf/black).
-    * Follow [these instructions](https://code.visualstudio.com/docs/python/editing#_formatting) to set `black` as your formatter in VSCode.
-2. Lint code using [flake8](https://flake8.pycqa.org/en/latest/).
-    * Follow [these instructions](https://code.visualstudio.com/docs/python/linting#_specific-linters) to use flake8 in VSCode
-3. Run mypy: `mypy .`. There should be 0 errors or warnings, you should get `Success: no issues found`
-4. Run tests: `pytest -s`. All tests should pass.
+1. Format code using `make format` (black, isort)
+2. Run linting using `make lint` (flake8, mypy, black check)
+3. Run tests using `make test`
+4. Generate docs using `make docs`, review `docs/build/html/index.html`

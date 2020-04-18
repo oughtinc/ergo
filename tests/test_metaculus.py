@@ -1,9 +1,11 @@
-import ergo
+import pprint
+
+import numpy as np
+import pendulum
 import pytest
 import requests
-import pendulum
-import pprint
-import numpy as np
+
+import ergo
 import tests.mocks
 
 pp = pprint.PrettyPrinter(indent=4)
