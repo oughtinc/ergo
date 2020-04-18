@@ -1,7 +1,9 @@
+from datetime import datetime
+from http import HTTPStatus
 import pprint
 
 import numpy as np
-import pendulum
+import pandas as pd
 import pytest
 import requests
 
@@ -19,15 +21,27 @@ class TestMetaculus:
     metaculus = ergo.Metaculus(uname, pwd)
     continuous_linear_closed_question = metaculus.get_question(3963)
     continuous_linear_open_question = metaculus.get_question(3962)
+    continuous_linear_date_open_question = metaculus.get_question(4212)
     continuous_log_open_question = metaculus.get_question(3961)
     closed_question = metaculus.get_question(3965)
     binary_question = metaculus.get_question(3966)
+
     mock_samples = np.array(
         [
             ergo.logistic.sample_mixture(tests.mocks.mock_true_params)
             for _ in range(0, 1000)
         ]
     )
+
+    mock_date_samples = continuous_linear_date_open_question.denormalize_samples(
+        pd.Series(
+            [
+                ergo.logistic.sample_mixture(tests.mocks.mock_normalized_params)
+                for _ in range(0, 1000)
+            ]
+        )
+    )
+
     mock_log_question = metaculus.make_question_from_data(
         tests.mocks.mock_log_question_data
     )
@@ -38,6 +52,16 @@ class TestMetaculus:
     def test_get_question(self):
         """make sure we're getting the user-specific data"""
         assert "my_predictions" in self.continuous_linear_open_question.data
+
+    def test_date_normalize_denormalize(self):
+        samples = self.mock_date_samples
+        normalized = self.continuous_linear_date_open_question.normalize_samples(
+            samples
+        )
+        denormalized = self.continuous_linear_date_open_question.denormalize_samples(
+            normalized
+        )
+        assert all(denormalized == samples)
 
     def test_normalize_denormalize(self):
         samples = [0, 0.5, 1, 5, 10, 20]
@@ -50,7 +74,14 @@ class TestMetaculus:
             tests.mocks.mock_normalized_params
         )
         r = self.continuous_linear_open_question.submit(submission)
-        assert r.status_code == 202
+        assert r.status_code == HTTPStatus.ACCEPTED
+
+    def test_submit_continuous_linear_date_open(self):
+        submission = self.continuous_linear_date_open_question.get_submission(
+            tests.mocks.mock_normalized_params
+        )
+        r = self.continuous_linear_date_open_question.submit(submission)
+        assert r.status_code == HTTPStatus.ACCEPTED
 
     def test_submit_continuous_linear_closed(self):
         submission = self.continuous_linear_closed_question.get_submission(
@@ -111,12 +142,12 @@ class TestMetaculus:
         open = self.metaculus.make_questions_df(
             self.metaculus.get_questions_json(question_status="open")
         )
-        assert (open["close_time"] > pendulum.now()).all()
+        assert (open["close_time"] > datetime.now()).all()
 
         closed = self.metaculus.make_questions_df(
             self.metaculus.get_questions_json(question_status="closed")
         )
-        assert (closed["close_time"] < pendulum.now()).all()
+        assert (closed["close_time"] < datetime.now()).all()
 
     def test_submitted_equals_predicted_linear(self):
         self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
