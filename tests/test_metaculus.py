@@ -1,15 +1,14 @@
+from datetime import datetime
+from http import HTTPStatus
 import pprint
 
 import numpy as np
-import pendulum
+import pandas as pd
 import pytest
 import requests
 
 import ergo
 import tests.mocks
-import pandas as pd
-from http import HTTPStatus
-from datetime import datetime
 
 pp = pprint.PrettyPrinter(indent=4)
 
