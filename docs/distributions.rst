@@ -27,7 +27,7 @@ beta
 
 beta_from_hits
 --------------
-.. autofunction:: ergo.ppl.beta
+.. autofunction:: ergo.ppl.beta_from_hits
 
 categorical
 -----------

@@ -117,70 +117,38 @@ If there's something you want Ergo to do, [let us know](https://github.com/ought
 
 The following notebooks have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
 
-1. [Generative models in Ergo](notebooks/generative-models.ipynb)
-    - Models in Ergo are expressed as probabilistic programs. 
-    - This notebook shows a simple example. 
-    - As in [Guesstimate](https://www.getguesstimate.com), you can define distributions from 90% confidence intervals.
-
-2. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community_distributions_v2.ipynb)
+1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
     - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
 
-3. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
+2. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
    - End-to-end example: 
      1. Load multiple questions from Metaculus
      2. Compute model predictions based on assumptions and external data
      3. Submit predictions to Metaculus
 
-4. [Model-based predictions of Covid-19 spread using inference from observed cases](notebooks/covid-19-inference.ipynb)
+3. [Model-based predictions of Covid-19 spread using inference from observed cases](notebooks/covid-19-inference.ipynb)
    - A version of the previous notebook that infers growth rates before and after lockdown decisions
 
-5. [Predicting how long lockdowns will last in multiple locations](notebooks/covid-19-lockdowns.ipynb) (WIP)
-   - Make predictions on multiple Metaculus questions using external data (IHME) and a single model.
-
-6. [Estimating the number of active Covid-19 infections in each country using multiple sources](notebooks/covid-19-active.ipynb) (WIP)
-   - Integrate qualitative judgments and simple model-based extrapolation to estimate the number of active cases for a large number of countries.
-   
-7. [How long will the average American spend under lockdown?](notebooks/covid-19-average-lockdown.ipynb) (WIP)
-   - Show how related questions and how their community prediction has changed since making a prediction.
-   
-8. [Assorted predictions](notebooks/assorted-predictions.ipynb)
-   - Nine quick predictions
-
-9. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
+4. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
    - Show Metaculus prediction results as a dataframe
    - Filter Metaculus questions by date and status.
 
-   
+Outdated Ergo notebooks:
 
-Notebooks on the path to Ergo (hosted on Colab):
+1. [Generative models in Ergo](notebooks/generative-models.ipynb)
+
+2. [Predicting how long lockdowns will last in multiple locations](notebooks/covid-19-lockdowns.ipynb)
+
+3. [Estimating the number of active Covid-19 infections in each country using multiple sources](notebooks/covid-19-active.ipynb)
+
+4. [How long will the average American spend under lockdown?](notebooks/covid-19-average-lockdown.ipynb)
+
+5. [Assorted COVID predictions](notebooks/assorted-predictions.ipynb)
+
+
+Notebooks on the path to Ergo:
 
 1. [Guesstimate in Colab](https://colab.research.google.com/drive/1V9eR6T1RAbtfpZYFaueL8miBJ6wgLXIm)
-   - How can we get Guesstimate's sampling and visualization functionality in a Colab?
-   
+  
 2. [Fitting mixtures of logistic distributions](https://colab.research.google.com/drive/1xwO-0A36wnut9GPlEaRj6zzZBBLf1T2C)
    - How can we transform arbitrary distributions represented as samples into the "mixtures of logistics" format Metaculus uses for user submissions?
-
-## Development
-
-Ergo uses the [Poetry](https://github.com/python-poetry/poetry) package manager.
-
-### Run a Colab using your local version of `ergo`
-
-This way, you can quickly make changes to ergo and see them reflected in your Colab without pushing to a Github branch first.
-
-1. `poetry install`
-2. `poetry shell`
-3. `python -m jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com'`
-4. Open the Colab in your browser. You need editing access to run the Colab -- if you don't, you can make a copy and run that instead.
-5. In the Colab, `Connect` > `Connect to local runtime`
-6. For the `Backend URL` to connect to, paste from your shell the url that looks like “http://localhost:8888/?token=46aa5a3f5ee5b71df3c109fcabf94d0291b73bfced692049”
-7. Whenever you change `ergo` and want to load the change in your Colab, in the Colab, `Runtime` > `Restart Runtime...`
-
-If you get an error in the Colab, try following the instructions provided in the error. If that doesn't work, try the [official instructions for connecting to a local runtime](https://research.google.com/colaboratory/local-runtimes.html).
-
-### Before submitting a PR
-
-1. Format code using `make format` (black, isort)
-2. Run linting using `make lint` (flake8, mypy, black check)
-3. Run tests using `make test`
-4. Generate docs using `make docs`, review `docs/build/html/index.html`

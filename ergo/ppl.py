@@ -71,8 +71,8 @@ def uniform(low=0, high=1, **kwargs):
     return sample(dist.Uniform(low, high), **kwargs)
 
 
-def beta(alpha=1, beta=1, **kwargs):
-    return sample(dist.Beta(alpha, beta), **kwargs)
+def beta(a=1, b=1, **kwargs):
+    return sample(dist.Beta(a, b), **kwargs)
 
 
 def categorical(ps, **kwargs):

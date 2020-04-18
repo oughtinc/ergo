@@ -20,6 +20,7 @@ typing_extensions = "3.7.4.2"
 jax = "0.1.63"
 jaxlib = "0.1.44"
 pandas = "1.0.3"
+sphinx-autodoc-typehints = "^1.10.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
