@@ -21,6 +21,9 @@ import ergo.ppl as ppl
 
 @dataclass
 class ScoredPrediction:
+    """A prediction scored according to how it resolved or according to the current community prediction
+    """
+
     time: float
     prediction: Any
     resolution: float
@@ -29,29 +32,29 @@ class ScoredPrediction:
 
 
 class MetaculusQuestion:
-    """
-    Attributes:
-    - url
-    - page_url
-    - id
-    - author
-    - title
-    - status
-    - resolution
-    - created_time
-    - publish_time
-    - close_time
-    - resolve_time
-    - possibilities
-    - can_use_powers
-    - last_activity_time
-    - activity
-    - comment_count
-    - votes
-    - prediction_timeseries
-    - author_name
-    - prediction_histogram
-    - anon_prediction_count
+    """Get information about and predict on a question from Metaculus
+
+    :ivar url
+    :ivar page_url
+    :ivar id
+    :ivar author
+    :ivar title
+    :ivar status
+    :ivar resolution
+    :ivar created_time
+    :ivar publish_time
+    :ivar close_time
+    :ivar resolve_time
+    :ivar possibilities
+    :ivar can_use_powers
+    :ivar last_activity_time
+    :ivar activity
+    :ivar comment_count
+    :ivar votes
+    :ivar prediction_timeseries
+    :ivar author_name
+    :ivar prediction_histogram
+    :ivar anon_prediction_count
     """
 
     id: int
@@ -59,43 +62,59 @@ class MetaculusQuestion:
     metaculus: "Metaculus"
     name: Optional[str]
 
-    def __init__(self, id: int, metaculus: "Metaculus", data, name=None):
+    def __init__(self, id: int, metaculus: "Metaculus", data: Dict, name=None):
+        """:param id: question id on Metaculus
+        :param metaculus: Metaculus class instance, specifies which user to use for e.g. submitting predictions
+        :param data: information about the question, e.g. as returned by the Metaculus API
+        :param name: name for the question to be e.g. used in graph titles, defaults to None
+        """
         self.id = id
         self.data = data
         self.metaculus = metaculus
         self.name = name
 
     @property
-    def is_continuous(self) -> bool:
-        return self.type == "continuous"
-
-    @property
-    def type(self) -> str:
-        return self.possibilities["type"]
-
-    @property
-    def latest_community_prediction(self):
+    def latest_community_percentiles(self):
+        """:return: Some percentiles for the metaculus commununity's latest rough prediction. More details in prediction_histogram
+        """
         return self.prediction_timeseries[-1]["community_prediction"]
 
     def __getattr__(self, name):
+        """If an attribute isn't directly on the class, check whether it's in the raw question data. If it's a time, format it appropriately.
+
+        :param name: attr name
+        :raises AttributeError: Attribute is neither directly on this class nor in the raw question data
+        :return: attr value
+        """
         if name in self.data:
             if name.endswith("_time"):
-                return pendulum.parse(self.data[name])  # TZ
+                return pendulum.parse(self.data[name])
             return self.data[name]
         else:
-            raise AttributeError(name)
+            raise AttributeError(
+                f"Attribute {name} is neither directly on this class nor in the raw question data"
+            )
 
     def __str__(self):
+        """:return: The question title from Metaculus if that's available, else a generic string
+        """
         if self.data:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
     def refresh_question(self):
+        """Refetch the question data from Metaculus, used when the question data might have changed
+        """
         r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
+        """Summarize a list of questions in a dataframe
+
+        :param questions: questions to summarize
+        :return: pandas dataframe summarizing the questions
+        """
         show_names = any(q.name for q in questions)
         if show_names:
             columns = ["id", "name", "title", "resolve_time"]
@@ -112,6 +131,10 @@ class MetaculusQuestion:
         return pd.DataFrame(data, columns=columns)
 
     def sample_community(self):
+        """Get one sample from the distribution of the Metaculus community's prediction on this question (sample is denormalized/on the the true scale of the question)
+
+        :raises NotImplementedError: "This should be implemented by a subclass"
+        """
         raise NotImplementedError("This should be implemented by a subclass")
 
 
@@ -243,8 +266,8 @@ class ContinuousQuestion(MetaculusQuestion):
             len(self.prediction_histogram)
         )
 
-        p_below = self.latest_community_prediction["low"]
-        p_above = 1 - self.latest_community_prediction["high"]
+        p_below = self.latest_community_percentiles["low"]
+        p_above = 1 - self.latest_community_percentiles["high"]
         p_in_range = 1 - p_below - p_above
 
         return ppl.random_choice(
