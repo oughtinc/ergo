@@ -117,7 +117,7 @@ If there's something you want Ergo to do, [let us know](https://github.com/ought
 
 The following notebooks have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
 
-1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community_distributions.ipynb)
+1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
     - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
 
 2. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
