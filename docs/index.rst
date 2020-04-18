@@ -12,6 +12,14 @@ Ergo documentation
    inference
    distributions
 
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Prediction Platforms:
+
+   metaculus
+   foretold
+
 
 Indices and tables
 ==================
