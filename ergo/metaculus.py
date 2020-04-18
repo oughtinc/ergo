@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 import functools
 import json
 import math
@@ -7,7 +8,6 @@ from typing import Any, Dict, List, Optional
 import matplotlib.pyplot as pyplot
 import numpy as np
 import pandas as pd
-import pendulum
 import pyro.distributions as dist
 import requests
 from scipy import stats
@@ -96,7 +96,21 @@ class MetaculusQuestion:
         """
         if name in self.data:
             if name.endswith("_time"):
-                return pendulum.parse(self.data[name])
+                # could use dateutil.parser to deal with timezones better,
+                # but opted for lightweight since datetime.fromisoformat will fix this in python 3.7
+                try:
+                    # attempt to parse with microseconds
+                    return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%S%fZ")
+                except ValueError:
+                    try:
+                        # attempt to parse without microseconds
+                        return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%SZ")
+                    except ValueError:
+                        print(
+                            f"The column {name} could not be converted into a datetime"
+                        )
+                        return self.data[name]
+
             return self.data[name]
         else:
             raise AttributeError(
@@ -370,6 +384,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission_from_samples(
         self, samples, samples_for_fit=5000
     ) -> SubmissionMixtureParams:
+        if not type(samples) in [pd.Series, np.ndarray]:
+            raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
         mixture_params = logistic.fit_mixture(
             normalized_samples, num_samples=samples_for_fit
@@ -609,6 +625,56 @@ class LogQuestion(ContinuousQuestion):
         pyplot.show()
 
 
+class LinearDateQuestion(LinearQuestion):
+    # TODO: add log functionality (if some psychopath makes a log scaled date question)
+
+    @property
+    def question_range(self):
+        qr = {
+            "min": 0,
+            "max": 1,
+            "date_min": datetime.strptime(
+                self.possibilities["scale"]["min"], "%Y-%m-%d"
+            ).date(),
+            "date_max": datetime.strptime(
+                self.possibilities["scale"]["max"], "%Y-%m-%d"
+            ).date(),
+        }
+        qr["date_range"] = (qr["date_max"] - qr["date_min"]).days
+        return qr
+
+    # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
+    # TODO consider using @functools.singledispatchmethod
+    def normalize_samples(self, samples):
+        if isinstance(samples[0], date):
+            if type(samples) != pd.Series:
+                try:
+                    samples = pd.Series(samples)
+                except ValueError:
+                    raise ValueError("Could not process samples vector")
+            return self.normalize_dates(samples)
+        else:
+            return super().normalize_samples(samples)
+
+    def normalize_dates(self, dates):
+        """takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
+        Assumes pd.Series of datetime dates"""
+        return (dates - self.question_range["date_min"]).dt.days / self.question_range[
+            "date_range"
+        ]
+
+    # Map normalized samples back to dates
+    def denormalize_samples(self, samples):
+        samples = pd.Series(samples)
+
+        def denorm(sample):
+            return self.question_range["date_min"] + timedelta(
+                days=round(self.question_range["date_range"] * sample)
+            )
+
+        return samples.apply(denorm)
+
+
 class Metaculus:
     """
     The main class for interacting with Metaculus
@@ -669,8 +735,16 @@ class Metaculus:
             return BinaryQuestion(data["id"], self, data, name)
         if data["possibilities"]["type"] == "continuous":
             if data["possibilities"]["scale"]["deriv_ratio"] != 1:
-                return LogQuestion(data["id"], self, data, name)
-            return LinearQuestion(data["id"], self, data, name)
+                if data["possibilities"].get("format") == "date":
+                    raise NotImplementedError(
+                        "Logarithmic date-valued questions are not currently supported"
+                    )
+                else:
+                    return LogQuestion(data["id"], self, data, name)
+            if data["possibilities"].get("format") == "date":
+                return LinearDateQuestion(data["id"], self, data, name)
+            else:
+                return LinearQuestion(data["id"], self, data, name)
         raise NotImplementedError(
             "We couldn't determine whether this question was binary, continuous, or something else"
         )
@@ -684,6 +758,10 @@ class Metaculus:
         """
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
+        if not data.get("possibilities"):
+            raise ValueError(
+                "Unable to find a question with that id. Are you using the right api_domain?"
+            )
         return self.make_question_from_data(data, name)
 
     def get_questions_json(
@@ -743,8 +821,9 @@ class Metaculus:
         """
         questions_df = pd.DataFrame(questions_json)
         for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
-            questions_df[col] = questions_df[col].apply(pendulum.parse)
-
+            questions_df[col] = questions_df[col].apply(
+                lambda x: datetime.strptime(x[:19], "%Y-%m-%dT%H:%M:%S")
+            )
         questions_df["i_created"] = questions_df["author"] == self.user_id
         questions_df["i_predicted"] = questions_df["my_predictions"].apply(
             lambda x: x is not None
