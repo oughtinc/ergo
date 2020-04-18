@@ -45,20 +45,19 @@ class MetaculusQuestion:
     :ivar author:
     :ivar author_name:
     :ivar can_use_powers:
-    :ivar close_time:
+    :ivar close_time: when the question closes
     :ivar comment_count:
-    :ivar created_time:
-    :ivar id:
-    :ivar is_continuous:
+    :ivar created_time: when the question was created
+    :ivar id: question id
+    :ivar is_continuous: is the question continuous or binary?
     :ivar last_activity_time:
-    :ivar latest_community_prediction:
-    :ivar page_url:
+    :ivar page_url: url for the question page on Metaculus
     :ivar possibilities:
-    :ivar prediction_histogram:
-    :ivar prediction_timeseries:
-    :ivar publish_time:
+    :ivar prediction_histogram: histogram of the current community prediction
+    :ivar prediction_timeseries: predictions on this question over time
+    :ivar publish_time: when the question was published
     :ivar resolution:
-    :ivar resolve_time:
+    :ivar resolve_time: when the question will resolve
     :ivar status:
     :ivar title:
     :ivar type:
@@ -84,7 +83,7 @@ class MetaculusQuestion:
 
     @property
     def latest_community_percentiles(self):
-        """:return: Some percentiles for the metaculus commununity's latest rough prediction. More details in prediction_histogram
+        """:return: Some percentiles for the metaculus commununity's latest rough prediction. `prediction_histogram` returns a more fine-grained histogram of the community prediction
         """
         return self.prediction_timeseries[-1]["community_prediction"]
 
@@ -117,6 +116,13 @@ class MetaculusQuestion:
         r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
+    def sample_community(self):
+        """Get one sample from the distribution of the Metaculus community's prediction on this question (sample is denormalized/on the the true scale of the question)
+
+        :raises NotImplementedError: "This should be implemented by a subclass"
+        """
+        raise NotImplementedError("This should be implemented by a subclass")
+
     @staticmethod
     def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
         """Summarize a list of questions in a dataframe
@@ -138,13 +144,6 @@ class MetaculusQuestion:
                 for question in questions
             ]
         return pd.DataFrame(data, columns=columns)
-
-    def sample_community(self):
-        """Get one sample from the distribution of the Metaculus community's prediction on this question (sample is denormalized/on the the true scale of the question)
-
-        :raises NotImplementedError: "This should be implemented by a subclass"
-        """
-        raise NotImplementedError("This should be implemented by a subclass")
 
 
 class BinaryQuestion(MetaculusQuestion):
