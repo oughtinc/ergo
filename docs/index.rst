@@ -17,7 +17,7 @@ Ergo documentation
 .. toctree::
    :glob:
    :maxdepth: 2
-   :caption: Modeling
+   :caption: Models
 
    inference
    distributions
