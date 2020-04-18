@@ -37,27 +37,30 @@ class MetaculusQuestion:
     :param data: Question JSON retrieved from Metaculus API
     :param name: Name to assign to question (used in models)
 
-    :ivar url:
-    :ivar page_url:
-    :ivar id:
-    :ivar author:
-    :ivar title:
-    :ivar status:
-    :ivar resolution:
-    :ivar created_time:
-    :ivar publish_time:
-    :ivar close_time:
-    :ivar resolve_time:
-    :ivar possibilities:
-    :ivar can_use_powers:
-    :ivar last_activity_time:
     :ivar activity:
-    :ivar comment_count:
-    :ivar votes:
-    :ivar prediction_timeseries:
-    :ivar author_name:
-    :ivar prediction_histogram:
     :ivar anon_prediction_count:
+    :ivar author:
+    :ivar author_name:
+    :ivar can_use_powers:
+    :ivar close_time:
+    :ivar comment_count:
+    :ivar created_time:
+    :ivar id:
+    :ivar is_continuous:
+    :ivar last_activity_time:
+    :ivar latest_community_prediction:
+    :ivar page_url:
+    :ivar possibilities:
+    :ivar prediction_histogram:
+    :ivar prediction_timeseries:
+    :ivar publish_time:
+    :ivar resolution:
+    :ivar resolve_time:
+    :ivar status:
+    :ivar title:
+    :ivar type:
+    :ivar url:
+    :ivar votes:
     """
 
     id: int
@@ -97,6 +100,9 @@ class MetaculusQuestion:
         return "<MetaculusQuestion>"
 
     def refresh_question(self):
+        """
+        Reload question data from Metaculus
+        """
         r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
@@ -118,6 +124,9 @@ class MetaculusQuestion:
         return pd.DataFrame(data, columns=columns)
 
     def sample_community(self):
+        """
+        Sample from community distribution
+        """
         raise NotImplementedError("This should be implemented by a subclass")
 
 
