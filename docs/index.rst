@@ -35,3 +35,4 @@ Ergo documentation
    :caption: Development
 
    workflow
+   notebooks
