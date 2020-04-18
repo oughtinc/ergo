@@ -4,7 +4,7 @@
 
 A Python library for integrating model-based and judgmental forecasting
 
-[Docs](https://ergo.ought.org) | [Examples](#user-content-notebooks-using-ergo)
+[Quickstart](#quickstart) | [Docs](https://ergo.ought.org) | [Examples](#notebooks-using-ergo)
 
 ## Example
 
