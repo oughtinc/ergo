@@ -9,7 +9,8 @@ Ergo documentation
    :maxdepth: 2
    :caption: Modeling:
 
-   primitives
+   inference
+   distributions
 
 
 Indices and tables
