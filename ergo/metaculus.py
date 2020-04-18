@@ -30,28 +30,34 @@ class ScoredPrediction:
 
 class MetaculusQuestion:
     """
-    Attributes:
-    - url
-    - page_url
-    - id
-    - author
-    - title
-    - status
-    - resolution
-    - created_time
-    - publish_time
-    - close_time
-    - resolve_time
-    - possibilities
-    - can_use_powers
-    - last_activity_time
-    - activity
-    - comment_count
-    - votes
-    - prediction_timeseries
-    - author_name
-    - prediction_histogram
-    - anon_prediction_count
+    A forecasting question on Metaculus
+
+    :param id: Question id
+    :param metaculus: Metaculus API instance
+    :param data: Question JSON retrieved from Metaculus API
+    :param name: Name to assign to question (used in models)
+
+    :ivar url:
+    :ivar page_url:
+    :ivar id:
+    :ivar author:
+    :ivar title:
+    :ivar status:
+    :ivar resolution:
+    :ivar created_time:
+    :ivar publish_time:
+    :ivar close_time:
+    :ivar resolve_time:
+    :ivar possibilities:
+    :ivar can_use_powers:
+    :ivar last_activity_time:
+    :ivar activity:
+    :ivar comment_count:
+    :ivar votes:
+    :ivar prediction_timeseries:
+    :ivar author_name:
+    :ivar prediction_histogram:
+    :ivar anon_prediction_count:
     """
 
     id: int
@@ -512,6 +518,14 @@ class LogQuestion(ContinuousQuestion):
 
 
 class Metaculus:
+    """
+    The main class for interacting with Metaculus
+
+    :param username: A Metaculus username
+    :param password: The password for the given Metaculus username
+    :param api_domain: A Metaculus subdomain (e.g., www, pandemic, finance)
+    """
+
     player_status_to_api_wording = {
         "predicted": "guessed_by",
         "not-predicted": "not_guessed_by",
@@ -519,7 +533,7 @@ class Metaculus:
         "interested": "upvoted_by",
     }
 
-    def __init__(self, username, password, api_domain="www"):
+    def __init__(self, username: str, password: str, api_domain: str = "www"):
         self.user_id = None
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
@@ -570,6 +584,12 @@ class Metaculus:
         )
 
     def get_question(self, id: int, name=None) -> MetaculusQuestion:
+        """
+        Load a question from Metaculus
+
+        :param id: Question id (can be read off from URL)
+        :param name: Name to assign to this question (used in models)
+        """
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         return self.make_question_from_data(data, name)
@@ -584,6 +604,13 @@ class Metaculus:
         ] = "any",  # 20 results per page
         pages: int = 1,
     ) -> List[Dict]:
+        """
+        Retrieve JSON for multiple questions from Metaculus API.
+
+        :param question_status: Question status
+        :param player_status: Player's status on this question
+        :param pages: Number of pages of questions to retrieve
+        """
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
             if player_status == "private":
@@ -616,7 +643,12 @@ class Metaculus:
 
         return get_questions_for_pages(query_string, pages)
 
-    def make_questions_df(self, questions_json):
+    def make_questions_df(self, questions_json: List[Dict]) -> pd.DataFrame:
+        """
+        Convert JSON returned by Metaculus API to dataframe.
+
+        :param questions_json: List of questions (as dicts)
+        """
         questions_df = pd.DataFrame(questions_json)
         for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
             questions_df[col] = questions_df[col].apply(pendulum.parse)
