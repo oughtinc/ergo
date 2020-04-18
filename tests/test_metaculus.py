@@ -32,13 +32,13 @@ class TestMetaculus:
             for _ in range(0, 1000)
         ]
     )
-    
+
     mock_date_samples = continuous_linear_date_open_question.denormalize_samples(
         pd.Series(
-         [
-            ergo.logistic.sample_mixture(tests.mocks.mock_normalized_params)
-            for _ in range(0, 1000)
-         ]
+            [
+                ergo.logistic.sample_mixture(tests.mocks.mock_normalized_params)
+                for _ in range(0, 1000)
+            ]
         )
     )
 
@@ -55,10 +55,14 @@ class TestMetaculus:
 
     def test_date_normalize_denormalize(self):
         samples = self.mock_date_samples
-        normalized = self.continuous_linear_date_open_question.normalize_samples(samples)
-        denormalized =  self.continuous_linear_date_open_question.denormalize_samples(normalized)
+        normalized = self.continuous_linear_date_open_question.normalize_samples(
+            samples
+        )
+        denormalized = self.continuous_linear_date_open_question.denormalize_samples(
+            normalized
+        )
         assert all(denormalized == samples)
-    
+
     def test_normalize_denormalize(self):
         samples = [0, 0.5, 1, 5, 10, 20]
         normalized = self.mock_log_question.normalize_samples(samples)
