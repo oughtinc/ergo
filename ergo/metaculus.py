@@ -72,7 +72,8 @@ class MetaculusQuestion:
     name: Optional[str]
 
     def __init__(self, id: int, metaculus: "Metaculus", data: Dict, name=None):
-        """:param id: question id on Metaculus
+        """
+        :param id: question id on Metaculus
         :param metaculus: Metaculus class instance, specifies which user to use for e.g. submitting predictions
         :param data: information about the question, e.g. as returned by the Metaculus API
         :param name: name for the question to be e.g. used in graph titles, defaults to None
@@ -642,7 +643,8 @@ class LogQuestion(ContinuousQuestion):
         return self.question_range["min"] + scaled
 
     def normalize_samples(self, samples):
-        """Map samples from the true scale to the normalized scale
+        """
+        Map samples from the true scale to the normalized scale
 
         :param samples: Samples on the true scale
         :return: Samples on the normalized scale
@@ -650,7 +652,8 @@ class LogQuestion(ContinuousQuestion):
         return [self.normalized_from_true_value(sample) for sample in samples]
 
     def denormalize_samples(self, samples):
-        """Map samples from the normalized scale to the true scale
+        """
+        Map samples from the normalized scale to the true scale
 
         :param samples: Samples on the normalized scale
         :return: Samples on the true scale
@@ -752,8 +755,10 @@ class LinearDateQuestion(LinearQuestion):
             return super().normalize_samples(samples)
 
     def normalize_dates(self, dates):
-        """takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
-        Assumes pd.Series of datetime dates"""
+        """
+        takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
+        Assumes pd.Series of datetime dates
+        """
         return (dates - self.question_range["date_min"]).dt.days / self.question_range[
             "date_range"
         ]
@@ -793,6 +798,9 @@ class Metaculus:
         self.login(username, password)
 
     def login(self, username, password):
+        """
+        log in to Metaculus using your credentials and store cookies, etc. in the session object for future use
+        """
         loginURL = f"{self.api_url}/accounts/login/"
         r = self.s.post(
             loginURL,
@@ -803,6 +811,10 @@ class Metaculus:
         self.user_id = r.json()["user_id"]
 
     def post(self, url: str, data: Dict) -> requests.Response:
+        """
+        Make a post request using your Metaculus credentials.
+        Best to use this for all post requests to avoid auth issues
+        """
         r = self.s.post(
             url,
             headers={
@@ -825,7 +837,14 @@ class Metaculus:
 
         return r
 
-    def make_question_from_data(self, data=Dict, name=None) -> MetaculusQuestion:
+    def make_question_from_data(self, data: Dict, name=None) -> MetaculusQuestion:
+        """
+        Make a MetaculusQuestion given data about the question of the sort returned by the Metaculus API.
+
+        :param data: the question data (usually from the Metaculus API)
+        :param name: a custom name for the question
+        :return: A MetaculusQuestion from the appropriate subclass
+        """
         if data["possibilities"]["type"] == "binary":
             return BinaryQuestion(data["id"], self, data, name)
         if data["possibilities"]["type"] == "continuous":
