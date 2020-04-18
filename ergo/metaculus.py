@@ -94,7 +94,6 @@ class MetaculusQuestion:
         If an attribute isn't directly on the class, check whether it's in the raw question data. If it's a time, format it appropriately.
 
         :param name: attr name
-        :raises AttributeError: Attribute is neither directly on this class nor in the raw question data
         :return: attr value
         """
         if name in self.data:
@@ -135,8 +134,6 @@ class MetaculusQuestion:
     def sample_community(self):
         """
         Get one sample from the distribution of the Metaculus community's prediction on this question (sample is denormalized/on the the true scale of the question)
-
-        :raises NotImplementedError: "This should be implemented by a subclass"
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
@@ -258,9 +255,6 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @property
     def question_range_width(self):
-        """
-        Width of the range of answers specified when the question was created
-        """
         return self.question_range["max"] - self.question_range["min"]
 
     # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
@@ -269,7 +263,6 @@ class ContinuousQuestion(MetaculusQuestion):
         The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question. Normalize samples to fit that scale.
 
         :param samples: samples from the true-scale prediction distribution
-        :raises NotImplementedError: This should be implemented by a subclass
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
@@ -326,8 +319,6 @@ class ContinuousQuestion(MetaculusQuestion):
     def denormalize_samples(self, samples) -> np.ndarray:
         """
         Map normalized samples back to actual scale
-
-        :raises NotImplementedError: This should be implemented by a subclass
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
