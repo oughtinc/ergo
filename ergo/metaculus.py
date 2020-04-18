@@ -527,7 +527,7 @@ class LinearQuestion(ContinuousQuestion):
     def denormalize_samples(self, samples):
         """
         Map samples from the Metaculus normalized scale to the true scale
-        
+
         :param samples: samples on the normalized scale
         :return: samples from a distribution answering the prediction question (true scale)
         """
