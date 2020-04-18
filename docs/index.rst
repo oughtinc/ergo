@@ -7,18 +7,19 @@ Ergo documentation
 .. toctree::
    :glob:
    :maxdepth: 2
-   :caption: Modeling:
+   :caption: Prediction Platforms
 
-   inference
-   distributions
+   metaculus
+   foretold
 
 .. toctree::
    :glob:
    :maxdepth: 2
-   :caption: Prediction Platforms:
+   :caption: Modeling
 
-   metaculus
-   foretold
+   inference
+   distributions
+
 
 
 Indices and tables
