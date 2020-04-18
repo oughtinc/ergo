@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import json
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as pyplot
 import numpy as np
@@ -133,7 +133,8 @@ class MetaculusQuestion:
 
     def sample_community(self):
         """
-        Get one sample from the distribution of the Metaculus community's prediction on this question (sample is denormalized/on the the true scale of the question)
+        Get one sample from the distribution of the Metaculus community's prediction on this question
+        (sample is denormalized/on the the true scale of the question)
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
@@ -260,7 +261,8 @@ class ContinuousQuestion(MetaculusQuestion):
     # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
     def normalize_samples(self, samples):
         """
-        The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question. Normalize samples to fit that scale.
+        The Metaculus API accepts normalized predictions rather than predictions on the true scale of the question.
+        Normalize samples to fit that scale.
 
         :param samples: samples from the true-scale prediction distribution
         """
@@ -270,7 +272,8 @@ class ContinuousQuestion(MetaculusQuestion):
         self, logistic_params: logistic.LogisticParams
     ) -> SubmissionLogisticParams:
         """
-        Get the params needed to submit a logistic to Metaculus as part of a prediction. See comments for more explanation of how the params need to be transformed for Metaculus to accept them
+        Get the params needed to submit a logistic to Metaculus as part of a prediction.
+        See comments for more explanation of how the params need to be transformed for Metaculus to accept them
 
         :param logistic_params: params for a logistic on the normalized scale
         :return: params to submit the logistic to Metaculus as part of a prediction
@@ -318,14 +321,15 @@ class ContinuousQuestion(MetaculusQuestion):
 
     def denormalize_samples(self, samples) -> np.ndarray:
         """
-        Map normalized samples back to actual scale
+        Map normalized samples back to the true scale
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
     @functools.lru_cache(None)
     def community_dist_in_range(self) -> dist.Categorical:
         """
-        The portion of the current normalized community prediction that's within the question's range.
+        A distribution for the portion of the current normalized community prediction
+        that's within the question's range.
 
         :return: distribution on integers referencing 0...(len(self.prediction_histogram)-1)
         """
@@ -337,6 +341,7 @@ class ContinuousQuestion(MetaculusQuestion):
         Sample an approximation of the entire current community prediction, on the normalized scale.
         The main reason that it's just an approximation is that we don't know
         exactly where probability mass outside of the question range should be, so we place it arbitrarily
+        (see comment for more)
 
         :return: One sample on the normalized scale
         """
@@ -384,8 +389,8 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         Get parameters to submit a prediction to the Metaculus API using a logistic mixture
 
-        :param mixture_params: raw mixture parameters
-        :return: parameters clipped and formatted for the API
+        :param mixture_params: normalized mixture parameters
+        :return: normalized parameters clipped and formatted for the API
         """
         submission_logistic_params = [
             self.get_submission_params(logistic_params)
@@ -395,7 +400,7 @@ class ContinuousQuestion(MetaculusQuestion):
         return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
 
     def get_submission_from_samples(
-        self, samples, samples_for_fit=5000
+        self, samples: Union[pd.Series, np.ndarray], samples_for_fit=5000
     ) -> SubmissionMixtureParams:
         if not type(samples) in [pd.Series, np.ndarray]:
             raise TypeError("Please submit a vector of samples")
@@ -442,6 +447,13 @@ class ContinuousQuestion(MetaculusQuestion):
         return r
 
     def submit_from_samples(self, samples, samples_for_fit=5000) -> requests.Response:
+        """
+        Submit prediction to Metaculus based on samples from a prediction distribution
+
+        :param samples: Samples from a distribution answering the prediction question
+        :param samples_for_fit: How many samples to take to fit the logistic mixture. More will be slower but will give a better fit
+        :return: logistic mixture params clipped and formatted to submit to Metaculus
+        """
         submission = self.get_submission_from_samples(samples, samples_for_fit)
         return self.submit(submission)
 
@@ -467,36 +479,75 @@ class ContinuousQuestion(MetaculusQuestion):
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
         return self.get_submission_from_json(latest_prediction)
 
+    # TODO: show vs. Metaculus and vs. resolution if available
     def show_performance(self):
-        """TODO: show vs. Metaculus and vs. resolution if available"""
+        """
+        Show your performance on this question (not yet fully implemented)
+        """
         mixture_params = self.get_latest_normalized_prediction()
         self.show_prediction(mixture_params)
 
     def show_submission(self, samples):
+        """
+        Plot what a prediction based on these samples would look like
+
+        :param samples: samples from a distribution answering the prediction question
+        """
         raise NotImplementedError("This should be implemented by a subclass")
 
     def show_community_prediction(self):
+        """
+        Plot the community prediction on this question
+        """
         raise NotImplementedError("This should be implemented by a subclass")
 
     def show_prediction(self, prediction: SubmissionMixtureParams):
+        """
+        Plot a prediction expressed as logistic mixture params
+
+        :param prediction: logistic mixture params in the Metaculus API format
+        """
         raise NotImplementedError("This should be implemented by a subclass")
 
 
 class LinearQuestion(ContinuousQuestion):
+    """
+    A continuous Metaculus question that's on a linear (as opposed to a log) scale"
+    """
+
     def normalize_samples(self, samples):
+        """
+        Map samples from their true scale to the Metaculus normalized scale
+
+        :param samples: samples from a distribution answering the prediction question (true scale)
+        :return: samples on the normalized scale
+        """
         return (samples - self.question_range["min"]) / (self.question_range_width)
 
     def denormalize_samples(self, samples):
+        """
+        Map samples from the Metaculus normalized scale to the true scale
+        
+        :param samples: samples on the normalized scale
+        :return: samples from a distribution answering the prediction question (true scale)
+        """
+
         # in case samples are in some other array-like format
         samples = np.array(samples)
         return self.question_range["min"] + (self.question_range_width) * samples
 
+    # TODO: also return low and high on the true scale,
+    # and use those somehow in logistic.py
     def get_true_scale_logistic_params(
         self, submission_logistic_params: SubmissionLogisticParams
     ) -> logistic.LogisticParams:
-        """Get the logistic on the actual scale of the question,
-        from the normalized logistic used in the submission
-        TODO: also return low and high on the true scale"""
+        """
+        Get logistic params on the true scale of the question,
+        from submission normalized params
+
+        :param submission_logistic_params: normalized params
+        :return: params on the true scale of the question
+        """
 
         true_loc = (
             submission_logistic_params.loc * self.question_range_width
@@ -510,6 +561,13 @@ class LinearQuestion(ContinuousQuestion):
     def get_true_scale_mixture(
         self, submission_params: SubmissionMixtureParams
     ) -> logistic.LogisticMixtureParams:
+        """
+        Get logistic mixture params on the true scale of the question,
+        from normalized submission params
+
+        :param submission_params: params formatted for submission to Metaculus
+        :return: params on the true scale of the question
+        """
         true_scale_logistics_params = [
             self.get_true_scale_logistic_params(submission_logistic_params)
             for submission_logistic_params in submission_params.components
@@ -557,6 +615,12 @@ class LogQuestion(ContinuousQuestion):
         return self.possibilities["scale"]["deriv_ratio"]
 
     def normalized_from_true_value(self, true_value) -> float:
+        """
+        Get a prediciton sample value on the normalized scale from a true-scale value
+
+        :param true_value: a sample value on the true scale
+        :return: a sample value on the normalized scale
+        """
         shifted = true_value - self.question_range["min"]
         numerator = shifted * (self.deriv_ratio - 1)
         scaled = numerator / self.question_range_width
@@ -565,14 +629,32 @@ class LogQuestion(ContinuousQuestion):
         return math.log(floored_timber, self.deriv_ratio)
 
     def true_from_normalized_value(self, normalized_value):
+        """
+        Get a prediciton sample value on the true scale from a normalized-scale value
+
+        :param normalized_value: [description]
+        :type normalized_value: [type]
+        :return: [description]
+        :rtype: [type]
+        """
         deriv_term = (self.deriv_ratio ** normalized_value - 1) / (self.deriv_ratio - 1)
         scaled = self.question_range_width * deriv_term
         return self.question_range["min"] + scaled
 
     def normalize_samples(self, samples):
+        """Map samples from the true scale to the normalized scale
+
+        :param samples: Samples on the true scale
+        :return: Samples on the normalized scale
+        """
         return [self.normalized_from_true_value(sample) for sample in samples]
 
     def denormalize_samples(self, samples):
+        """Map samples from the normalized scale to the true scale
+
+        :param samples: Samples on the normalized scale
+        :return: Samples on the true scale
+        """
         return [self.true_from_normalized_value(sample) for sample in samples]
 
     @staticmethod
