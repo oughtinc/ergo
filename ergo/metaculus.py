@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 import functools
 import json
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as pyplot
 import numpy as np
@@ -794,6 +794,7 @@ class Metaculus:
         player_status: Literal[
             "any", "predicted", "not-predicted", "author", "interested", "private"
         ] = "any",  # 20 results per page
+        cat: Union[str, None] = None,
         pages: int = 1,
     ) -> List[Dict]:
         """
@@ -811,6 +812,9 @@ class Metaculus:
                 query_params.append(
                     f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
                 )
+
+        if cat is not None:
+            query_params.append(f"search=cat:{cat}")
 
         query_string = "&".join(query_params)
 
