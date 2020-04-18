@@ -86,7 +86,7 @@ class TestMetaculus:
 
     def test_score_binary(self):
         """smoke test"""
-        self.binary_question.get_scored_predictions()
+        self.binary_question.score_my_predictions()
 
     def test_get_questions_json(self):
         questions = self.metaculus.get_questions_json()
