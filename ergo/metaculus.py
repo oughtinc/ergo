@@ -14,9 +14,14 @@ from scipy import stats
 import seaborn
 import torch
 from typing_extensions import Literal
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as pyplot
+from datetime import datetime, timedelta
 
 import ergo.logistic as logistic
 import ergo.ppl as ppl
+import datetime as dt
 
 
 @dataclass
@@ -89,7 +94,15 @@ class MetaculusQuestion:
     def __getattr__(self, name):
         if name in self.data:
             if name.endswith("_time"):
-                return pendulum.parse(self.data[name])  # TZ
+                # could use dateutil.parser to deal with timezones better, but opted for lightweight since datetime.fromisoformat will fix this in python 3.7
+                try:
+                    return datetime.strptime(self.data[name], '%Y-%m-%dT%H:%M:%S%fZ')
+                except:
+                    try:
+                        return datetime.strptime(self.data[name], '%Y-%m-%dT%H:%M:%SZ')
+                    except:
+                        print(
+                            f'The column {name} could not be converted into a datetime')
             return self.data[name]
         else:
             raise AttributeError(name)
@@ -531,48 +544,58 @@ class ContinuousDateQuestion(ContinuousQuestion):
 
     @property
     def question_range(self):
-        return {
+        qr = {
             "min": 0,
             "max": 1,
-            "date_min": pendulum.parse(self.possibilities["scale"]["min"], exact=True),
-            "date_max": pendulum.parse(self.possibilities["scale"]["max"], exact=True)
+            "date_min": datetime.strptime(self.possibilities["scale"]["min"], '%Y-%m-%d').date(),
+            "date_max": datetime.strptime(self.possibilities["scale"]["max"], '%Y-%m-%d').date()
         }
+        qr['date_range'] = (qr["date_max"] - qr["date_min"]).days
+        return qr
 
-    # Make sure we are dealing with pendulum dates
+    # Make sure we are dealing with datetime objects
     # TODO use @functools.singledispatchmethod to provide functionality for single dates
     def ensure_date_format(self, data):
-        print(type(data))
-        if type(data) != pd.Series:
-            raise ValueError(
-                "Was expecting a vector of Dates")
-        elif type(data[0]) == pendulum.Date:
+        if isinstance(data[0], dt.date):
             return data
         else:
             try:
-                return data.apply(lambda x: pendulum.parse(x, exact=True))
+                return pd.to_datetime(data).dt.date
             except:
                 raise ValueError(
                     "The samples need to be convertable dates for this question")
 
-    # User helper-function that goes from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
-    # Assumes pd.Series of Dates
-    # TODO use @functools.singledispatchmethod to provide functionality for single dates
+    # The Metaculus API accepts normalized predictions rather than predictions on the actual scale of the question
+    def normalize_samples(self, samples, epsilon=1e-9):
+        if type(samples) != pd.Series:
+            raise ValueError(
+                "Was expecting a vector of samples")
+        elif not isinstance(samples[0], dt.date):
+            return super().normalize_samples(samples)
+        else:
+            return self.normalize_dates(samples)
+
+    # takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
+    # Assumes pd.Series of datetime dates
+    # TODO consider using @functools.singledispatchmethod
+
     def normalize_dates(self, dates):
         if self.is_log:
             raise NotImplementedError(
                 "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
         dates = self.ensure_date_format(dates)
+        return (dates - self.question_range["date_min"]).dt.days / self.question_range['date_range']
 
-        def normalize(date: pendulum.Date):
-            return (date - self.question_range["date_min"]).in_days() / (self.question_range["date_max"] - self.question_range["date_min"]).in_days()
-        return dates.apply(lambda x: normalize(x))
+    # Map normalized samples back to dates
 
-    # Map normalized samples back to question date scale
     def denormalize_samples_to_date_scale(self, samples):
         if self.is_log:
             raise NotImplementedError(
                 "Scaling the normalized prediction to the true scale from the question not yet implemented for questions on the log scale")
-        return self.question_range["date_min"].add(days=round((self.question_range["date_max"] - self.question_range["date_min"]).in_days() * samples))
+
+        def denorm(sample):
+            return self.question_range["date_min"] + timedelta(days=round(self.question_range['date_range'] * sample))
+        return samples.apply(lambda x: denorm(x))
 
 
 class Metaculus:
@@ -588,7 +611,7 @@ class Metaculus:
         "predicted": "guessed_by",
         "not-predicted": "not_guessed_by",
         "author": "author",
-        "interested": "upvoted_by",
+        "interested": "upvoted_by"
     }
 
     def __init__(self, username: str, password: str, api_domain: str = "www"):
@@ -720,8 +743,8 @@ class Metaculus:
         """
         questions_df = pd.DataFrame(questions_json)
         for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
-            questions_df[col] = questions_df[col].apply(pendulum.parse)
-
+            # TODO check if this is doing the right thing with timezones
+            questions_df[col] = pd.to_datetime(questions_df[col])
         questions_df["i_created"] = questions_df["author"] == self.user_id
         questions_df["i_predicted"] = questions_df["my_predictions"].apply(
             lambda x: x is not None
