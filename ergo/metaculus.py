@@ -101,7 +101,8 @@ class MetaculusQuestion:
         return "<MetaculusQuestion>"
 
     def refresh_question(self):
-        r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
+        r = self.metaculus.s.get(
+            f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
     @staticmethod
@@ -188,7 +189,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission_params(
         self, logistic_params: logistic.LogisticParams
     ) -> SubmissionLogisticParams:
-        distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
+        distribution = stats.logistic(
+            logistic_params.loc, logistic_params.scale)
         # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
 
         # max loc of 3 set based on API response to prediction on
@@ -311,7 +313,8 @@ class ContinuousQuestion(MetaculusQuestion):
             "prediction": {
                 "kind": "multi",
                 "d": [
-                    self.format_logistic_for_api(logistic_params, submission.probs[idx])
+                    self.format_logistic_for_api(
+                        logistic_params, submission.probs[idx])
                     for idx, logistic_params in enumerate(submission.components)
                 ],
             },
@@ -451,7 +454,8 @@ class LogQuestion(ContinuousQuestion):
         return math.log(floored_timber, self.deriv_ratio)
 
     def true_from_normalized_value(self, normalized_value):
-        deriv_term = (self.deriv_ratio ** normalized_value - 1) / (self.deriv_ratio - 1)
+        deriv_term = (self.deriv_ratio ** normalized_value - 1) / \
+            (self.deriv_ratio - 1)
         scaled = self.question_range_width * deriv_term
         return self.question_range["min"] + scaled
 
@@ -467,7 +471,8 @@ class LogQuestion(ContinuousQuestion):
             f"{np.exp(log_tick):.1e}" for log_tick in pyplot.xticks()[0]
         ]
 
-        pyplot.xticks(pyplot.xticks()[0], true_tick_values, rotation="vertical")
+        pyplot.xticks(pyplot.xticks()[0],
+                      true_tick_values, rotation="vertical")
 
     def plot_log_prediction(self, prediction: SubmissionMixtureParams, samples=None):
         prediction_normed_samples = np.array(
@@ -481,7 +486,8 @@ class LogQuestion(ContinuousQuestion):
             ]
         )
 
-        ax = seaborn.distplot(np.log(prediction_true_scale_samples), label="Mixture")
+        ax = seaborn.distplot(
+            np.log(prediction_true_scale_samples), label="Mixture")
         ax.set(xlabel="Sample value", ylabel="Density")
 
         if samples is not None:
@@ -490,7 +496,8 @@ class LogQuestion(ContinuousQuestion):
         pyplot.legend()  # type: ignore
 
     def plot_log_community_prediction(self):
-        community_samples = np.log([self.sample_community() for _ in range(0, 1000)])
+        community_samples = np.log([self.sample_community()
+                                    for _ in range(0, 1000)])
 
         ax = seaborn.distplot(community_samples, label="Community")
 
@@ -552,15 +559,16 @@ class LinearDateQuestion(LinearQuestion):
         else:
             return super().normalize_samples(samples)
 
-           
     # takes samples from Dates -> Float Normalized wrt Question Range (as accepted and produced by the Metaculus API)
     # Assumes pd.Series of datetime dates
+
     def normalize_dates(self, dates):
         return (dates - self.question_range["date_min"]).dt.days / self.question_range['date_range']
 
     # Map normalized samples back to dates
     def denormalize_samples(self, samples):
         samples = pd.Series(samples)
+
         def denorm(sample):
             return self.question_range["date_min"] + timedelta(days=round(self.question_range['date_range'] * sample))
         return samples.apply(lambda x: denorm(x))
@@ -677,7 +685,8 @@ class Metaculus:
             r.raise_for_status()
 
             return get_questions_for_pages(
-                query_string, max_pages, current_page + 1, results + r.json()["results"]
+                query_string, max_pages, current_page +
+                1, results + r.json()["results"]
             )
 
         return get_questions_for_pages(query_string, pages)
@@ -685,7 +694,8 @@ class Metaculus:
     def make_questions_df(self, questions_json):
         questions_df = pd.DataFrame(questions_json)
         for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
-            questions_df[col] = questions_df[col].apply(lambda x: datetime.strptime(x[:19], '%Y-%m-%dT%H:%M:%S'))
+            questions_df[col] = questions_df[col].apply(
+                lambda x: datetime.strptime(x[:19], '%Y-%m-%dT%H:%M:%S'))
         questions_df["i_created"] = questions_df["author"] == self.user_id
         questions_df["i_predicted"] = questions_df["my_predictions"].apply(
             lambda x: x is not None
