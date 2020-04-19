@@ -1068,7 +1068,7 @@ class Metaculus:
         return questions
 
     def make_questions_df(
-        self, questions_json: List[Dict], columns: Union[List[str], None] = None
+        self, questions_json: List[Dict], columns: Optional[List[str]] = None
     ) -> pd.DataFrame:
         """
         Convert JSON returned by Metaculus API to dataframe.
