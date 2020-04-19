@@ -5,7 +5,8 @@ Metaculus
 Metaculus
 ---------
 .. autoclass:: ergo.metaculus.Metaculus
-   :members:
+   :members: get_question, get_questions
+
 
 MetaculusQuestion
 -----------------
