@@ -4,8 +4,7 @@ and submit predictions, via the API (https://www.metaculus.com/api2/)
 
 **Example**
 
-In this example, we take samples from the community prediction for a Metaculus question,
-then submit our own prediction based on those samples.
+In this example, we submit our own prediction based on the community prediction.
 
 .. doctest::
 
