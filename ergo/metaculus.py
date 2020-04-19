@@ -894,6 +894,31 @@ class Metaculus:
             )
         return self.make_question_from_data(data, name)
 
+    def get_questions(
+        self,
+        question_status: Literal[
+            "all", "upcoming", "open", "closed", "resolved", "discussion"
+        ] = "all",
+        player_status: Literal[
+            "any", "predicted", "not-predicted", "author", "interested", "private"
+        ] = "any",  # 20 results per page
+        cat: Union[str, None] = None,
+        pages: int = 1,
+    ) -> List["MetaculusQuestion"]:
+        """
+        Retrieve multiple questions from Metaculus API.
+
+        :param question_status: Question status
+        :param player_status: Player's status on this question
+        :param cat: Category slug
+        :param pages: Number of pages of questions to retrieve        
+        """
+
+        questions_json = self.get_questions_json(
+            question_status, player_status, cat, pages, False
+        )
+        return [self.make_question_from_data(q) for q in questions_json]
+
     def get_questions_json(
         self,
         question_status: Literal[

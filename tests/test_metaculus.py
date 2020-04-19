@@ -119,6 +119,10 @@ class TestMetaculus:
         """smoke test"""
         self.binary_question.score_my_predictions()
 
+    def test_get_questions(self):
+        questions = self.metaculus.get_questions()
+        assert len(questions) >= 20
+
     def test_get_questions_json(self):
         questions = self.metaculus.get_questions_json()
         assert len(questions) >= 20
