@@ -911,7 +911,7 @@ class Metaculus:
         :param question_status: Question status
         :param player_status: Player's status on this question
         :param cat: Category slug
-        :param pages: Number of pages of questions to retrieve        
+        :param pages: Number of pages of questions to retrieve
         """
 
         questions_json = self.get_questions_json(

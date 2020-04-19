@@ -128,7 +128,9 @@ class TestMetaculus:
         assert len(questions) >= 20
 
     def test_get_questions_json_pages(self):
-        two_pages = self.metaculus.get_questions_json(pages=2, include_discussion_questions=True)
+        two_pages = self.metaculus.get_questions_json(
+            pages=2, include_discussion_questions=True
+        )
         assert len(two_pages) >= 40
 
     def test_get_questions_player_status(self):
