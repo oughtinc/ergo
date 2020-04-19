@@ -904,6 +904,7 @@ class Metaculus:
         ] = "any",  # 20 results per page
         cat: Union[str, None] = None,
         pages: int = 1,
+        include_discussion_questions=False,
     ) -> List[Dict]:
         """
         Retrieve JSON for multiple questions from Metaculus API.
@@ -945,7 +946,14 @@ class Metaculus:
                 query_string, max_pages, current_page + 1, results + r.json()["results"]
             )
 
-        return get_questions_for_pages(query_string, pages)
+        questions = get_questions_for_pages(query_string, pages)
+
+        if not include_discussion_questions:
+            questions = [
+                q for q in questions if q["possibilities"]["type"] != "discussion"
+            ]
+
+        return questions
 
     def make_questions_df(self, questions_json: List[Dict]) -> pd.DataFrame:
         """
