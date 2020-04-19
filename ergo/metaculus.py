@@ -904,14 +904,16 @@ class Metaculus:
         ] = "any",  # 20 results per page
         cat: Union[str, None] = None,
         pages: int = 1,
-        include_discussion_questions=False,
+        include_discussion_questions: bool = False,
     ) -> List[Dict]:
         """
         Retrieve JSON for multiple questions from Metaculus API.
 
         :param question_status: Question status
         :param player_status: Player's status on this question
+        :param cat: Category slug
         :param pages: Number of pages of questions to retrieve
+        :include_discussion_questions: If true, data for non-prediction questions will be included
         """
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
