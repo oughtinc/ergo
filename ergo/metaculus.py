@@ -790,6 +790,9 @@ class LinearDateQuestion(LinearQuestion):
 
         return samples.apply(denorm)
 
+    def show_community_prediction(self):
+        raise NotImplementedError("Can't show community predictions for date question")
+
 
 class Metaculus:
     """
