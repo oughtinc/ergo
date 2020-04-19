@@ -134,6 +134,9 @@ The notebooks below have been created at different points in time and use Ergo i
    - Show Metaculus prediction results as a dataframe
    - Filter Metaculus questions by date and status.
 
+5. [El Paso questions](notebooks/el-paso.ipynb)
+   - Illustrates how to load all questions for a Metaculus category (in this case for the [El Paso series](https://pandemic.metaculus.com/questions/4161/el-paso-series-supporting-covid-19-response-planning-in-a-mid-sized-city/))
+
 Outdated Ergo notebooks:
 
 1. [Generative models in Ergo](notebooks/generative-models.ipynb)
