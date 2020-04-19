@@ -70,7 +70,7 @@ The theory behind Ergo:
 
 ## Functionality
 
-Ergo is still at an early stage. Functionality and API are in flux.
+Ergo is still at an early stage. Pre-alpha, or whatever the earliest possible stage is. Functionality and API are in flux.
 
 Here's what Ergo provides right now:
 
