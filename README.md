@@ -34,6 +34,8 @@ samples = ergo.run(deaths_from_infections, num_samples=5000)
 q_deaths.submit_from_samples(samples)
 ```
 
+You can run the model [here](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/community-distributions.ipynb).
+
 ## Quickstart
 
 1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/quickstart.ipynb)
@@ -59,8 +61,8 @@ The theory behind Ergo:
     - Models often can't take into account all relevant considerations
     - Workflows aren't made explicit so they can't be automated
 3. This limits their potential:
-    - Very few people build models
-    - Very few people submit questions to prediction platforms, or predict on these platforms
+    - Few people build models
+    - Few people submit questions to prediction platforms, or predict on these platforms
     - Improvements to forecasting accrue slowly
     - Most decisions are not informed by systematic forecasts
 4. Better infrastructure for forecasting can connect the pieces and help realize the potential of scalable high-quality forecasting
@@ -68,7 +70,7 @@ The theory behind Ergo:
 
 ## Functionality
 
-Ergo is still at a very early stage. Functionality and API are in flux.
+Ergo is still at an early stage. Functionality and API are in flux.
 
 Here's what Ergo provides right now:
 
@@ -100,7 +102,7 @@ Planned:
   - Use distributions from any platform
   - Programmatically submit questions to platforms
   - Track community distribution changes
-- Frequently used model components
+- Common model components
   - Index/ensemble models that summarize fuzzy large questions like "What's going to happen with the economy next year?"
   - Model components for integrating qualitative adjustments into quantitative models
   - Simple probability decomposition models
@@ -114,7 +116,7 @@ If there's something you want Ergo to do, [let us know](https://github.com/ought
 
 ## Notebooks using Ergo
 
-The following notebooks have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
+The notebooks below have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
 
 1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
     - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
