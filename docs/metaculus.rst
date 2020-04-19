@@ -17,14 +17,19 @@ ContinuousQuestion
 .. autoclass:: ergo.metaculus.ContinuousQuestion
    :members:
 
+LinearQuestion
+--------------
+.. autoclass:: ergo.metaculus.LinearQuestion
+   :members:
+
 LogQuestion
 -----------
 .. autoclass:: ergo.metaculus.LogQuestion
    :members:
 
-LinearQuestion
---------------
-.. autoclass:: ergo.metaculus.LinearQuestion
+LinearDateQuestion
+------------------
+.. autoclass:: ergo.metaculus.LinearDateQuestion
    :members:
 
 BinaryQuestion
