@@ -1,6 +1,6 @@
 Metaculus
 =========
-
+.. automodule:: ergo.metaculus
 
 Metaculus
 ---------

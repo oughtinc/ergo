@@ -1,3 +1,27 @@
+"""
+This module lets you get question and prediction information from Metaculus
+and submit predictions, via the API (https://www.metaculus.com/api2/)
+
+**Example**
+
+In this example, we take samples from the community prediction for a Metaculus question,
+then submit our own prediction based on those samples.
+
+.. doctest::
+
+    >>> import ergo
+    >>> metaculus = ergo.Metaculus(username="oughtpublic", password="123456", api_domain="www")
+
+    the question:
+    https://www.metaculus.com/questions/3622/what-will-the-harvard-admit-rate-be-for-the-undergraduate-class-of-2029/
+
+    >>> harvard_question = metaculus.get_question(3622)
+    >>> community_prediction_samples = np.array([harvard_question.sample_community() for _ in range (0,5000)])
+    >>> my_prediction_samples = community_prediction_samples * 1.5
+    >>> harvard_question.submit_from_samples(my_prediction_samples)
+
+"""
+
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 import functools
