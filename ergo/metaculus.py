@@ -894,6 +894,31 @@ class Metaculus:
             )
         return self.make_question_from_data(data, name)
 
+    def get_questions(
+        self,
+        question_status: Literal[
+            "all", "upcoming", "open", "closed", "resolved", "discussion"
+        ] = "all",
+        player_status: Literal[
+            "any", "predicted", "not-predicted", "author", "interested", "private"
+        ] = "any",  # 20 results per page
+        cat: Union[str, None] = None,
+        pages: int = 1,
+    ) -> List["MetaculusQuestion"]:
+        """
+        Retrieve multiple questions from Metaculus API.
+
+        :param question_status: Question status
+        :param player_status: Player's status on this question
+        :param cat: Category slug
+        :param pages: Number of pages of questions to retrieve
+        """
+
+        questions_json = self.get_questions_json(
+            question_status, player_status, cat, pages, False
+        )
+        return [self.make_question_from_data(q) for q in questions_json]
+
     def get_questions_json(
         self,
         question_status: Literal[
@@ -904,13 +929,16 @@ class Metaculus:
         ] = "any",  # 20 results per page
         cat: Union[str, None] = None,
         pages: int = 1,
+        include_discussion_questions: bool = False,
     ) -> List[Dict]:
         """
         Retrieve JSON for multiple questions from Metaculus API.
 
         :param question_status: Question status
         :param player_status: Player's status on this question
+        :param cat: Category slug
         :param pages: Number of pages of questions to retrieve
+        :include_discussion_questions: If true, data for non-prediction questions will be included
         """
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
@@ -945,7 +973,14 @@ class Metaculus:
                 query_string, max_pages, current_page + 1, results + r.json()["results"]
             )
 
-        return get_questions_for_pages(query_string, pages)
+        questions = get_questions_for_pages(query_string, pages)
+
+        if not include_discussion_questions:
+            questions = [
+                q for q in questions if q["possibilities"]["type"] != "discussion"
+            ]
+
+        return questions
 
     def make_questions_df(self, questions_json: List[Dict]) -> pd.DataFrame:
         """

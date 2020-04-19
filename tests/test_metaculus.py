@@ -119,12 +119,18 @@ class TestMetaculus:
         """smoke test"""
         self.binary_question.score_my_predictions()
 
+    def test_get_questions(self):
+        questions = self.metaculus.get_questions(question_status="closed")
+        assert len(questions) >= 20
+
     def test_get_questions_json(self):
-        questions = self.metaculus.get_questions_json()
+        questions = self.metaculus.get_questions_json(include_discussion_questions=True)
         assert len(questions) >= 20
 
     def test_get_questions_json_pages(self):
-        two_pages = self.metaculus.get_questions_json(pages=2)
+        two_pages = self.metaculus.get_questions_json(
+            pages=2, include_discussion_questions=True
+        )
         assert len(two_pages) >= 40
 
     def test_get_questions_player_status(self):
