@@ -5,6 +5,8 @@ import ergo.logistic
 import ergo.metaculus
 import ergo.ppl
 
+import warnings
+warnings.filterwarnings('ignore', module='plotnine')
 from .foretold import Foretold, ForetoldQuestion
 from .metaculus import Metaculus, MetaculusQuestion
 from .ppl import (

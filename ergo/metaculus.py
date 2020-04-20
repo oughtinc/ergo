@@ -5,7 +5,7 @@ import json
 import math
 from typing import Any, Dict, List, Optional, Union
 
-# import matplotlib.pyplot as pyplot
+import matplotlib.pyplot as pyplot
 import numpy as np
 import pandas as pd
 from plotnine import *
@@ -584,32 +584,76 @@ class LinearQuestion(ContinuousQuestion):
             true_scale_logistics_params, submission_params.probs
         )
 
-    def show_prediction(self, prediction: SubmissionMixtureParams, samples=None):
-        true_scale_prediction = self.get_true_scale_mixture(prediction)
 
-        pyplot.figure()
-        pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
-        logistic.plot_mixture(
-            true_scale_prediction,  # type: ignore
-            data=samples,
-        )  # type: ignore
+    def show_prediction(
+        self, prediction: SubmissionMixtureParams, samples=None, show_community=False
+    ):
+        num_samples = 1000
 
-    def show_community_prediction(self, only_show_this=True):
-        if only_show_this:
-            pyplot.figure()
-            pyplot.title(f"{self} community prediction", y=1.07)
+        # someone who understands the Metaculus API better should review this
+        def clip(samples):
+            return max(
+                min(samples, self.question_range["max"]), self.question_range["min"]
+            )
 
-        community_samples = [self.sample_community() for _ in range(0, 1000)]
+        prediction_normed_samples = pd.Series(
+            [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+        ).apply(clip)
+        
+        prediction_true_scale_samples = self.denormalize_samples(
+            prediction_normed_samples
+        )
+        if show_community:
+            df = pd.DataFrame(
+                data={
+                    "community": [
+                        self.sample_community() for _ in range(0, num_samples)
+                    ],
+                    "prediction": prediction_true_scale_samples,
+                }
+            )
+            df = pd.melt(df, var_name="sources", value_name="samples")
+            return (
+                ggplot(df, aes("samples", fill="sources"))
+                + geom_histogram(position="identity")
+                + facet_wrap("sources", ncol=1)
+                + scale_x_datetime()
+                + labs(
+                    x="Prediction",
+                    y="Counts",
+                    title=f"Prediction vs Community" f"\nfor Q:{self.name}"
+                    if self.name
+                    else "",
+                )
+                + ergo_theme
+                + guides(fill=False)
+                + theme(axis_text_x=element_text(rotation=45, hjust=1))
+            )
+        else:
+            df = pd.DataFrame(data={"prediction": prediction_true_scale_samples})
+            return (
+                ggplot(df, aes("prediction"))
+                + geom_histogram()
+                + scale_x_datetime()
+                + labs(
+                    x="Prediction",
+                    y="Counts",
+                    title=f"Prediction" f" for Q:{self.name}" if self.name else "",
+                )
+                + ergo_theme
+                + theme(axis_text_x=element_text(rotation=45, hjust=1))
+            )
 
-        ax = seaborn.distplot(community_samples, label="Community")
-
-        pyplot.legend()
-
-        if only_show_this:
-            pyplot.show()
-
-        return ax
-
+    def show_community_prediction(self):
+        community_samples = pd.DataFrame(
+            data={"samples": [self.sample_community() for _ in range(0, 1000)]}
+        )
+        return (
+            ggplot(community_samples, aes("samples"))
+            + geom_density()
+            + labs(x="Prediction", y="Density", title="Community Predictions")
+            + ergo_theme
+        )
 
 class LogQuestion(ContinuousQuestion):
     @property
@@ -839,9 +883,7 @@ class LinearDateQuestion(LinearQuestion):
                 + labs(
                     x="Prediction",
                     y="Counts",
-                    title=f"Prediction vs Community" f"\nfor Q:{self.name}"
-                    if self.name
-                    else "",
+                    title=f"Prediction vs Community" f"\nfor Q:{self.name}" if self.name else "",
                 )
                 + ergo_theme
                 + guides(fill=False)
