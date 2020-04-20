@@ -12,7 +12,7 @@ from pyro.contrib.autoname import name_count
 import pyro.distributions as dist  # type: ignore
 from pyro.infer import SVI, Predictive, Trace_ELBO  # type: ignore
 import torch
-import tqdm
+from tqdm.autonotebook import tqdm
 
 # Config
 
