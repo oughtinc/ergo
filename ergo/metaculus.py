@@ -588,9 +588,17 @@ class LinearQuestion(ContinuousQuestion):
     def show_prediction(
         self, prediction: SubmissionMixtureParams, samples=None, show_community=False
     ):
+        """
+        Plot a prediction expressed as logistic mixture params. Optionally compare prediction against a sample from the distribution of community predictions
+
+        :param prediction: logistic mixture params in the Metaculus API format
+        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param show_community: boolean indicating whether comparison to community predictions should be made
+        :return: ggplot graphics object 
+        """
         num_samples = 1000
 
-        # someone who understands the Metaculus API better should review this
+        # This is a pragmatic comprimise that will take predictions out of range and assign them the nearest in-range point
         def clip(samples):
             return max(
                 min(samples, self.question_range["max"]), self.question_range["min"]
@@ -644,9 +652,14 @@ class LinearQuestion(ContinuousQuestion):
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
 
-    def show_community_prediction(self):
+    def show_community_prediction(self, num_samples=1000):
+        """
+        Plot samples from the community prediction on this question
+        :param num_samples: number of samples from the community
+        :return: ggplot graphics object 
+        """
         community_samples = pd.DataFrame(
-            data={"samples": [self.sample_community() for _ in range(0, 1000)]}
+            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
         )
         return (
             ggplot(community_samples, aes("samples"))
@@ -741,11 +754,6 @@ class LogQuestion(ContinuousQuestion):
         pyplot.legend()
 
         return ax
-
-    # def show_submission(self, samples, show_community=False):
-    #     submission = self.get_submission_from_samples(samples)
-
-    #     self.show_prediction(submission, samples, show_community)
 
     def show_community_prediction(self):
         pyplot.figure()
@@ -851,6 +859,14 @@ class LinearDateQuestion(LinearQuestion):
     def show_prediction(
         self, prediction: SubmissionMixtureParams, samples=None, show_community=False
     ):
+        """
+        Plot a prediction expressed as logistic mixture params. Optionally compare prediction against a sample from the distribution of community predictions
+
+        :param prediction: logistic mixture params in the Metaculus API format
+        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param show_community: boolean indicating whether comparison to community predictions should be made
+        :return: ggplot graphics object 
+        """
         num_samples = 1000
 
         # someone who understands the Metaculus API better should review this
@@ -904,9 +920,14 @@ class LinearDateQuestion(LinearQuestion):
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
 
-    def show_community_prediction(self):
+    def show_community_prediction(self, num_samples=1000):
+        """
+        Plot samples from the community prediction on this question
+        :param num_samples: number of samples from the community
+        :return: ggplot graphics object 
+        """
         community_samples = pd.DataFrame(
-            data={"samples": [self.sample_community() for _ in range(0, 1000)]}
+            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
         )
         return (
             ggplot(community_samples, aes("samples"))
