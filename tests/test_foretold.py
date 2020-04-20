@@ -29,8 +29,13 @@ class TestForetold:
         ids = [
             "cf86da3f-c257-4787-b526-3ef3cb670cb4",
             "77936da2-a581-48c7-add1-8a4ebc647c8c",
+            "9b0b01fb-f439-4bbe-8722-f57034ffc96e",
         ]
+        has_community_prediction_list = [True, True, False]
         questions = foretold.get_questions(ids)
-        for id, question in zip(ids, questions):
+        for id, question, has_community_prediction in zip(
+            ids, questions, has_community_prediction_list
+        ):
             assert question is not None
             assert question.id == id
+            assert question.community_prediction_available == has_community_prediction

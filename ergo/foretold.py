@@ -126,7 +126,7 @@ class ForetoldQuestion:
     def __init__(self, id, foretold, data=None):
         """
             Should not be called directly, instead use Foretold.get_question
-            
+
             id: measurableId, the second id in the URL for a foretold question
             foretold: Foretold api
             data: Data retrieved from the foretold api
@@ -142,9 +142,14 @@ class ForetoldQuestion:
         """Update based on a dictionary of data from Foretold"""
         try:
             self.channelId = data["channelId"]
-            self.floatCdf = data["previousAggregate"]["value"]["floatCdf"]
-        except KeyError:
+        except (KeyError, TypeError):
             raise ValueError(f"Foretold data missing or invalid")
+
+        # If floatCdf is not available, we can just keep it as None
+        try:
+            self.floatCdf = data["previousAggregate"]["value"]["floatCdf"]
+        except (KeyError, TypeError):
+            self.floatCdf = None
 
     def refresh_question(self):
         # previousAggregate is the most recent aggregated distribution
@@ -158,14 +163,24 @@ class ForetoldQuestion:
     def url(self):
         return f"https://www.foretold.io/c/{self.channelId}/m/{self.id}"
 
+    @property
+    def community_prediction_available(self):
+        return self.floatCdf is not None
+
     def quantile(self, q):
         """Quantile of distribution"""
+        if not self.community_prediction_available:
+            raise ValueError("No community prediction available")
         return np.interp(q, self.floatCdf["ys"], self.floatCdf["xs"])
 
     def sample_community(self):
         """Sample from CDF"""
+        if not self.community_prediction_available:
+            raise ValueError("No community prediction available")
         y = uniform()
         return torch.tensor(self.quantile(y))
 
     def plotCdf(self):
+        if not self.community_prediction_available:
+            raise ValueError("No community prediction available")
         seaborn.lineplot(self.floatCdf["xs"], self.floatCdf["ys"])
