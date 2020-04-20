@@ -158,7 +158,7 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     """
     model = name_count(model)
     samples: List[Dict[str, float]] = []
-    for _ in tqdm.trange(num_samples):
+    for _ in tqdm(range(num_samples)):
         sample: Dict[str, float] = {}
         trace = pyro.poutine.trace(model).get_trace()
         for name in trace.nodes.keys():
