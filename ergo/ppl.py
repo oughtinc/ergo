@@ -12,7 +12,7 @@ from pyro.contrib.autoname import name_count
 import pyro.distributions as dist  # type: ignore
 from pyro.infer import SVI, Predictive, Trace_ELBO  # type: ignore
 import torch
-import tqdm
+from tqdm.autonotebook import tqdm  # type: ignore
 
 # Config
 
@@ -158,7 +158,7 @@ def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     """
     model = name_count(model)
     samples: List[Dict[str, float]] = []
-    for _ in tqdm.trange(num_samples):
+    for _ in tqdm(range(num_samples)):
         sample: Dict[str, float] = {}
         trace = pyro.poutine.trace(model).get_trace()
         for name in trace.nodes.keys():
