@@ -70,7 +70,7 @@ The theory behind Ergo:
 
 ## Functionality
 
-Ergo is still at an early stage. Functionality and API are in flux.
+Ergo is still at an early stage. Pre-alpha, or whatever the earliest possible stage is. Functionality and API are in flux.
 
 Here's what Ergo provides right now:
 
@@ -114,6 +114,7 @@ Planned:
 
 If there's something you want Ergo to do, [let us know](https://github.com/oughtinc/ergo/issues)!
 
+
 ## Notebooks using Ergo
 
 The notebooks below have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
@@ -156,3 +157,14 @@ Notebooks on the path to Ergo:
   
 2. [Fitting mixtures of logistic distributions](https://colab.research.google.com/drive/1xwO-0A36wnut9GPlEaRj6zzZBBLf1T2C)
    - How can we transform arbitrary distributions represented as samples into the "mixtures of logistics" format Metaculus uses for user submissions?
+
+
+## Contributing
+
+Ergo is an open source project and we love contributions!
+
+There are [many open issues](https://github.com/oughtinc/ergo/projects/1), including plenty that are [good for newcomers](https://github.com/oughtinc/ergo/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+
+Read more about Ergo development [in the docs](https://ergo.ought.org/en/latest/workflow.html).
+
+Before you start implementation, make a new issue or comment on an existing one to let us know what you're planning to do. You can also ping us at ergo@ought.org first.

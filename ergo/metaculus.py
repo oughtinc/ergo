@@ -1014,19 +1014,34 @@ class Metaculus:
 
         return questions
 
-    def make_questions_df(self, questions_json: List[Dict]) -> pd.DataFrame:
+    def make_questions_df(
+        self, questions_json: List[Dict], columns: Optional[List[str]] = None
+    ) -> pd.DataFrame:
         """
         Convert JSON returned by Metaculus API to dataframe.
 
         :param questions_json: List of questions (as dicts)
+        :param columns: Optional list of column names to include (if omitted, every column is included)
         """
-        questions_df = pd.DataFrame(questions_json)
-        for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
-            questions_df[col] = questions_df[col].apply(
-                lambda x: datetime.strptime(x[:19], "%Y-%m-%dT%H:%M:%S")
+        if columns is not None:
+            questions_df = pd.DataFrame(
+                [{k: v for (k, v) in q.items() if k in columns} for q in questions_json]
             )
-        questions_df["i_created"] = questions_df["author"] == self.user_id
-        questions_df["i_predicted"] = questions_df["my_predictions"].apply(
-            lambda x: x is not None
-        )
+        else:
+            questions_df = pd.DataFrame(questions_json)
+
+        for col in ["created_time", "publish_time", "close_time", "resolve_time"]:
+            if col in questions_df.columns:
+                questions_df[col] = questions_df[col].apply(
+                    lambda x: datetime.strptime(x[:19], "%Y-%m-%dT%H:%M:%S")
+                )
+
+        if "author" in questions_df.columns:
+            questions_df["i_created"] = questions_df["author"] == self.user_id
+
+        if "my_predictions" in questions_df.columns:
+            questions_df["i_predicted"] = questions_df["my_predictions"].apply(
+                lambda x: x is not None
+            )
+
         return questions_df

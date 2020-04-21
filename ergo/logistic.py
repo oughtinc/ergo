@@ -11,7 +11,7 @@ import numpy as onp
 import scipy as oscipy
 import seaborn
 import torch
-import tqdm
+from tqdm.autonotebook import tqdm  # type: ignore
 
 from ergo.ppl import categorical
 
@@ -91,7 +91,7 @@ def fit_mixture(
     components = initialize_components(num_components)
     (init_fun, update_fun, get_params) = sgd(step_size)
     opt_state = init_fun(components)
-    for i in tqdm.trange(num_samples):
+    for i in tqdm(range(num_samples)):
         components = get_params(opt_state)
         grads = -grad_mixture_logpdf(data_as_np_array, components)
         if np.any(np.isnan(grads)):
