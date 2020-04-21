@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "ergo"
-version = "0.8.2"
+version = "0.8.3"
 description = ""
 authors = ["Ought <team@ought.org>"]
 
 [tool.poetry.dependencies]
-python = "~3.6.8"
+python = "~3.6.9"
 requests = "2.21.0"
 torch = "1.4.0"
 dataclasses = "0.7"
@@ -21,6 +21,7 @@ jax = "0.1.63"
 jaxlib = "0.1.44"
 pandas = "1.0.3"
 sphinx-autodoc-typehints = "^1.10.3"
+plotnine = "^0.6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

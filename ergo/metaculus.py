@@ -29,7 +29,7 @@ from typing_extensions import Literal
 
 import ergo.logistic as logistic
 import ergo.ppl as ppl
-from ergo.theme import ergo_theme
+from ergo.theme import ergo_theme  # type: ignore
 
 
 @dataclass
