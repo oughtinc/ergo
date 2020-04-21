@@ -8,7 +8,18 @@ from typing import Any, Dict, List, Optional, Union
 import matplotlib.pyplot as pyplot
 import numpy as np
 import pandas as pd
-from plotnine import ggplot, aes, facet_wrap, labs, guides, scale_x_datetime, theme, geom_histogram, geom_density, element_text
+from plotnine import (  # type: ignore
+    aes,
+    element_text,
+    facet_wrap,
+    geom_density,
+    geom_histogram,
+    ggplot,
+    guides,
+    labs,
+    scale_x_datetime,
+    theme,
+)
 import pyro.distributions as dist
 import requests
 from scipy import stats
@@ -613,13 +624,13 @@ class LinearQuestion(ContinuousQuestion):
         if show_community:
             df = pd.DataFrame(
                 data={
-                    "community": [
+                    "community": [  # type: ignore
                         self.sample_community() for _ in range(0, num_samples)
                     ],
                     "prediction": prediction_true_scale_samples,
                 }
             )
-            df = pd.melt(df, var_name="sources", value_name="samples")
+            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
             return (
                 ggplot(df, aes("samples", fill="sources"))
                 + geom_histogram(position="identity")
@@ -884,13 +895,13 @@ class LinearDateQuestion(LinearQuestion):
         if show_community:
             df = pd.DataFrame(
                 data={
-                    "community": [
+                    "community": [  # type: ignore
                         self.sample_community() for _ in range(0, num_samples)
                     ],
                     "prediction": prediction_true_scale_samples,
                 }
             )
-            df = pd.melt(df, var_name="sources", value_name="samples")
+            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
             return (
                 ggplot(df, aes("samples", fill="sources"))
                 + geom_histogram(position="identity")
