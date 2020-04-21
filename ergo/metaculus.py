@@ -600,9 +600,6 @@ def show_prediction(self, samples, show_community=False):
         :param show_community: boolean indicating whether comparison to community predictions should be made
         :return: ggplot graphics object
         """
-        if (not samples) and show_community:
-            return self.show_community_prediction()
-
         num_samples = 1000
 
         # This is a pragmatic comprimise that will take predictions out of range and assign them the nearest in-range point
@@ -734,8 +731,6 @@ class LogQuestion(ContinuousQuestion):
         :param num_samples: number of samples from the community
         :return: ggplot graphics object
         """
-        # import pdb
-        # pdb.set_trace()
         community_samples = pd.DataFrame(
             data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
         )

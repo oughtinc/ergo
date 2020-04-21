@@ -1,5 +1,7 @@
 __version__ = "0.8.2"
 
+import warnings
+
 import ergo.data
 import ergo.logistic
 import ergo.metaculus
@@ -31,3 +33,5 @@ from .ppl import (
     to_float,
     uniform,
 )
+
+warnings.filterwarnings(module="plotnine", action="ignore")
