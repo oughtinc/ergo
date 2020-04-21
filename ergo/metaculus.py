@@ -4,7 +4,7 @@ and submit predictions, via the API (https://www.metaculus.com/api2/)
 
 **Example**
 
-In this example, we predict the admit rate for Harvard's class of 2029: 
+In this example, we predict the admit rate for Harvard's class of 2029:
 
 https://www.metaculus.com/questions/3622
 
