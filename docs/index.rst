@@ -36,3 +36,5 @@ Ergo documentation
 
    workflow
    notebooks
+
+Examples from the documentation are collected in this `notebook <https://github.com/oughtinc/ergo/tree/master/notebooks/ergo-documentation-examples.ipynb>`_.
