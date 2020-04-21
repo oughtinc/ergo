@@ -5,8 +5,8 @@ import json
 import math
 from typing import Any, Dict, List, Optional, Union
 
-import matplotlib.pyplot as pyplot
 import numpy as np
+import numpy.random
 import pandas as pd
 from plotnine import (  # type: ignore
     aes,
@@ -23,7 +23,6 @@ from plotnine import (  # type: ignore
 import pyro.distributions as dist
 import requests
 from scipy import stats
-import seaborn
 import torch
 from typing_extensions import Literal
 
@@ -262,6 +261,13 @@ class ContinuousQuestion(MetaculusQuestion):
         return self.possibilities["high"] == "tail"
 
     @property
+    def has_predictions(self):
+        """
+        Are there any predictions for the question yet?
+        """
+        return hasattr(self, "prediction_histogram")
+
+    @property
     def question_range(self):
         """
         Range of answers specified when the question was created
@@ -350,7 +356,7 @@ class ContinuousQuestion(MetaculusQuestion):
         y2 = [p[2] for p in self.prediction_histogram]
         return dist.Categorical(probs=torch.tensor(y2))
 
-    def sample_normalized_community(self):
+    def sample_normalized_community(self) -> float:
         """
         Sample an approximation of the entire current community prediction, on the normalized scale.
         The main reason that it's just an approximation is that we don't know
@@ -367,8 +373,8 @@ class ContinuousQuestion(MetaculusQuestion):
         # how spread out we actually expect the probability mass to be
         outside_range_scale = 0.02
 
-        sample_below_range = -abs(np.random.logistic(0, outside_range_scale))
-        sample_above_range = abs(np.random.logistic(1, outside_range_scale))
+        sample_below_range = -abs(np.random.logistic(0, outside_range_scale))  # type: ignore
+        sample_above_range = abs(np.random.logistic(1, outside_range_scale))  # type: ignore
         sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
             len(self.prediction_histogram)
         )
@@ -377,12 +383,14 @@ class ContinuousQuestion(MetaculusQuestion):
         p_above = 1 - self.latest_community_percentiles["high"]
         p_in_range = 1 - p_below - p_above
 
-        return ppl.random_choice(
-            [sample_below_range, sample_in_range, sample_above_range],
-            ps=[p_below, p_in_range, p_above],
+        return float(
+            ppl.random_choice(
+                [sample_below_range, sample_in_range, sample_above_range],
+                ps=[p_below, p_in_range, p_above],
+            )
         )
 
-    def sample_community(self):
+    def sample_community(self) -> float:
         """
         Sample an approximation of the entire current community prediction,
         on the true scale of the question.
@@ -391,11 +399,14 @@ class ContinuousQuestion(MetaculusQuestion):
 
         :return: One sample on the true scale
         """
+
+        if not self.has_predictions:
+            raise ValueError("There are currently no predictions for this question")
         normalized_sample = self.sample_normalized_community()
         sample = torch.tensor(self.denormalize_samples([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
-        return sample
+        return float(sample)
 
     def get_submission(
         self, mixture_params: logistic.LogisticMixtureParams
@@ -493,37 +504,18 @@ class ContinuousQuestion(MetaculusQuestion):
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
         return self.get_submission_from_json(latest_prediction)
 
-    # TODO: show vs. Metaculus and vs. resolution if available
-    def show_performance(self):
-        """
-        Show your performance on this question (not yet fully implemented)
-        """
-        mixture_params = self.get_latest_normalized_prediction()
-        self.show_prediction(mixture_params)
+    def show_prediction(self, samples, show_community=False):
+        """Plot prediction in the true question scale based on samples. Optionally compare prediction against a sample from the distribution of community predictions
 
-    def show_submission(self, samples, show_community=False):
+        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param show_community: boolean indicating whether comparison to community predictions should be made
+        :return: ggplot graphics object
         """
-        Plot what a prediction based on these samples would look like
-
-        :param samples: samples from a distribution answering the prediction question
-        :param show_community: whether the predicted distribution should be plotted against the community's predictions
-        """
-
-        submission = self.get_submission_from_samples(samples)
-
-        return self.show_prediction(submission, samples, show_community)
+        raise NotImplementedError("This should be implemented by a subclass")
 
     def show_community_prediction(self):
         """
         Plot the community prediction on this question
-        """
-        raise NotImplementedError("This should be implemented by a subclass")
-
-    def show_prediction(self, prediction: SubmissionMixtureParams):
-        """
-        Plot a prediction expressed as logistic mixture params
-
-        :param prediction: logistic mixture params in the Metaculus API format
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
@@ -595,17 +587,22 @@ class LinearQuestion(ContinuousQuestion):
             true_scale_logistics_params, submission_params.probs
         )
 
+
+def show_prediction(self, samples, show_community=False):
     def show_prediction(
         self, prediction: SubmissionMixtureParams, samples=None, show_community=False
     ):
         """
-        Plot a prediction expressed as logistic mixture params. Optionally compare prediction against a sample from the distribution of community predictions
+        Plot prediction in the true question scale based on samples. Optionally compare prediction against a sample from the distribution of community predictions
 
         :param prediction: logistic mixture params in the Metaculus API format
         :param samples: samples from a distribution answering the prediction question (true scale)
         :param show_community: boolean indicating whether comparison to community predictions should be made
         :return: ggplot graphics object
         """
+        if (not samples) and show_community:
+            return self.show_community_prediction()
+
         num_samples = 1000
 
         # This is a pragmatic comprimise that will take predictions out of range and assign them the nearest in-range point
@@ -671,9 +668,10 @@ class LinearQuestion(ContinuousQuestion):
         community_samples = pd.DataFrame(
             data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
         )
+
         return (
             ggplot(community_samples, aes("samples"))
-            + geom_density()
+            + geom_density(color="darkblue", fill="lightblue", alpha=0.8)
             + labs(x="Prediction", y="Density", title="Community Predictions")
             + ergo_theme
         )
@@ -729,62 +727,93 @@ class LogQuestion(ContinuousQuestion):
         """
         return [self.true_from_normalized_value(sample) for sample in samples]
 
-    @staticmethod
-    def set_true_x_ticks():
-        true_tick_values = [
-            f"{np.exp(log_tick):.1e}" for log_tick in pyplot.xticks()[0]
-        ]
+    def show_community_prediction(self, num_samples=1000):
+        """
+        Plot samples from the community prediction on this question
 
-        pyplot.xticks(pyplot.xticks()[0], true_tick_values, rotation="vertical")
-
-    def plot_log_prediction(self, prediction: SubmissionMixtureParams, samples=None):
-        prediction_normed_samples = np.array(
-            [logistic.sample_mixture(prediction) for _ in range(0, 5000)]
+        :param num_samples: number of samples from the community
+        :return: ggplot graphics object
+        """
+        # import pdb
+        # pdb.set_trace()
+        community_samples = pd.DataFrame(
+            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
+        )
+        return (
+            ggplot(community_samples, aes("samples"))
+            + geom_density(cut=1, color="darkblue", fill="lightblue", alpha=0.8)
+            + labs(x="Prediction", y="Density", title="Community Predictions")
+            + ergo_theme
         )
 
-        prediction_true_scale_samples = np.array(
-            [
-                self.true_from_normalized_value(submission_sample)
-                for submission_sample in prediction_normed_samples
-            ]
+    def show_prediction(self, samples, show_community=False):
+        """
+        Plot prediction in the true question scale based on samples. Optionally compare prediction against a sample from the distribution of community predictions
+
+        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param show_community: boolean indicating whether comparison to community predictions should be made
+        :return: ggplot graphics object
+        """
+
+        prediction = self.get_submission_from_samples(
+            samples
+        )  # logistic mixture params in the Metaculus API format
+
+        num_samples = 1000
+
+        # This is a pragmatic comprimise that will take predictions out of range and assign them the nearest in-range point
+        def clip(samples):
+            return max(
+                min(samples, self.question_range["max"]), self.question_range["min"]
+            )
+
+        prediction_normed_samples = pd.Series(
+            [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+        ).apply(clip)
+
+        prediction_true_scale_samples = self.denormalize_samples(
+            prediction_normed_samples
         )
-
-        ax = seaborn.distplot(np.log(prediction_true_scale_samples), label="Mixture")
-        ax.set(xlabel="Sample value", ylabel="Density")
-
-        if samples is not None:
-            seaborn.distplot(np.log(samples), label="Data")
-
-        pyplot.legend()  # type: ignore
-
-    def plot_log_community_prediction(self):
-        community_samples = np.log([self.sample_community() for _ in range(0, 1000)])
-
-        ax = seaborn.distplot(community_samples, label="Community")
-
-        pyplot.legend()
-
-        return ax
-
-    def show_community_prediction(self):
-        pyplot.figure()
-        pyplot.title(f"{self} community prediction", y=1.07)
-        self.plot_log_community_prediction()
-        self.set_true_x_ticks()
-        pyplot.show()
-
-    def show_prediction(
-        self, prediction: SubmissionMixtureParams, samples=None, show_community=False
-    ):
-        pyplot.figure()
-        pyplot.title(f"{self} prediction", y=1.07)  # type: ignore
-        self.plot_log_prediction(prediction, samples)
-
         if show_community:
-            self.plot_log_community_prediction()
-
-        self.set_true_x_ticks()
-        pyplot.show()
+            df = pd.DataFrame(
+                data={
+                    "community": [  # type: ignore
+                        self.sample_community() for _ in range(0, num_samples)
+                    ],
+                    "prediction": prediction_true_scale_samples,
+                }
+            )
+            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
+            return (
+                ggplot(df, aes("samples", fill="sources"))
+                + geom_histogram(position="identity")
+                + facet_wrap("sources", ncol=1)
+                + scale_x_datetime()
+                + labs(
+                    x="Prediction",
+                    y="Counts",
+                    title=f"Prediction vs Community" f"\nfor Q:{self.name}"
+                    if self.name
+                    else "",
+                )
+                + ergo_theme
+                + guides(fill=False)
+                + theme(axis_text_x=element_text(rotation=45, hjust=1))
+            )
+        else:
+            df = pd.DataFrame(data={"prediction": prediction_true_scale_samples})
+            return (
+                ggplot(df, aes("prediction"))
+                + geom_histogram()
+                + scale_x_datetime()
+                + labs(
+                    x="Prediction",
+                    y="Counts",
+                    title=f"Prediction" f" for Q:{self.name}" if self.name else "",
+                )
+                + ergo_theme
+                + theme(axis_text_x=element_text(rotation=45, hjust=1))
+            )
 
 
 class LinearDateQuestion(LinearQuestion):
@@ -857,6 +886,7 @@ class LinearDateQuestion(LinearQuestion):
             samples = pd.Series(samples)
             return samples.apply(denorm)
 
+    # TODO enforce return type date/datetime
     def sample_community(self):
         """
         Sample an approximation of the entire current community prediction,
@@ -867,17 +897,18 @@ class LinearDateQuestion(LinearQuestion):
         normalized_sample = self.sample_normalized_community()
         return self.denormalize_samples(float(normalized_sample))
 
-    def show_prediction(
-        self, prediction: SubmissionMixtureParams, samples=None, show_community=False
-    ):
+    def show_prediction(self, samples, show_community=False):
         """
-        Plot a prediction expressed as logistic mixture params. Optionally compare prediction against a sample from the distribution of community predictions
+        Plot prediction in the true question scale based on samples. Optionally compare prEdiction against a sample from the distribution of community predictions
 
-        :param prediction: logistic mixture params in the Metaculus API format
         :param samples: samples from a distribution answering the prediction question (true scale)
         :param show_community: boolean indicating whether comparison to community predictions should be made
         :return: ggplot graphics object
         """
+        prediction = self.get_submission_from_samples(
+            samples
+        )  # logistic mixture params in the Metaculus API format
+
         num_samples = 1000
 
         # someone who understands the Metaculus API better should review this
@@ -936,6 +967,7 @@ class LinearDateQuestion(LinearQuestion):
     def show_community_prediction(self, num_samples=1000):
         """
         Plot samples from the community prediction on this question
+
         :param num_samples: number of samples from the community
         :return: ggplot graphics object
         """
@@ -944,7 +976,7 @@ class LinearDateQuestion(LinearQuestion):
         )
         return (
             ggplot(community_samples, aes("samples"))
-            + geom_histogram()
+            + geom_histogram(fill="lightblue")
             + scale_x_datetime()
             + labs(x="Prediction", y="Counts", title="Community Predictions")
             + ergo_theme
