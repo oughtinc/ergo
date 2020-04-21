@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 import matplotlib.pyplot as pyplot
 import numpy as np
 import pandas as pd
-from plotnine import *
+from plotnine import ggplot, aes, facet_wrap, labs, guides, scale_x_datetime, theme, geom_histogram, geom_density, element_text
 import pyro.distributions as dist
 import requests
 from scipy import stats
@@ -584,7 +584,6 @@ class LinearQuestion(ContinuousQuestion):
             true_scale_logistics_params, submission_params.probs
         )
 
-
     def show_prediction(
         self, prediction: SubmissionMixtureParams, samples=None, show_community=False
     ):
@@ -594,7 +593,7 @@ class LinearQuestion(ContinuousQuestion):
         :param prediction: logistic mixture params in the Metaculus API format
         :param samples: samples from a distribution answering the prediction question (true scale)
         :param show_community: boolean indicating whether comparison to community predictions should be made
-        :return: ggplot graphics object 
+        :return: ggplot graphics object
         """
         num_samples = 1000
 
@@ -607,7 +606,7 @@ class LinearQuestion(ContinuousQuestion):
         prediction_normed_samples = pd.Series(
             [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
         ).apply(clip)
-        
+
         prediction_true_scale_samples = self.denormalize_samples(
             prediction_normed_samples
         )
@@ -656,7 +655,7 @@ class LinearQuestion(ContinuousQuestion):
         """
         Plot samples from the community prediction on this question
         :param num_samples: number of samples from the community
-        :return: ggplot graphics object 
+        :return: ggplot graphics object
         """
         community_samples = pd.DataFrame(
             data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
@@ -667,6 +666,7 @@ class LinearQuestion(ContinuousQuestion):
             + labs(x="Prediction", y="Density", title="Community Predictions")
             + ergo_theme
         )
+
 
 class LogQuestion(ContinuousQuestion):
     @property
@@ -850,7 +850,7 @@ class LinearDateQuestion(LinearQuestion):
         """
         Sample an approximation of the entire current community prediction,
         on the true scale of the question.
-    
+
         :return: One sample on the true scale
         """
         normalized_sample = self.sample_normalized_community()
@@ -865,7 +865,7 @@ class LinearDateQuestion(LinearQuestion):
         :param prediction: logistic mixture params in the Metaculus API format
         :param samples: samples from a distribution answering the prediction question (true scale)
         :param show_community: boolean indicating whether comparison to community predictions should be made
-        :return: ggplot graphics object 
+        :return: ggplot graphics object
         """
         num_samples = 1000
 
@@ -899,7 +899,9 @@ class LinearDateQuestion(LinearQuestion):
                 + labs(
                     x="Prediction",
                     y="Counts",
-                    title=f"Prediction vs Community" f"\nfor Q:{self.name}" if self.name else "",
+                    title=f"Prediction vs Community" f"\nfor Q:{self.name}"
+                    if self.name
+                    else "",
                 )
                 + ergo_theme
                 + guides(fill=False)
@@ -924,7 +926,7 @@ class LinearDateQuestion(LinearQuestion):
         """
         Plot samples from the community prediction on this question
         :param num_samples: number of samples from the community
-        :return: ggplot graphics object 
+        :return: ggplot graphics object
         """
         community_samples = pd.DataFrame(
             data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
