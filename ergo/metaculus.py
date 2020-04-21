@@ -4,21 +4,27 @@ and submit predictions, via the API (https://www.metaculus.com/api2/)
 
 **Example**
 
-In this example, we submit our own prediction based on the community prediction.
+In this example, we predict the admit rate for Harvard's class of 2029: 
+
+https://www.metaculus.com/questions/3622
+
+We predict that the admit rate will be 50% higher than the current community prediction.
 
 .. doctest::
 
     >>> import ergo
-    >>> metaculus = ergo.Metaculus(username="oughtpublic", password="123456", api_domain="www")
+    >>> import numpy as np
 
-    the question:
-    https://www.metaculus.com/questions/3622/what-will-the-harvard-admit-rate-be-for-the-undergraduate-class-of-2029/
+    >>> metaculus = ergo.Metaculus(username="", password="", api_domain="www")
 
     >>> harvard_question = metaculus.get_question(3622)
+    >>> harvard_question.show_community_prediction()
+
     >>> community_prediction_samples = np.array([harvard_question.sample_community() for _ in range (0,5000)])
     >>> my_prediction_samples = community_prediction_samples * 1.5
-    >>> harvard_question.submit_from_samples(my_prediction_samples)
 
+    >>> harvard_question.show_submission(my_prediction_samples)
+    >>> harvard_question.submit_from_samples(my_prediction_samples)
 """
 
 from dataclasses import dataclass
