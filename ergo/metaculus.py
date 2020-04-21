@@ -958,7 +958,7 @@ class Metaculus:
         query_string = "&".join(query_params)
 
         def get_questions_for_pages(
-            query_string: str, max_pages: int = 1, current_page: int = 1, results=[]
+            query_string: str, max_pages: int = 10, current_page: int = 1, results=[]
         ) -> List[Dict]:
             if current_page > max_pages:
                 return results
