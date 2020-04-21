@@ -6,7 +6,7 @@ Ergo uses the `Poetry`_ package manager.
 Run a Colab using your local version of Ergo
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This way, you can quickly make changes to ergo and see them reflected in
+This way, you can quickly make changes to Ergo and see them reflected in
 your Colab without pushing to a Github branch first.
 
 1. ``poetry install``
