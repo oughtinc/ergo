@@ -44,4 +44,4 @@ class TestForetold:
         foretold = ergo.Foretold()
         with pytest.raises(NotImplementedError):
             ids = ["cf86da3f-c257-4787-b526-3ef3cb670cb4"] * 1000
-            questions = foretold.get_questions(ids)
+            foretold.get_questions(ids)

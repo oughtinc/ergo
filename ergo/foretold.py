@@ -164,7 +164,7 @@ class ForetoldQuestion:
     def community_prediction_available(self):
         return self.floatCdf is not None
 
-    def getFloatCdfOrError(self):
+    def get_float_cdf_or_error(self):
         if not self.community_prediction_available:
             raise ValueError("No community prediction available")
         return self.floatCdf
@@ -182,4 +182,4 @@ class ForetoldQuestion:
     def plotCdf(self):
         """Plot the CDF"""
         floatCdf = self.getFloatCdfOrError()
-        seaborn.lineplot(self.floatCdf["xs"], self.floatCdf["ys"])
+        seaborn.lineplot(floatCdf["xs"], floatCdf["ys"])
