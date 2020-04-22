@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+import textwrap
 from plotnine import (  # type: ignore
     aes,
     element_text,
@@ -577,8 +578,8 @@ class ContinuousQuestion(MetaculusQuestion):
         prediction_true_scale_samples = self.denormalize_samples(
             prediction_normed_samples
         )
+        title_name = f"Q:{self.name}\n" if self.name else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"
 
-        title_name = f" for Q:{self.name}" if self.name else ""
         if show_community:
             df = pd.DataFrame(
                 data={
@@ -588,7 +589,6 @@ class ContinuousQuestion(MetaculusQuestion):
                     "prediction": prediction_true_scale_samples,
                 }
             )
-
             # get domain for graph given the percentage of distribution kept
             (_xmin, _xmax) = self.get_central_quantiles(
                 df, percent_kept=percent_kept, side_cut_from=side_cut_from
@@ -602,7 +602,7 @@ class ContinuousQuestion(MetaculusQuestion):
                 + labs(
                     x="Prediction",
                     y="Density",
-                    title=f"Prediction vs Community" + title_name,
+                    title=title_name + "Prediction vs Community",
                 )
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
@@ -620,7 +620,7 @@ class ContinuousQuestion(MetaculusQuestion):
                 + scale_fill_brewer(type="qual", palette="Pastel1")
                 + geom_density(alpha=0.8)
                 + xlim(_xmin, _xmax)
-                + labs(x="Prediction", y="Density", title=f"Prediction" + title_name)
+                + labs(x="Prediction", y="Density", title=title_name + "Prediction")
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
@@ -646,11 +646,12 @@ class ContinuousQuestion(MetaculusQuestion):
         (_xmin, _xmax) = self.get_central_quantiles(
             community_samples, percent_kept=percent_kept, side_cut_from=side_cut_from
         )
+        title_name = f"Q:{self.name}\n" if self.name else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"
         return (
             ggplot(community_samples, aes("samples"))
             + geom_density(fill="#b3cde3", alpha=0.8)
             + xlim(_xmin, _xmax)
-            + labs(x="Prediction", y="Density", title="Community Predictions")
+            + labs(x="Prediction", y="Density", title=title_name + "Community Predictions")
             + ergo_theme
         )
 
@@ -886,8 +887,8 @@ class LinearDateQuestion(LinearQuestion):
             [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
         )
 
-        title_name = f" for Q:{self.name}" if self.name else ""
-        print("Prediction vs Community" + title_name)
+        title_name = f"Q:{self.name}\n" if self.name else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"
+
         if show_community:
             df = pd.DataFrame(
                 data={
@@ -916,7 +917,7 @@ class LinearDateQuestion(LinearQuestion):
                 + labs(
                     x="Prediction",
                     y="Counts",
-                    title="Prediction vs Community" + title_name,
+                    title=title_name + "Prediction vs Community",
                 )
                 + guides(fill=False)
                 + ergo_theme
@@ -938,7 +939,7 @@ class LinearDateQuestion(LinearQuestion):
                 + geom_histogram(fill="#b3cde3", bins=bins)
                 # + coord_cartesian(xlim = (_xmin,_xmax))
                 + scale_x_datetime(limits=(_xmin, _xmax))
-                + labs(x="Prediction", y="Counts", title="Prediction" + title_name)
+                + labs(x="Prediction", y="Counts", title=title_name + "Prediction")
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
@@ -968,13 +969,14 @@ class LinearDateQuestion(LinearQuestion):
         )
         _xmin, _xmax = self.denormalize_samples([_xmin, _xmax])
 
-        df = pd.DataFrame(data={"samples": self.denormalize_samples(community_samples)})
 
+        df = pd.DataFrame(data={"samples": self.denormalize_samples(community_samples)})
+        title_name = f"Q:{self.name}\n" if self.name else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"
         return (
             ggplot(df, aes("samples"))
             + geom_histogram(fill="#b3cde3", bins=bins)
             + scale_x_datetime(limits=(_xmin, _xmax))
-            + labs(x="Prediction", y="Counts", title="Community Predictions")
+            + labs(x="Prediction", y="Counts", title=title_name + "Community Predictions")
             + ergo_theme
             + theme(axis_text_x=element_text(rotation=45, hjust=1))
         )
