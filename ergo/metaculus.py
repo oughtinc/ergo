@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 import matplotlib.pyplot as pyplot
 import numpy as np
 import pandas as pd
+import pendulum
 import pyro.distributions as dist
 import requests
 from scipy import stats
@@ -125,6 +126,24 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
+    def add_data(self, key: str, value: Any):
+        """
+        Add to data dict
+
+        :param key:
+        :param value:
+        """
+        self.data[key] = value
+
+    def add_change(self, since: int):
+        """
+        Add change in community prediction to data dict
+
+        :param since: timestamp to let us know change since when
+        """
+        change = self.get_change(since)
+        self.add_data("change", change)
+
     def refresh_question(self):
         """
         Refetch the question data from Metaculus, used when the question data might have changed
@@ -184,6 +203,40 @@ class MetaculusQuestion:
             ]
         return pd.DataFrame(data, columns=columns)
 
+    def get_i_of_community_prediction_before(self, timestamp: int) -> Optional[int]:
+        """
+        Get index of most recent community prediction that predates timestamp
+
+        :param timestamp:
+        :return: index of most recent community prediction that predates timestamp
+        """
+        j = 1
+
+        have_not_gone_far_back_enough = True
+
+        while have_not_gone_far_back_enough:
+            try:
+                period = pendulum.period(
+                    pendulum.from_timestamp(timestamp),
+                    pendulum.from_timestamp(self.prediction_timeseries[-j]["t"]),
+                )
+            except IndexError:
+                # This isi triggered if we decrement j too much.
+                j = j - 1
+                break
+
+            if period.in_seconds() <= 0:
+                have_not_gone_far_back_enough = False
+            else:
+                j = j + 1
+
+        # The following happens when the above IndexError is immediately triggered.
+        # Which means there aren't any community predictions yet.
+        if j == 0:
+            return None
+
+        return len(self.prediction_timeseries) - j
+
 
 class BinaryQuestion(MetaculusQuestion):
     """
@@ -203,6 +256,20 @@ class BinaryQuestion(MetaculusQuestion):
         return ScoredPrediction(
             prediction["t"], prediction, resolution, score, self.__str__()
         )
+
+    def get_change(self, since=pendulum.now().subtract(days=1).timestamp()):
+        """
+        Get change in community prediction between "since" argument and most recent prediction
+
+        :param since: timestamp
+        :return: change in community prediction since timestamp
+        """
+        i = self.get_i_of_community_prediction_before(since)
+        if i is None:
+            return 0
+        old = self.prediction_timeseries[i]["community_prediction"]
+        new = self.prediction_timeseries[-1]["community_prediction"]
+        return new - old
 
     def score_my_predictions(self):
         """
@@ -531,6 +598,20 @@ class ContinuousQuestion(MetaculusQuestion):
         :param prediction: logistic mixture params in the Metaculus API format
         """
         raise NotImplementedError("This should be implemented by a subclass")
+
+    def get_change(self, since=pendulum.now().subtract(days=1).timestamp()):
+        """
+        Get change in community prediction median between "since" argument and most recent prediction
+
+        :param since: timestamp
+        :return: change in median community prediction since timestamp
+        """
+        i = self.get_i_of_community_prediction_before(since)
+        if i is None:
+            return 0
+        old = self.prediction_timeseries[-i]["community_prediction"]["q2"]
+        new = self.prediction_timeseries[-1]["community_prediction"]["q2"]
+        return new - old
 
 
 class LinearQuestion(ContinuousQuestion):
