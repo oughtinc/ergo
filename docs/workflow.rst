@@ -18,7 +18,7 @@ your Colab without pushing to a Github branch first.
 6. For the ``Backend URL`` to connect to, paste from your shell the url
    that looks like
    “http://localhost:8888/?token=46aa5a3f5ee5b71df3c109fcabf94d0291b73bfced692049”
-7. Whenever you ch
+7. Whenever you change ``ergo`` and want to load the change in your
    Colab, in the Colab, ``Runtime`` > ``Restart Runtime...``
 
 If you get an error in the Colab, try following the instructions
