@@ -119,7 +119,7 @@ class TestMetaculus:
             submission = self.closed_question.get_submission(
                 tests.mocks.mock_normalized_params
             )
-            r = self.closed_question.submit(submission)
+            self.closed_question.submit(submission)
 
     def test_score_binary(self):
         """smoke test"""
