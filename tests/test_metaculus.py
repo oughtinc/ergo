@@ -1,13 +1,13 @@
+import datetime
 from http import HTTPStatus
-from typing import cast
+import os
 import pprint
+from typing import cast
 
 import numpy as np
 import pandas as pd
-import datetime
 import pytest
 import requests
-import os
 
 import ergo
 import tests.mocks
