@@ -21,3 +21,27 @@ class TestForetold:
         # Probability mass is split evenly between both modes of the distribution, so approximately half of the
         # samples should be lower than 100
         assert np.count_nonzero(samples > 100) == pytest.approx(num_samples / 2, 0.1)
+
+    def test_foretold_multiple_questions(self):
+        foretold = ergo.Foretold()
+        # https://www.foretold.io/c/f45577e4-f1b0-4bba-8cf6-63944e63d70c/m/cf86da3f-c257-4787-b526-3ef3cb670cb4
+
+        ids = [
+            "cf86da3f-c257-4787-b526-3ef3cb670cb4",
+            "77936da2-a581-48c7-add1-8a4ebc647c8c",
+            "9b0b01fb-f439-4bbe-8722-f57034ffc96e",
+        ]
+        has_community_prediction_list = [True, True, False]
+        questions = foretold.get_questions(ids)
+        for id, question, has_community_prediction in zip(
+            ids, questions, has_community_prediction_list
+        ):
+            assert question is not None
+            assert question.id == id
+            assert question.community_prediction_available == has_community_prediction
+
+    def test_foretold_multiple_questions_error(self):
+        foretold = ergo.Foretold()
+        with pytest.raises(NotImplementedError):
+            ids = ["cf86da3f-c257-4787-b526-3ef3cb670cb4"] * 1000
+            foretold.get_questions(ids)
