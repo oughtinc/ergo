@@ -67,7 +67,7 @@ class MetaculusQuestion:
     """
 
     id: int
-    data: Optional[object]
+    data: Dict
     metaculus: "Metaculus"
     name: Optional[str]
 
@@ -140,24 +140,46 @@ class MetaculusQuestion:
         raise NotImplementedError("This should be implemented by a subclass")
 
     @staticmethod
-    def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
+    def to_dataframe(
+        questions: List["MetaculusQuestion"], extra_columns: List[str] = []
+    ) -> pd.DataFrame:
         """
         Summarize a list of questions in a dataframe
 
         :param questions: questions to summarize
+        :param extra_columns: optional list of column names as strings
         :return: pandas dataframe summarizing the questions
         """
+
+        # It's natural to pass a string to extra_columns when you just want to add
+        # one column, e.g., ergo.MetaculusQuestion.to_dataframe(qs, extra_columns="change")
+        # Because Python treats strings similarly to lists, this can lead to cryptic errors.
+        # So I'm adding this explicit error to prevent confusion.
+        if type(extra_columns) != list:
+            raise TypeError("extra_columns must be a list")
+
         show_names = any(q.name for q in questions)
         if show_names:
-            columns = ["id", "name", "title", "resolve_time"]
+            columns = ["id", *extra_columns, "name", "title", "resolve_time"]
             data = [
-                [question.id, question.name, question.title, question.resolve_time]
+                [
+                    question.id,
+                    *[question.data[key] for key in extra_columns],
+                    question.name,
+                    question.title,
+                    question.resolve_time,
+                ]
                 for question in questions
             ]
         else:
-            columns = ["id", "title", "resolve_time"]
+            columns = ["id", *extra_columns, "title", "resolve_time"]
             data = [
-                [question.id, question.title, question.resolve_time]
+                [
+                    question.id,
+                    *[question.data[key] for key in extra_columns],
+                    question.title,
+                    question.resolve_time,
+                ]
                 for question in questions
             ]
         return pd.DataFrame(data, columns=columns)
