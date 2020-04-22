@@ -31,6 +31,11 @@ Before submitting a PR
 1. Format code using ``make format`` (black, isort)
 2. Run linting using ``make lint`` (flake8, mypy, black check)
 3. Run tests using ``make test``
+
+    * to run the tests in ``test_metaculus.py``, you'll need the password to
+      our ``oughttest`` account. If you don't have it, you can ask us for it, 
+      or rely on Travis CI to run those tests for you
+
 4. Generate docs using ``make docs``, review
    ``docs/build/html/index.html``
 
