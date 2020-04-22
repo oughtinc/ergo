@@ -62,7 +62,7 @@ class TestForetold:
         assert type(cdf.ys[0]) == float
         # Check that `xs` is sorted as expected by Foretold.
         assert np.all(np.diff(xs) >= 0)
-        assert np.all(0 <= ys) & np.all(ys <= 1)
+        assert np.all(0 <= ys) && np.all(ys <= 1)
         assert np.all(np.abs(true_ys - ys) < 0.1)
 
     def test_cdf_from_samples_pandas(self):
@@ -75,10 +75,9 @@ class TestForetold:
 
     def test_measurement_query(self):
         cdf = ergo.foretold.ForetoldCdf([0.0, 1.0, 2.0], [1.0, 2.0, 3.0])
-        query = ergo.foretold.measurement_query(
+        query = ergo.foretold._measurement_query(
             "cf86da3f-c257-4787-b526-3ef3cb670cb4", cdf
         )
-        print(query)
         assert type(query) == str
 
     @pytest.mark.skip(reason="API token required")

@@ -126,9 +126,9 @@ class Foretold:
         if self.token is None:
             raise Exception("A token is required to submit a prediction")
         if len(cdf) > 1000:
-            raise Exception("Maximum CDF length exceeded")
+            raise Exception("Maximum CDF length of 1000 exceeded")
         headers = {"Authorization": f"Bearer {self.token}"}
-        query = measurement_query(measureable_id, cdf)
+        query = _measurement_query(measureable_id, cdf)
         response = requests.post(self.api_url, json={"query": query}, headers=headers)
         return response
 
@@ -244,7 +244,7 @@ class ForetoldCdf:
         return len(self.xs)
 
 
-def measurement_query(measureable_id: str, cdf: ForetoldCdf) -> str:
+def _measurement_query(measureable_id: str, cdf: ForetoldCdf) -> str:
     return f"""mutation {{
       measurementCreate(
         input: {{
