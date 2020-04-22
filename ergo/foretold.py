@@ -25,13 +25,10 @@ class Foretold:
             ids (List[string]): List of foretold question ids (should be less than 500 per request)
         Returns: List of questions corresponding to the ids, or None for questions that weren't found."""
         measurables = self._query_measurables(ids)
-        questions = []
-        for measureable in measurables:
-            question = None
-            if measureable is not None:
-                question = ForetoldQuestion(measureable["id"], self, measureable)
-            questions.append(question)
-        return questions
+        return [
+            ForetoldQuestion(measurable["id"], self, measurable) if measurable else None
+            for measurable in measurables
+        ]
 
     def _post(self, json_data):
         """Send a json post request to the foretold API, with proper authorization"""
@@ -167,20 +164,22 @@ class ForetoldQuestion:
     def community_prediction_available(self):
         return self.floatCdf is not None
 
-    def quantile(self, q):
-        """Quantile of distribution"""
+    def getFloatCdfOrError(self):
         if not self.community_prediction_available:
             raise ValueError("No community prediction available")
-        return np.interp(q, self.floatCdf["ys"], self.floatCdf["xs"])
+        return self.floatCdf
+
+    def quantile(self, q):
+        """Quantile of distribution"""
+        floatCdf = self.getFloatCdfOrError()
+        return np.interp(q, floatCdf["ys"], floatCdf["xs"])
 
     def sample_community(self):
         """Sample from CDF"""
-        if not self.community_prediction_available:
-            raise ValueError("No community prediction available")
         y = uniform()
         return torch.tensor(self.quantile(y))
 
     def plotCdf(self):
-        if not self.community_prediction_available:
-            raise ValueError("No community prediction available")
+        """Plot the CDF"""
+        floatCdf = self.getFloatCdfOrError()
         seaborn.lineplot(self.floatCdf["xs"], self.floatCdf["ys"])
