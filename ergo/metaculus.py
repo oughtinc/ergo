@@ -6,7 +6,6 @@ import math
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-import numpy.random
 import pandas as pd
 from plotnine import (  # type: ignore
     aes,
