@@ -171,7 +171,7 @@ class ForetoldQuestion:
 
     def quantile(self, q):
         """Quantile of distribution"""
-        floatCdf = self.getFloatCdfOrError()
+        floatCdf = self.get_float_cdf_or_error()
         return np.interp(q, floatCdf["ys"], floatCdf["xs"])
 
     def sample_community(self):
@@ -181,5 +181,5 @@ class ForetoldQuestion:
 
     def plotCdf(self):
         """Plot the CDF"""
-        floatCdf = self.getFloatCdfOrError()
+        floatCdf = self.get_float_cdf_or_error()
         seaborn.lineplot(floatCdf["xs"], floatCdf["ys"])
