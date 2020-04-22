@@ -1,21 +1,17 @@
-# Disable sudo to speed up the build
 sudo: false
-
 language: python
-
 python:
 - 3.6.9
-
 before_install:
 - pip install poetry
-
 install:
 - poetry install
-
 script:
 - make lint
 - make docs
 - make test
-
 after_success:
-  - poetry run codecov
+- poetry run codecov
+env:
+  global:
+    secure: HFHNoQbj4Zz0eiwvDXY4cDUIgPAHj7cZpxEmd6L2i6lBejcIXb9ipOqzV3ByiR9kiGw4tJkQvb6TyDJOIr/1HYo1kmsC74HAxg8tNMDKHM2B6pPml1Q82ZBmoa30ZYsT/CzvCu9YJ7Abk4OQ6HDa+oToYUzBFNPY+Y33EA7+LGFtXNSKRuPyRfc9AA2J3sriHpXWZxyoFFNUh5PQKEcppUHyo7YIOaa8kNXgmUQFyjrZxU+HXO83vXb3jd0srCD6YuDlFFZtd/3R6ox1nqXDnAZxrsvUnQ/8G/QCY1ZYYDShUCZ+9o8Bduj/1tgDE+sxGuIA02xCUUPImQbjYWkOmJHCTsgZMCHMHOtew0wzpVd1+mg++U2iDCjw+dKFJ7xtOgjnF4CqAvoqK5HAKbNTh10UlWh3Wu7ixMB6bjcL9y5O31YSAj9ia2Ag1uySkZAMzgSsYCG6f2C++1Ek1KtsYeXvZXsamh30t0tx51DS5jOXgae+c0E0V38NzCpjNEGgfnR6oKwPhzGd7XpJFTww2OToNgexZnD920zMXA4T9xzo8f9JmNo+55zEY3tybB3jg7kaJcgCN96DRIsv67t7pSLer/vEhzV43O6XMHFMJYa96CgSKyiqF3CcJaGtjBskvT6xlsJ1bZhPDdJkM3P4oFA+qA+UAZbxuyv4KhjCgnY=
