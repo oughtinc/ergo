@@ -1002,7 +1002,7 @@ class LinearDateQuestion(LinearQuestion):
         ).dropna()
         return (
             ggplot(community_samples, aes("samples"))
-            + geom_histogram(fill="lightblue", color="blue")
+            + geom_histogram(fill="lightblue")
             + scale_x_datetime()
             + labs(x="Prediction", y="Counts", title="Community Predictions")
             + ergo_theme
