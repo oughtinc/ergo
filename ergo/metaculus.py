@@ -11,16 +11,22 @@ https://www.metaculus.com/questions/3622
 We predict that the admit rate will be 20% higher than the current community prediction.
 
 .. doctest::
-
+    >>> import os
     >>> import ergo
     >>> import numpy as np
 
-    >>> metaculus = ergo.Metaculus(username="oughtpublic", password="123456", api_domain="www")
+    >>> metaculus = ergo.Metaculus(
+    ...     username=os.getenv("METACULUS_USERNAME"),
+    ...     password=os.getenv("METACULUS_PASSWORD"),
+    ...     api_domain="www"
+    ... )
 
     >>> harvard_question = metaculus.get_question(3622)
     >>> # harvard_question.show_community_prediction()
 
-    >>> community_prediction_samples = np.array([harvard_question.sample_community() for _ in range (0,5000)])
+    >>> community_prediction_samples = np.array(
+    ... [harvard_question.sample_community() for _ in range (0,5000)]
+    ... )
     >>> my_prediction_samples = community_prediction_samples * 1.2
 
     >>> # harvard_question.show_submission(my_prediction_samples)

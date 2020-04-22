@@ -1,20 +1,27 @@
-from datetime import datetime
 from http import HTTPStatus
+from typing import cast
 import pprint
 
 import numpy as np
 import pandas as pd
+import datetime
 import pytest
 import requests
+import os
 
 import ergo
 import tests.mocks
 
 pp = pprint.PrettyPrinter(indent=4)
 
-uname = "oughttest"
-pwd = "6vCo39Mz^rrb"
-user_id = 112420
+uname = cast(str, os.getenv("METACULUS_USERNAME"))
+pwd = cast(str, os.getenv("METACULUS_PASSWORD"))
+user_id = int(cast(str, os.getenv("METACULUS_USER_ID")))
+
+if None in [uname, pwd, user_id]:
+    raise ValueError(
+        ".env is missing METACULUS_USERNAME, METACULUS_PASSWORD, or METACULUS_USER_ID"
+    )
 
 
 class TestMetaculus:
@@ -113,7 +120,6 @@ class TestMetaculus:
                 tests.mocks.mock_normalized_params
             )
             r = self.closed_question.submit(submission)
-            print(r)
 
     def test_score_binary(self):
         """smoke test"""
@@ -148,12 +154,19 @@ class TestMetaculus:
         open = self.metaculus.make_questions_df(
             self.metaculus.get_questions_json(question_status="open")
         )
-        assert (open["close_time"] > datetime.now()).all()
+
+        # the additional day is to account for difference in timezones
+        assert (
+            open["close_time"] > (datetime.datetime.now() - datetime.timedelta(days=1))
+        ).all()
 
         closed = self.metaculus.make_questions_df(
             self.metaculus.get_questions_json(question_status="closed")
         )
-        assert (closed["close_time"] < datetime.now()).all()
+        assert (
+            closed["close_time"]
+            < (datetime.datetime.now() + datetime.timedelta(days=1))
+        ).all()
 
     def test_submitted_equals_predicted_linear(self):
         self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
