@@ -609,7 +609,7 @@ class ContinuousQuestion(MetaculusQuestion):
         i = self.get_i_of_community_prediction_before(since)
         if i is None:
             return 0
-        old = self.prediction_timeseries[-i]["community_prediction"]["q2"]
+        old = self.prediction_timeseries[i]["community_prediction"]["q2"]
         new = self.prediction_timeseries[-1]["community_prediction"]["q2"]
         return new - old
 
