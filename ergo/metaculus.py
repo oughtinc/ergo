@@ -126,7 +126,7 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
-    def add_data(self, key: str, value: Any):
+    def set_data(self, key: str, value: Any):
         """
         Add to data dict
 
@@ -142,7 +142,7 @@ class MetaculusQuestion:
         :param since: timestamp to let us know change since when
         """
         change = self.get_change(since)
-        self.add_data("change", change)
+        self.set_data("change", change)
 
     def refresh_question(self):
         """
