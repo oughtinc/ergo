@@ -215,23 +215,23 @@ class MetaculusQuestion:
         have_not_gone_far_back_enough = True
 
         while have_not_gone_far_back_enough:
-            try:
-                period = pendulum.period(
-                    pendulum.from_timestamp(timestamp),
-                    pendulum.from_timestamp(self.prediction_timeseries[-j]["t"]),
-                )
-            except IndexError:
-                # This isi triggered if we decrement j too much.
+            if len(self.prediction_timeseries) < j:
+                # This means we went past the beginning of the timeseries
+                # and need to bring j back one.
                 j = j - 1
                 break
+
+            period = pendulum.period(
+                pendulum.from_timestamp(timestamp),
+                pendulum.from_timestamp(self.prediction_timeseries[-j]["t"]),
+            )
 
             if period.in_seconds() <= 0:
                 have_not_gone_far_back_enough = False
             else:
                 j = j + 1
 
-        # The following happens when the above IndexError is immediately triggered.
-        # Which means there aren't any community predictions yet.
+        # The following happens if there aren't any community predictions yet.
         if j == 0:
             return None
 
