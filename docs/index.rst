@@ -36,3 +36,10 @@ Ergo documentation
 
    workflow
    notebooks
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Tips
+
+   tips_google_sheets
