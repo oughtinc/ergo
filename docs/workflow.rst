@@ -18,7 +18,7 @@ your Colab without pushing to a Github branch first.
 6. For the ``Backend URL`` to connect to, paste from your shell the url
    that looks like
    “http://localhost:8888/?token=46aa5a3f5ee5b71df3c109fcabf94d0291b73bfced692049”
-7. Whenever you change ``ergo`` and want to load the change in your
+7. Whenever you ch
    Colab, in the Colab, ``Runtime`` > ``Restart Runtime...``
 
 If you get an error in the Colab, try following the instructions
@@ -31,9 +31,11 @@ Before submitting a PR
 1. Format code using ``make format`` (black, isort)
 2. Run linting using ``make lint`` (flake8, mypy, black check)
 3. Run tests using ``make test``
-    * to run the tests in `test_metaculus.py`, you'll need the password to our
-    `oughttest` account. If you don't have it, you can ask us for it,
-    or rely on Travis CI to run those tests for you
+
+    * to run the tests in ``test_metaculus.py``, you'll need the password to
+      our ``oughttest`` account. If you don't have it, you can ask us for it, 
+      or rely on Travis CI to run those tests for you
+
 4. Generate docs using ``make docs``, review
    ``docs/build/html/index.html``
 
