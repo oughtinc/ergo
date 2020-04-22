@@ -15,16 +15,17 @@ We predict that the admit rate will be 50% higher than the current community pre
     >>> import ergo
     >>> import numpy as np
 
-    >>> metaculus = ergo.Metaculus(username="", password="", api_domain="www")
+    >>> metaculus = ergo.Metaculus(username="oughtpublic", password="123456", api_domain="www")
 
     >>> harvard_question = metaculus.get_question(3622)
-    >>> harvard_question.show_community_prediction()
+    >>> # harvard_question.show_community_prediction()
 
     >>> community_prediction_samples = np.array([harvard_question.sample_community() for _ in range (0,5000)])
     >>> my_prediction_samples = community_prediction_samples * 1.5
 
-    >>> harvard_question.show_submission(my_prediction_samples)
+    >>> # harvard_question.show_submission(my_prediction_samples)
     >>> harvard_question.submit_from_samples(my_prediction_samples)
+    <Response [202]>
 """
 
 from dataclasses import dataclass
