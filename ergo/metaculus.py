@@ -174,6 +174,39 @@ class MetaculusQuestion:
             ]
         return pd.DataFrame(data, columns=columns)
 
+    @staticmethod
+    def cut_sample_tails(
+        df: pd.DataFrame, percent_kept: float, side_cut_from: str = "both"
+    ):
+        """
+        Remove the tails of sample distribution
+
+        :param df: pandas dataframe of one or more column of samples
+        :param percent_kept: percentage of sample distrubtion to keep
+        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
+        :return: pandas dataframe with only central percent_kept samples
+        """
+
+        if side_cut_from not in ("both", "lower", "upper"):
+            raise ValueError("side keyword must be either 'both','lower', or 'upper'")
+        num_samples = df.shape[0]
+        number_to_keep = round(percent_kept * num_samples)
+        number_to_cut = num_samples - number_to_keep
+
+        # not exact, but we just need it to be deterministic
+        if side_cut_from == "lower":
+            _lb = num_samples - number_to_keep - 1
+            _ub = num_samples - 1
+        elif side_cut_from == "upper":
+            _lb = 0
+            _ub = number_to_keep - 1
+        else:
+            _lb = round(number_to_cut / 2) - 1
+            _ub = num_samples - _lb
+        for col in df:
+            df[col] = df[col].sort_values()[_lb:_ub:1]
+        return df
+
 
 class BinaryQuestion(MetaculusQuestion):
     """
@@ -513,11 +546,39 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def show_community_prediction(self):
+    def show_community_prediction(
+        self,
+        percent_kept: float = 0.95,
+        side_cut_from: str = "both",
+        num_samples: int = 1000,
+    ):
         """
-        Plot the community prediction on this question
+        Plot samples from the community prediction on this question
+
+        :param percent_kept: percentage of sample distrubtion to keep
+        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
+        :return: pandas dataframe with only central percent_kept samples
+        :param num_samples: number of samples from the community
+        :return: ggplot graphics object
         """
-        raise NotImplementedError("This should be implemented by a subclass")
+        community_samples = pd.DataFrame(
+            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}  # type: ignore
+        )
+        community_samples = self.cut_sample_tails(
+            community_samples, percent_kept=percent_kept, side_cut_from=side_cut_from
+        )
+        return (
+            ggplot(community_samples, aes("samples"))
+            + geom_density(cut=1, color="darkblue", fill="lightblue", alpha=0.8)
+            + labs(x="Prediction", y="Density", title="Community Predictions")
+            + ergo_theme
+        )
+
+    # def show_community_prediction(self, percent_kept: float, side_cut_from: str, num_samples: int):
+    #     """
+    #     Plot the community prediction on this question
+    #     """
+    #     raise NotImplementedError("This should be implemented by a subclass")
 
 
 class LinearQuestion(ContinuousQuestion):
@@ -587,11 +648,7 @@ class LinearQuestion(ContinuousQuestion):
             true_scale_logistics_params, submission_params.probs
         )
 
-
-def show_prediction(self, samples, show_community=False):
-    def show_prediction(
-        self, prediction: SubmissionMixtureParams, samples=None, show_community=False
-    ):
+    def show_prediction(self, samples, show_community=False):
         """
         Plot prediction in the true question scale based on samples. Optionally compare prediction against a sample from the distribution of community predictions
 
@@ -601,6 +658,9 @@ def show_prediction(self, samples, show_community=False):
         :return: ggplot graphics object
         """
         num_samples = 1000
+        prediction = self.get_submission_from_samples(
+            samples
+        )  # logistic mixture params in the Metaculus API format
 
         # This is a pragmatic comprimise that will take predictions out of range and assign them the nearest in-range point
         def clip(samples):
@@ -629,7 +689,6 @@ def show_prediction(self, samples, show_community=False):
                 ggplot(df, aes("samples", fill="sources"))
                 + geom_histogram(position="identity")
                 + facet_wrap("sources", ncol=1)
-                + scale_x_datetime()
                 + labs(
                     x="Prediction",
                     y="Counts",
@@ -646,7 +705,6 @@ def show_prediction(self, samples, show_community=False):
             return (
                 ggplot(df, aes("prediction"))
                 + geom_histogram()
-                + scale_x_datetime()
                 + labs(
                     x="Prediction",
                     y="Counts",
@@ -655,23 +713,6 @@ def show_prediction(self, samples, show_community=False):
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
-
-    def show_community_prediction(self, num_samples=1000):
-        """
-        Plot samples from the community prediction on this question
-        :param num_samples: number of samples from the community
-        :return: ggplot graphics object
-        """
-        community_samples = pd.DataFrame(
-            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
-        )
-
-        return (
-            ggplot(community_samples, aes("samples"))
-            + geom_density(color="darkblue", fill="lightblue", alpha=0.8)
-            + labs(x="Prediction", y="Density", title="Community Predictions")
-            + ergo_theme
-        )
 
 
 class LogQuestion(ContinuousQuestion):
@@ -724,23 +765,6 @@ class LogQuestion(ContinuousQuestion):
         """
         return [self.true_from_normalized_value(sample) for sample in samples]
 
-    def show_community_prediction(self, num_samples=1000):
-        """
-        Plot samples from the community prediction on this question
-
-        :param num_samples: number of samples from the community
-        :return: ggplot graphics object
-        """
-        community_samples = pd.DataFrame(
-            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
-        )
-        return (
-            ggplot(community_samples, aes("samples"))
-            + geom_density(cut=1, color="darkblue", fill="lightblue", alpha=0.8)
-            + labs(x="Prediction", y="Density", title="Community Predictions")
-            + ergo_theme
-        )
-
     def show_prediction(self, samples, show_community=False):
         """
         Plot prediction in the true question scale based on samples. Optionally compare prediction against a sample from the distribution of community predictions
@@ -783,7 +807,6 @@ class LogQuestion(ContinuousQuestion):
                 ggplot(df, aes("samples", fill="sources"))
                 + geom_histogram(position="identity")
                 + facet_wrap("sources", ncol=1)
-                + scale_x_datetime()
                 + labs(
                     x="Prediction",
                     y="Counts",
@@ -800,7 +823,6 @@ class LogQuestion(ContinuousQuestion):
             return (
                 ggplot(df, aes("prediction"))
                 + geom_histogram()
-                + scale_x_datetime()
                 + labs(
                     x="Prediction",
                     y="Counts",
@@ -932,7 +954,6 @@ class LinearDateQuestion(LinearQuestion):
                 ggplot(df, aes("samples", fill="sources"))
                 + geom_histogram(position="identity")
                 + facet_wrap("sources", ncol=1)
-                + scale_x_datetime()
                 + labs(
                     x="Prediction",
                     y="Counts",
@@ -959,19 +980,30 @@ class LinearDateQuestion(LinearQuestion):
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
 
-    def show_community_prediction(self, num_samples=1000):
+    def show_community_prediction(
+        self,
+        percent_kept: float = 0.95,
+        side_cut_from: str = "both",
+        num_samples: int = 1000,
+    ):
         """
         Plot samples from the community prediction on this question
 
+        :param percent_kept: percentage of sample distrubtion to keep
+        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
+        :return: pandas dataframe with only central percent_kept samples
         :param num_samples: number of samples from the community
         :return: ggplot graphics object
         """
         community_samples = pd.DataFrame(
-            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}
+            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}  # type: ignore
         )
+        community_samples = self.cut_sample_tails(
+            community_samples, percent_kept=percent_kept, side_cut_from=side_cut_from
+        ).dropna()
         return (
             ggplot(community_samples, aes("samples"))
-            + geom_histogram(fill="lightblue")
+            + geom_histogram(fill="lightblue", color="blue")
             + scale_x_datetime()
             + labs(x="Prediction", y="Counts", title="Community Predictions")
             + ergo_theme
