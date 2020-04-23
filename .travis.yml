@@ -1,21 +1,14 @@
-# Disable sudo to speed up the build
 sudo: false
-
 language: python
-
 python:
 - 3.6.9
-
 before_install:
 - pip install poetry
-
 install:
 - poetry install
-
 script:
 - make lint
 - make docs
 - make test
-
 after_success:
-  - poetry run codecov
+- poetry run codecov

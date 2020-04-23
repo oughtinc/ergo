@@ -4,7 +4,7 @@ lint: FORCE  ## Run flake8, mypy and black (in check mode)
 	poetry run black . --check
 
 test: FORCE  ## Run pytest
-	poetry run python -m pytest --cov=ergo -s .
+	poetry run python -m pytest --cov=ergo --doctest-modules -s .
 
 format: FORCE  ## Run isort and black (rewriting files)
 	poetry run isort -rc .

@@ -1,9 +1,10 @@
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 import ergo.data
 import ergo.logistic
 import ergo.metaculus
 import ergo.ppl
+import ergo.theme
 
 from .foretold import Foretold, ForetoldQuestion
 from .metaculus import Metaculus, MetaculusQuestion

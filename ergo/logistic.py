@@ -6,10 +6,8 @@ from jax import grad, jit, nn, scipy, vmap
 from jax.experimental.optimizers import clip_grads, sgd
 from jax.interpreters.xla import DeviceArray
 import jax.numpy as np
-import matplotlib.pyplot as pyplot
 import numpy as onp
 import scipy as oscipy
-import seaborn
 import torch
 from tqdm.autonotebook import tqdm  # type: ignore
 
@@ -117,13 +115,3 @@ def sample_mixture(mixture_params):
     i = categorical(torch.tensor(mixture_params.probs))
     component_params = mixture_params.components[i]
     return onp.random.logistic(loc=component_params.loc, scale=component_params.scale)
-
-
-def plot_mixture(params: LogisticMixtureParams, data=None):
-    learned_samples = np.array([sample_mixture(params) for _ in range(5000)])
-    ax = seaborn.distplot(learned_samples, label="Mixture")
-    ax.set(xlabel="Sample value", ylabel="Density")
-    if data is not None:
-        seaborn.distplot(data, label="Data")
-    pyplot.legend()  # type: ignore
-    pyplot.show()
