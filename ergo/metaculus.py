@@ -598,7 +598,7 @@ class ContinuousQuestion(MetaculusQuestion):
     ):
         """Plot prediction on the true question scale from samples or a submission object. Optionally compare prediction against a sample from the distribution of community predictions
 
-        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param samples: samples from a distribution answering the prediction question (true scale) or a prediction object
         :param percent_kept: percentage of sample distrubtion to keep
         :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
         :param show_community: boolean indicating whether comparison to community predictions should be made
@@ -608,17 +608,22 @@ class ContinuousQuestion(MetaculusQuestion):
 
         if isinstance(samples, SubmissionMixtureParams):
             prediction = samples
+            prediction_normed_samples = pd.Series(
+                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+            )
+            prediction_true_scale_samples = self.denormalize_samples(
+                prediction_normed_samples
+            )
         else:
-            prediction = self.get_submission_from_samples(
-                samples
-            )  # logistic mixture params in the Metaculus API format
+            if isinstance(samples, list):
+                samples = pd.Series(samples)
+            if not type(samples) in [pd.Series, np.ndarray]:
+                raise ValueError(
+                    "Samples should be a list, numpy arrray or pandas series"
+                )
+            num_samples = samples.shape[0]
+            prediction_true_scale_samples = samples
 
-        prediction_normed_samples = pd.Series(
-            [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
-        )
-        prediction_true_scale_samples = self.denormalize_samples(
-            prediction_normed_samples
-        )
         title_name = (
             f"Q: {self.name}"
             if self.name
@@ -920,7 +925,7 @@ class LinearDateQuestion(LinearQuestion):
     ):
         """Plot prediction on the true question scale from samples or a submission object. Optionally compare prediction against a sample from the distribution of community predictions
 
-        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param samples: samples from a distribution answering the prediction question (true scale) or a prediction object
         :param percent_kept: percentage of sample distrubtion to keep
         :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
         :param show_community: boolean indicating whether comparison to community predictions should be made
@@ -931,14 +936,18 @@ class LinearDateQuestion(LinearQuestion):
 
         if isinstance(samples, SubmissionMixtureParams):
             prediction = samples
+            prediction_normed_samples = pd.Series(
+                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+            )
         else:
-            prediction = self.get_submission_from_samples(
-                samples
-            )  # logistic mixture params in the Metaculus API format
-
-        prediction_normed_samples = pd.Series(
-            [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
-        )
+            if isinstance(samples, list):
+                samples = pd.Series(samples)
+            if not type(samples) in [pd.Series, np.ndarray]:
+                raise ValueError(
+                    "Samples should be a list, numpy arrray or pandas series"
+                )
+            num_samples = samples.shape[0]
+            prediction_normed_samples = self.normalize_samples(samples)
 
         title_name = (
             f"Q: {self.name}"
@@ -956,6 +965,8 @@ class LinearDateQuestion(LinearQuestion):
                     "prediction": prediction_normed_samples,  # type: ignore
                 }
             )
+            # import pdb
+            # pdb.set_trace()
             # get domain for graph given the percentage of distribution kept
             (_xmin, _xmax) = self.get_central_quantiles(
                 df, percent_kept=percent_kept, side_cut_from=side_cut_from
