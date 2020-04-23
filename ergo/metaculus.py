@@ -128,7 +128,7 @@ class MetaculusQuestion:
 
     def set_data(self, key: str, value: Any):
         """
-        Add to data dict
+        Set key on data dict
 
         :param key:
         :param value:
