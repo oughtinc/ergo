@@ -54,7 +54,9 @@ from plotnine import (  # type: ignore
     guides,
     labs,
     scale_fill_brewer,
+    scale_x_continuous,
     scale_x_datetime,
+    scale_x_log10,
     theme,
     xlim,
 )
@@ -583,6 +585,9 @@ class ContinuousQuestion(MetaculusQuestion):
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
         return self.get_submission_from_json(latest_prediction)
 
+    def _scale_x(self):
+        return scale_x_continuous()
+
     def show_prediction(
         self,
         samples,
@@ -615,9 +620,9 @@ class ContinuousQuestion(MetaculusQuestion):
             prediction_normed_samples
         )
         title_name = (
-            f"Q:{self.name}\n"
+            f"Q: {self.name}"
             if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"  # type: ignore
+            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
         )
 
         if show_community:
@@ -639,11 +644,8 @@ class ContinuousQuestion(MetaculusQuestion):
                 + scale_fill_brewer(type="qual", palette="Pastel1")
                 + geom_density(alpha=0.8)
                 + xlim(_xmin, _xmax)
-                + labs(
-                    x="Prediction",
-                    y="Density",
-                    title=title_name + "Prediction vs Community",
-                )
+                + self._scale_x()
+                + labs(x="Prediction", y="Density", title=title_name)
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
@@ -660,7 +662,8 @@ class ContinuousQuestion(MetaculusQuestion):
                 + scale_fill_brewer(type="qual", palette="Pastel1")
                 + geom_density(alpha=0.8)
                 + xlim(_xmin, _xmax)
-                + labs(x="Prediction", y="Density", title=title_name + "Prediction")
+                + self._scale_x()
+                + labs(x="Prediction", y="Density", title=title_name)
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
@@ -687,7 +690,7 @@ class ContinuousQuestion(MetaculusQuestion):
             community_samples, percent_kept=percent_kept, side_cut_from=side_cut_from
         )
         title_name = (
-            f"Q:{self.name}\n"
+            f"Q: {self.name}"
             if self.name
             else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"  # type: ignore
         )
@@ -695,6 +698,7 @@ class ContinuousQuestion(MetaculusQuestion):
             ggplot(community_samples, aes("samples"))
             + geom_density(fill="#b3cde3", alpha=0.8)
             + xlim(_xmin, _xmax)
+            + self._scale_x()
             + labs(
                 x="Prediction", y="Density", title=title_name + "Community Predictions"
             )
@@ -820,6 +824,9 @@ class LogQuestion(ContinuousQuestion):
         """
         return [self.true_from_normalized_value(sample) for sample in samples]
 
+    def _scale_x(self):
+        return scale_x_log10()
+
 
 class LinearDateQuestion(LinearQuestion):
     # TODO: add log functionality (if some psychopath makes a log scaled date question)
@@ -934,9 +941,9 @@ class LinearDateQuestion(LinearQuestion):
         )
 
         title_name = (
-            f"Q:{self.name}\n"
+            f"Q: {self.name}"
             if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"  # type: ignore
+            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
         )
 
         if show_community:
@@ -964,11 +971,7 @@ class LinearDateQuestion(LinearQuestion):
                 + geom_histogram(position="identity", alpha=0.9)
                 + scale_x_datetime(limits=(_xmin, _xmax))
                 + facet_wrap("sources", ncol=1)
-                + labs(
-                    x="Prediction",
-                    y="Counts",
-                    title=title_name + "Prediction vs Community",
-                )
+                + labs(x="Prediction", y="Counts", title=title_name,)
                 + guides(fill=False)
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
@@ -983,13 +986,12 @@ class LinearDateQuestion(LinearQuestion):
             df = pd.DataFrame(
                 data={"prediction": self.denormalize_samples(prediction_normed_samples)}
             )
-            print(_xmin, _xmax)
             return (
                 ggplot(df, aes("prediction"))
                 + geom_histogram(fill="#b3cde3", bins=bins)
                 # + coord_cartesian(xlim = (_xmin,_xmax))
                 + scale_x_datetime(limits=(_xmin, _xmax))
-                + labs(x="Prediction", y="Counts", title=title_name + "Prediction")
+                + labs(x="Prediction", y="Counts", title=title_name)
                 + ergo_theme
                 + theme(axis_text_x=element_text(rotation=45, hjust=1))
             )
@@ -1021,17 +1023,15 @@ class LinearDateQuestion(LinearQuestion):
 
         df = pd.DataFrame(data={"samples": self.denormalize_samples(community_samples)})
         title_name = (
-            f"Q:{self.name}\n"
+            f"Q: {self.name}"
             if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"  # type: ignore
+            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
         )
         return (
             ggplot(df, aes("samples"))
             + geom_histogram(fill="#b3cde3", bins=bins)
             + scale_x_datetime(limits=(_xmin, _xmax))
-            + labs(
-                x="Prediction", y="Counts", title=title_name + "Community Predictions"
-            )
+            + labs(x="Prediction", y="Counts", title=title_name)
             + ergo_theme
             + theme(axis_text_x=element_text(rotation=45, hjust=1))
         )
