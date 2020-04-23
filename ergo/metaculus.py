@@ -135,9 +135,9 @@ class MetaculusQuestion:
         """
         self.data[key] = value
 
-    def add_change(self, since: int):
+    def calculate_change(self, since: int):
         """
-        Add change in community prediction to data dict
+        Set change field in data dict to change in community prediction
 
         :param since: timestamp to let us know change since when
         """
