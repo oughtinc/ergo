@@ -1118,6 +1118,8 @@ class Metaculus:
         :param name: a custom name for the question
         :return: A MetaculusQuestion from the appropriate subclass
         """
+        if not name:
+            name = data.get("title")
         if data["possibilities"]["type"] == "binary":
             return BinaryQuestion(data["id"], self, data, name)
         if data["possibilities"]["type"] == "continuous":
