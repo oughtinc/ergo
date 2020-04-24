@@ -44,7 +44,6 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import pendulum
 from plotnine import (  # type: ignore
     aes,
     element_text,
@@ -187,15 +186,6 @@ class MetaculusQuestion:
         """
         self.data[key] = value
 
-    def calculate_change(self, since: int):
-        """
-        Set change field in data dict to change in community prediction
-
-        :param since: timestamp to let us know change since when
-        """
-        change = self.get_change(since)
-        self.set_data("change", change)
-
     def refresh_question(self):
         """
         Refetch the question data from Metaculus, used when the question data might have changed
@@ -273,12 +263,9 @@ class MetaculusQuestion:
                 j = j - 1
                 break
 
-            period = pendulum.period(
-                pendulum.from_timestamp(timestamp),
-                pendulum.from_timestamp(self.prediction_timeseries[-j]["t"]),
-            )
+            timestamp_difference = self.prediction_timeseries[-j]["t"] - timestamp
 
-            if period.in_seconds() <= 0:
+            if timestamp_difference <= 0:
                 have_not_gone_far_back_enough = False
             else:
                 j = j + 1
@@ -350,9 +337,9 @@ class BinaryQuestion(MetaculusQuestion):
             prediction["t"], prediction, resolution, score, self.__str__()
         )
 
-    def get_change(self, since=pendulum.now().subtract(days=1).timestamp()):
+    def change_since(self, since: int):
         """
-        Get change in community prediction between "since" argument and most recent prediction
+        Calculate change in community prediction between the argument and most recent prediction
 
         :param since: timestamp
         :return: change in community prediction since timestamp
@@ -799,9 +786,9 @@ class ContinuousQuestion(MetaculusQuestion):
             + ergo_theme
         )
 
-    def get_change(self, since=pendulum.now().subtract(days=1).timestamp()):
+    def change_since(self, since: int):
         """
-        Get change in community prediction median between "since" argument and most recent prediction
+        Calculate change in community prediction median between the argument and most recent prediction
 
         :param since: timestamp
         :return: change in median community prediction since timestamp
