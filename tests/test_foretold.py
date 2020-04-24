@@ -62,7 +62,7 @@ class TestForetold:
         assert type(cdf.ys[0]) == float
         # Check that `xs` is sorted as expected by Foretold.
         assert np.all(np.diff(xs) >= 0)
-        assert np.all(0 <= ys) && np.all(ys <= 1)
+        assert np.all(0 <= ys) and np.all(ys <= 1)
         assert np.all(np.abs(true_ys - ys) < 0.1)
 
     def test_cdf_from_samples_pandas(self):
