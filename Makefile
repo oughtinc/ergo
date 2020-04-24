@@ -1,3 +1,5 @@
+all: format lint docs test
+
 lint: FORCE  ## Run flake8, mypy and black (in check mode)
 	poetry run flake8
 	poetry run mypy .
