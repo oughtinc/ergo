@@ -201,7 +201,7 @@ class ForetoldQuestion:
         seaborn.lineplot(floatCdf["xs"], floatCdf["ys"])
 
     def submit_from_samples(
-        self, samples: Union[np.ndarray, pd.Series], length: int
+        self, samples: Union[np.ndarray, pd.Series], length: int = 20
     ) -> requests.Response:
         """Submit a prediction to Foretold based on the given samples
 
