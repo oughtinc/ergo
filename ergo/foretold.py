@@ -14,7 +14,8 @@ class Foretold:
     """Interface to Foretold"""
 
     def __init__(self, token=None):
-        """token (string): Specify an authorization token (supports Bot tokens from Foretold)"""
+        """token (string): Specify an authorization token
+        (supports Bot tokens from Foretold)"""
         self.token = token
         self.api_url = "https://prediction-backend.herokuapp.com/graphql"
 
@@ -25,9 +26,12 @@ class Foretold:
         return question
 
     def get_questions(self, ids):
-        """Retrieve many questions by their ids
-            ids (List[string]): List of foretold question ids (should be less than 500 per request)
-        Returns: List of questions corresponding to the ids, or None for questions that weren't found."""
+        """
+        Retrieve many questions by their ids
+            ids (List[string]): List of foretold question ids
+                (should be less than 500 per request)
+        Returns: List of questions corresponding to the ids,
+            or None for questions that weren't found."""
         measurables = self._query_measurables(ids)
         return [
             ForetoldQuestion(measurable["id"], self, measurable) if measurable else None
@@ -69,7 +73,8 @@ class Foretold:
     def _query_measurables(self, ids):
         """Retrieve data from api about many question by a list of ids"""
         if len(ids) > 500:
-            # If we want to implement this later, we can properly use the pageInfo in the request
+            # If we want to implement this later,
+            # we can properly use the pageInfo in the request
             raise NotImplementedError(
                 "We haven't implemented support for more than 500 ids per request"
             )

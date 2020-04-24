@@ -181,7 +181,8 @@ def infer_and_run(
     debug - whether to output debug information
     num_iterations - Number of optimizer iterations
     learning_rate - Optimizer learning rate
-    early_stopping_patience - Stop training if loss hasn't improved for this many iterations
+    early_stopping_patience - Stop training if loss hasn't
+        improved for this many iterations
   """
 
     def to_numpy(d):
