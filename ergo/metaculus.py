@@ -1075,13 +1075,16 @@ class Metaculus:
         log in to Metaculus using your credentials and store cookies, etc. in the session object for future use
         """
         loginURL = f"{self.api_url}/accounts/login/"
-        r = self.s.post(
-            loginURL,
-            headers={"Content-Type": "application/json"},
-            data=json.dumps({"username": username, "password": password}),
-        )
+        try:
+            r = self.s.post(
+                loginURL,
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({"username": username, "password": password}),
+            )
 
-        self.user_id = r.json()["user_id"]
+            self.user_id = r.json()["user_id"]
+        except KeyError:
+            print("Invalid username and password.")
 
     def post(self, url: str, data: Dict) -> requests.Response:
         """
