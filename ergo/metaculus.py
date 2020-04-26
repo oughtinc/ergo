@@ -75,7 +75,8 @@ from ergo.theme import ergo_theme  # type: ignore
 @dataclass
 class ScoredPrediction:
     """
-    A prediction scored according to how it resolved or according to the current community prediction
+    A prediction scored according to how it resolved or
+    according to the current community prediction
     """
 
     time: float
@@ -127,9 +128,12 @@ class MetaculusQuestion:
     def __init__(self, id: int, metaculus: "Metaculus", data: Dict, name=None):
         """
         :param id: question id on Metaculus
-        :param metaculus: Metaculus class instance, specifies which user to use for e.g. submitting predictions
-        :param data: information about the question, e.g. as returned by the Metaculus API
-        :param name: name for the question to be e.g. used in graph titles, defaults to None
+        :param metaculus: Metaculus class instance, specifies which user to use for
+            e.g. submitting predictions
+        :param data: information about the question,
+            e.g. as returned by the Metaculus API
+        :param name: name for the question to be
+            e.g. used in graph titles, defaults to None
         """
         self.id = id
         self.data = data
@@ -139,13 +143,16 @@ class MetaculusQuestion:
     @property
     def latest_community_percentiles(self):
         """
-        :return: Some percentiles for the metaculus commununity's latest rough prediction. `prediction_histogram` returns a more fine-grained histogram of the community prediction
+        :return: Some percentiles for the metaculus commununity's latest rough
+            prediction. `prediction_histogram` returns a more fine-grained
+            histogram of the community prediction
         """
         return self.prediction_timeseries[-1]["community_prediction"]
 
     def __getattr__(self, name):
         """
-        If an attribute isn't directly on the class, check whether it's in the raw question data. If it's a time, format it appropriately.
+        If an attribute isn't directly on the class, check whether it's in the
+        raw question data. If it's a time, format it appropriately.
 
         :param name: attr name
         :return: attr value
@@ -153,7 +160,8 @@ class MetaculusQuestion:
         if name in self.data:
             if name.endswith("_time"):
                 # could use dateutil.parser to deal with timezones better,
-                # but opted for lightweight since datetime.fromisoformat will fix this in python 3.7
+                # but opted for lightweight since datetime.fromisoformat
+                # will fix this in python 3.7
                 try:
                     # attempt to parse with microseconds
                     return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%S%fZ")
@@ -189,14 +197,16 @@ class MetaculusQuestion:
 
     def refresh_question(self):
         """
-        Refetch the question data from Metaculus, used when the question data might have changed
+        Refetch the question data from Metaculus,
+        used when the question data might have changed
         """
         r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
     def sample_community(self):
         """
-        Get one sample from the distribution of the Metaculus community's prediction on this question
+        Get one sample from the distribution of the Metaculus community's
+        prediction on this question
         (sample is denormalized/on the the true scale of the question)
         """
         raise NotImplementedError("This should be implemented by a subclass")
@@ -245,12 +255,17 @@ class MetaculusQuestion:
         side_cut_from: str = "both",
     ):
         """
-        Get the values that bound the central (percent_kept) of the sample distribution, i.e.,  cutting the tails from these values will give you the central. If passed a dataframe with multiple variables, the bounds that encompass all variables will be returned.
+        Get the values that bound the central (percent_kept) of the sample distribution,
+        i.e.,  cutting the tails from these values will give you the central.
+        If passed a dataframe with multiple variables, the bounds that encompass
+        all variables will be returned.
 
         :param df: pandas dataframe of one or more column of samples
         :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
-        :return: lower and upper values of the central (percent_kept) of the sample distribution.
+        :param side_cut_from: which side to cut tails from,
+            either 'both','lower', or 'upper'
+        :return: lower and upper values of the central (percent_kept) of
+            the sample distribution.
         """
 
         if side_cut_from not in ("both", "lower", "upper"):
@@ -290,8 +305,11 @@ class BinaryQuestion(MetaculusQuestion):
         Score a prediction relative to a resolution using a Brier Score.
 
         :param prediction: how likely is the event to happen, from 0 to 1?
-        :param resolution: how likely is the event to happen, from 0 to 1? (0 if it didn't, 1 if it did)
-        :return: ScoredPrediction with Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
+        :param resolution: how likely is the event to happen, from 0 to 1?
+            (0 if it didn't, 1 if it did)
+        :return: ScoredPrediction with Brier score, see
+            https://en.wikipedia.org/wiki/Brier_score#Definition
+            0 is best, 1 is worst, 0.25 is chance
         """
         predicted = prediction["x"]
         score = (resolution - predicted) ** 2
@@ -317,7 +335,9 @@ class BinaryQuestion(MetaculusQuestion):
 
     def score_my_predictions(self):
         """
-        Score all of my predictions according to the question resolution (or according to the current community prediction if the resolution isn't available)
+        Score all of my predictions according to the question resolution
+        (or according to the current community prediction if the resolution
+        isn't available)
 
         :return: List of ScoredPredictions with Brier scores
         """
@@ -355,7 +375,8 @@ class SubmissionLogisticParams(logistic.LogisticParams):
 @dataclass
 class SubmissionMixtureParams:
     """
-    Parameters needed to submit a prediction to Metaculus (in the form of a logistic mixture)
+    Parameters needed to submit a prediction to Metaculus
+    (in the form of a logistic mixture)
     """
 
     components: List[SubmissionLogisticParams]
@@ -364,20 +385,23 @@ class SubmissionMixtureParams:
 
 class ContinuousQuestion(MetaculusQuestion):
     """
-    A continuous Metaculus question -- a question of the form, what's your distribution on this event?
+    A continuous Metaculus question -- a question of the form,
+    what's your distribution on this event?
     """
 
     @property
     def low_open(self) -> bool:
         """
-        Are you allowed to place probability mass below the bottom of this question's range?
+        Are you allowed to place probability mass below the bottom
+        of this question's range?
         """
         return self.possibilities["low"] == "tail"
 
     @property
     def high_open(self) -> bool:
         """
-        Are you allowed to place probability mass above the top of this question's range?
+        Are you allowed to place probability mass
+        above the top of this question's range?
         """
         return self.possibilities["high"] == "tail"
 
@@ -399,11 +423,24 @@ class ContinuousQuestion(MetaculusQuestion):
     def question_range_width(self):
         return self.question_range["max"] - self.question_range["min"]
 
-    # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
+    @property
+    def _scale_x(self):
+        return scale_x_continuous()
+
+    @property
+    def title_name(self):
+        return (
+            f"Q: {self.name}"
+            if self.name
+            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
+        )
+
+    # TODO: maybe it's better to fit the logistic first then normalize,
+    # rather than the other way around?
     def normalize_samples(self, samples):
         """
-        The Metaculus API accepts normalized predictions rather than predictions on the true scale of the question.
-        Normalize samples to fit that scale.
+        The Metaculus API accepts normalized predictions rather than predictions on
+        the true scale of the question. Normalize samples to fit that scale.
 
         :param samples: samples from the true-scale prediction distribution
         """
@@ -414,13 +451,15 @@ class ContinuousQuestion(MetaculusQuestion):
     ) -> SubmissionLogisticParams:
         """
         Get the params needed to submit a logistic to Metaculus as part of a prediction.
-        See comments for more explanation of how the params need to be transformed for Metaculus to accept them
+        See comments for more explanation of how the params need to be transformed
+        for Metaculus to accept them
 
         :param logistic_params: params for a logistic on the normalized scale
         :return: params to submit the logistic to Metaculus as part of a prediction
         """
         distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
-        # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
+        # The loc and scale have to be within a certain range for the
+        # Metaculus API to accept the prediction.
 
         # max loc of 3 set based on API response to prediction on
         # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
@@ -436,12 +475,14 @@ class ContinuousQuestion(MetaculusQuestion):
 
         if self.low_open:
             # We're not really sure what the deal with the low and high is.
-            # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
-            # and ignores porbability mass assigned below/above.
-            # But we're not actually trying to use them to "cut off" our distribution in a smart way;
-            # we're just trying to include as much of our distribution as we can without the API getting unhappy
-            # (we belive that if you set the low higher than the value below [or if you set the high lower],
-            # then the API will reject the prediction, though we haven't tested that extensively)
+            # Presumably they're supposed to be the points at which Metaculus "cuts off"
+            # your distribution and ignores porbability mass assigned below/above.
+            # But we're not actually trying to use them to "cut off" our distribution
+            # in a smart way; we're just trying to include as much of our distribution
+            # as we can without the API getting unhappy
+            # (we belive that if you set the low higher than the value below
+            # [or if you set the high lower], then the API will reject the prediction,
+            # though we haven't tested that extensively)
             min_open_low = 0.01
             low = max(distribution.cdf(0), min_open_low)
         else:
@@ -472,17 +513,18 @@ class ContinuousQuestion(MetaculusQuestion):
         A distribution for the portion of the current normalized community prediction
         that's within the question's range.
 
-        :return: distribution on integers referencing 0...(len(self.prediction_histogram)-1)
+        :return: distribution on integers
+        referencing 0...(len(self.prediction_histogram)-1)
         """
         y2 = [p[2] for p in self.prediction_histogram]
         return dist.Categorical(probs=torch.tensor(y2))
 
     def sample_normalized_community(self) -> float:
         """
-        Sample an approximation of the entire current community prediction, on the normalized scale.
-        The main reason that it's just an approximation is that we don't know
-        exactly where probability mass outside of the question range should be, so we place it arbitrarily
-        (see comment for more)
+        Sample an approximation of the entire current community prediction,
+        on the normalized scale. The main reason that it's just an approximation
+        is that we don't know exactly where probability mass outside of the question
+        range should be, so we place it arbitrarily (see comment for more)
 
         :return: One sample on the normalized scale
         """
@@ -516,7 +558,8 @@ class ContinuousQuestion(MetaculusQuestion):
         Sample an approximation of the entire current community prediction,
         on the true scale of the question.
         The main reason that it's just an approximation is that we don't know
-        exactly where probability mass outside of the question range should be, so we place it arbitrarily
+        exactly where probability mass outside of the question range should be,
+        so we place it arbitrarily
 
         :return: One sample on the true scale
         """
@@ -533,7 +576,8 @@ class ContinuousQuestion(MetaculusQuestion):
         self, mixture_params: logistic.LogisticMixtureParams
     ) -> SubmissionMixtureParams:
         """
-        Get parameters to submit a prediction to the Metaculus API using a logistic mixture
+        Get parameters to submit a prediction to the Metaculus API using a
+        logistic mixture
 
         :param mixture_params: normalized mixture parameters
         :return: normalized parameters clipped and formatted for the API
@@ -560,8 +604,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def format_logistic_for_api(
         submission: SubmissionLogisticParams, weight: float
     ) -> dict:
-        # convert all the numbers to floats here so that you can be sure that wherever they originated
-        # (e.g. numpy), they'll be regular old floats that can be converted to json by json.dumps
+        # convert all the numbers to floats here so that you can be sure that
+        # wherever they originated (e.g. numpy), they'll be regular old floats that
+        # can be converted to json by json.dumps
         return {
             "kind": "logistic",
             "x0": float(submission.loc),
@@ -597,7 +642,8 @@ class ContinuousQuestion(MetaculusQuestion):
         Submit prediction to Metaculus based on samples from a prediction distribution
 
         :param samples: Samples from a distribution answering the prediction question
-        :param samples_for_fit: How many samples to take to fit the logistic mixture. More will be slower but will give a better fit
+        :param samples_for_fit: How many samples to take to fit the logistic mixture.
+            More will be slower but will give a better fit
         :return: logistic mixture params clipped and formatted to submit to Metaculus
         """
         submission = self.get_submission_from_samples(samples, samples_for_fit)
@@ -625,9 +671,6 @@ class ContinuousQuestion(MetaculusQuestion):
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
         return self.get_submission_from_json(latest_prediction)
 
-    def _scale_x(self):
-        return scale_x_continuous()
-
     def show_prediction(
         self,
         samples,
@@ -635,15 +678,21 @@ class ContinuousQuestion(MetaculusQuestion):
         side_cut_from: str = "both",
         show_community: bool = False,
         num_samples: int = 1000,
+        **kwargs,
     ):
-        """Plot prediction on the true question scale from samples or a submission object. Optionally compare prediction against a sample from the distribution of community predictions
+        """Plot prediction on the true question scale from samples or a submission
+        object. Optionally compare prediction against a sample from the distribution
+        of community predictions
 
-        :param samples: samples from a distribution answering the prediction question (true scale) or a prediction object
+        :param samples: samples from a distribution answering the prediction question
+            (true scale) or a prediction object
         :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
-        :param show_community: boolean indicating whether comparison to community predictions should be made
+        :param side_cut_from: which side to cut tails from,
+            either 'both','lower', or 'upper'
+        :param show_community: boolean indicating whether comparison
+            to community predictions should be made
         :param num_samples: number of samples from the community
-        :return: ggplot graphics object
+        :param **kwargs: additional plotting parameters
         """
 
         if isinstance(samples, SubmissionMixtureParams):
@@ -651,9 +700,7 @@ class ContinuousQuestion(MetaculusQuestion):
             prediction_normed_samples = pd.Series(
                 [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
             )
-            prediction_true_scale_samples = self.denormalize_samples(
-                prediction_normed_samples
-            )
+
         else:
             if isinstance(samples, list):
                 samples = pd.Series(samples)
@@ -662,90 +709,101 @@ class ContinuousQuestion(MetaculusQuestion):
                     "Samples should be a list, numpy arrray or pandas series"
                 )
             num_samples = samples.shape[0]
-            prediction_true_scale_samples = samples
-
-        title_name = (
-            f"Q: {self.name}"
-            if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
-        )
+            prediction_normed_samples = self.normalize_samples(
+                samples
+            )  # need to do go to normalizes space for dates values samples
 
         if show_community:
             df = pd.DataFrame(
                 data={
                     "community": [  # type: ignore
-                        self.sample_community() for _ in range(0, num_samples)
+                        self.sample_normalized_community()
+                        for _ in range(0, num_samples)
                     ],
-                    "prediction": prediction_true_scale_samples,
+                    "prediction": prediction_normed_samples,  # type: ignore
                 }
             )
             # get domain for graph given the percentage of distribution kept
-            (_xmin, _xmax) = self.get_central_quantiles(
-                df, percent_kept=percent_kept, side_cut_from=side_cut_from
-            )
-            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
-            return (
-                ggplot(df, aes("samples", fill="sources"))
-                + scale_fill_brewer(type="qual", palette="Pastel1")
-                + geom_density(alpha=0.8)
-                + xlim(_xmin, _xmax)
-                + self._scale_x()
-                + labs(x="Prediction", y="Density", title=title_name)
-                + ergo_theme
-                + theme(axis_text_x=element_text(rotation=45, hjust=1))
-            )
-        else:
-            df = pd.DataFrame(data={"prediction": prediction_true_scale_samples})
-            # get domain for graph given the percentage of distribution kept
-            (_xmin, _xmax) = self.get_central_quantiles(
-                df, percent_kept=percent_kept, side_cut_from=side_cut_from
+            _xmin, _xmax = self.denormalize_samples(
+                self.get_central_quantiles(
+                    prediction_normed_samples,
+                    percent_kept=percent_kept,
+                    side_cut_from=side_cut_from,
+                )
             )
 
-            return (
-                ggplot(df, aes("prediction"))
-                + geom_density(fill="#b3cde3", alpha=0.8)
-                + scale_fill_brewer(type="qual", palette="Pastel1")
-                + geom_density(alpha=0.8)
-                + xlim(_xmin, _xmax)
-                + self._scale_x()
-                + labs(x="Prediction", y="Density", title=title_name)
-                + ergo_theme
-                + theme(axis_text_x=element_text(rotation=45, hjust=1))
+            df["prediction"] = self.denormalize_samples(df["prediction"])
+            df["community"] = self.denormalize_samples(df["community"])
+
+            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
+
+            plot = self.comparison_plot(df, _xmin, _xmax, **kwargs)
+            plot.draw()
+
+        else:
+            df = pd.DataFrame(data={"prediction": prediction_normed_samples})  # type: ignore
+            # get domain for graph given the percentage of distribution kept
+            _xmin, _xmax = self.denormalize_samples(
+                self.get_central_quantiles(
+                    df, percent_kept=percent_kept, side_cut_from=side_cut_from
+                )
             )
+
+            df["prediction"] = self.denormalize_samples(df["prediction"])
+
+            plot = self.density_plot(df, _xmin, _xmax, fill="#b3cde3", **kwargs) + labs(
+                x="Prediction", y="Density", title=self.title_name
+            )
+            plot.draw()
 
     def show_community_prediction(
         self,
         percent_kept: float = 0.95,
         side_cut_from: str = "both",
         num_samples: int = 1000,
+        **kwargs,
     ):
         """
         Plot samples from the community prediction on this question
 
         :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
+        :param side_cut_from: which side to cut tails from,
+            either 'both','lower', or 'upper'
         :param num_samples: number of samples from the community
-        :return: ggplot graphics object
+        :param **kwargs: additional plotting parameters
         """
-        community_samples = pd.DataFrame(
-            data={"samples": [self.sample_community() for _ in range(0, num_samples)]}  # type: ignore
+        community_samples = pd.Series(
+            [self.sample_normalized_community() for _ in range(0, num_samples)]
         )
 
-        (_xmin, _xmax) = self.get_central_quantiles(
-            community_samples, percent_kept=percent_kept, side_cut_from=side_cut_from
+        _xmin, _xmax = self.denormalize_samples(
+            self.get_central_quantiles(
+                community_samples,
+                percent_kept=percent_kept,
+                side_cut_from=side_cut_from,
+            )
         )
-        title_name = (
-            f"Q: {self.name}"
-            if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60)) + "\n\n"  # type: ignore
+
+        df = pd.DataFrame(data={"samples": self.denormalize_samples(community_samples)})
+
+        plot = self.density_plot(df, _xmin, _xmax, **kwargs) + labs(
+            x="Prediction",
+            y="Density",
+            title=self.title_name + "\n\nCommunity Predictions",
         )
+        plot.draw()
+
+    def comparison_plot(self, df: pd.DataFrame, xmin=None, xmax=None, **kwargs):
         return (
-            ggplot(community_samples, aes("samples"))
-            + geom_density(fill="#b3cde3", alpha=0.8)
-            + xlim(_xmin, _xmax)
-            + self._scale_x()
+            ggplot(df, aes(df.columns[1], fill=df.columns[0]))
+            + scale_fill_brewer(type="qual", palette="Pastel1")
+            + geom_density(alpha=0.8)
+            + xlim(xmin, xmax)
+            + self._scale_x
             + labs(
-                x="Prediction", y="Density", title=title_name + "Community Predictions"
+                x="Prediction",
+                y="Density",
+                title=self.title_name + "\n\nPrediction vs Community",
             )
             + ergo_theme
         )
@@ -765,6 +823,17 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return new["q2"] - old["q2"]
 
+    def density_plot(
+        self, df: pd.DataFrame, xmin=None, xmax=None, fill: str = "#fbb4ae", **kwargs
+    ):
+        return (
+            ggplot(df, aes(df.columns[0]))
+            + geom_density(fill=fill, alpha=0.8)
+            + xlim(xmin, xmax)
+            + self._scale_x
+            + ergo_theme
+        )
+
 
 class LinearQuestion(ContinuousQuestion):
     """
@@ -775,7 +844,8 @@ class LinearQuestion(ContinuousQuestion):
         """
         Map samples from their true scale to the Metaculus normalized scale
 
-        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param samples: samples from a distribution answering the prediction question
+            (true scale)
         :return: samples on the normalized scale
         """
         return (samples - self.question_range["min"]) / (self.question_range_width)
@@ -785,7 +855,8 @@ class LinearQuestion(ContinuousQuestion):
         Map samples from the Metaculus normalized scale to the true scale
 
         :param samples: samples on the normalized scale
-        :return: samples from a distribution answering the prediction question (true scale)
+        :return: samples from a distribution answering the prediction question
+            (true scale)
         """
 
         # in case samples are in some other array-like format
@@ -839,6 +910,10 @@ class LogQuestion(ContinuousQuestion):
     def deriv_ratio(self) -> float:
         return self.possibilities["scale"]["deriv_ratio"]
 
+    @property
+    def _scale_x(self):
+        return scale_x_log10()
+
     def normalized_from_true_value(self, true_value) -> float:
         """
         Get a prediciton sample value on the normalized scale from a true-scale value
@@ -883,9 +958,6 @@ class LogQuestion(ContinuousQuestion):
         :return: Samples on the true scale
         """
         return [self.true_from_normalized_value(sample) for sample in samples]
-
-    def _scale_x(self):
-        return scale_x_log10()
 
 
 class LinearDateQuestion(LinearQuestion):
@@ -969,135 +1041,34 @@ class LinearDateQuestion(LinearQuestion):
         normalized_sample = self.sample_normalized_community()
         return self.denormalize_samples(normalized_sample)
 
-    def show_prediction(
-        self,
-        samples,
-        percent_kept: float = 0.95,
-        side_cut_from: str = "both",
-        show_community: bool = False,
-        num_samples: int = 1000,
-        bins: int = 50,
+    def comparison_plot(  # type: ignore
+        self, df: pd.DataFrame, xmin=None, xmax=None, bins: int = 50
     ):
-        """Plot prediction on the true question scale from samples or a submission object. Optionally compare prediction against a sample from the distribution of community predictions
 
-        :param samples: samples from a distribution answering the prediction question (true scale) or a prediction object
-        :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
-        :param show_community: boolean indicating whether comparison to community predictions should be made
-        :param num_samples: number of samples from the community
-        :param bins: The number of bins in the histogram, the more bins, the more 'fine grained' the graph. Fewer bins results in more aggregation
-        :return: ggplot graphics object
-        """
-
-        if isinstance(samples, SubmissionMixtureParams):
-            prediction = samples
-            prediction_normed_samples = pd.Series(
-                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
-            )
-        else:
-            if isinstance(samples, list):
-                samples = pd.Series(samples)
-            if not type(samples) in [pd.Series, np.ndarray]:
-                raise ValueError(
-                    "Samples should be a list, numpy arrray or pandas series"
-                )
-            num_samples = samples.shape[0]
-            prediction_normed_samples = self.normalize_samples(samples)
-
-        title_name = (
-            f"Q: {self.name}"
-            if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
-        )
-
-        if show_community:
-            df = pd.DataFrame(
-                data={
-                    "community": [  # type: ignore
-                        self.sample_normalized_community()
-                        for _ in range(0, num_samples)
-                    ],
-                    "prediction": prediction_normed_samples,  # type: ignore
-                }
-            )
-            # import pdb
-            # pdb.set_trace()
-            # get domain for graph given the percentage of distribution kept
-            (_xmin, _xmax) = self.get_central_quantiles(
-                df, percent_kept=percent_kept, side_cut_from=side_cut_from
-            )
-            _xmin, _xmax = self.denormalize_samples([_xmin, _xmax])
-            df["prediction"] = self.denormalize_samples(df["prediction"])
-            df["community"] = self.denormalize_samples(df["community"])
-
-            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
-            return (
-                ggplot(df, aes("samples", fill="sources"))
-                + scale_fill_brewer(type="qual", palette="Pastel1")
-                + geom_histogram(position="identity", alpha=0.9)
-                + scale_x_datetime(limits=(_xmin, _xmax))
-                + facet_wrap("sources", ncol=1)
-                + labs(x="Prediction", y="Counts", title=title_name,)
-                + guides(fill=False)
-                + ergo_theme
-                + theme(axis_text_x=element_text(rotation=45, hjust=1))
-            )
-        else:
-            (_xmin, _xmax) = self.get_central_quantiles(
-                prediction_normed_samples,
-                percent_kept=percent_kept,
-                side_cut_from=side_cut_from,
-            )
-            _xmin, _xmax = self.denormalize_samples([_xmin, _xmax])
-            df = pd.DataFrame(
-                data={"prediction": self.denormalize_samples(prediction_normed_samples)}
-            )
-            return (
-                ggplot(df, aes("prediction"))
-                + geom_histogram(fill="#b3cde3", bins=bins)
-                # + coord_cartesian(xlim = (_xmin,_xmax))
-                + scale_x_datetime(limits=(_xmin, _xmax))
-                + labs(x="Prediction", y="Counts", title=title_name)
-                + ergo_theme
-                + theme(axis_text_x=element_text(rotation=45, hjust=1))
-            )
-
-    def show_community_prediction(
-        self,
-        percent_kept: float = 0.95,
-        side_cut_from: str = "both",
-        num_samples: int = 1000,
-        bins: int = 50,
-    ):
-        """
-        Plot samples from the community prediction on this question
-
-        :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
-        :param num_samples: number of samples from the community
-        :param bins: The number of bins in the histogram, the more bins, the more 'fine grained' the graph. Fewer bins results in more aggregation
-        :return: ggplot graphics object
-        """
-        community_samples = pd.Series(
-            [self.sample_normalized_community() for _ in range(0, num_samples)]
-        )
-
-        (_xmin, _xmax) = self.get_central_quantiles(
-            community_samples, percent_kept=percent_kept, side_cut_from=side_cut_from
-        )
-        _xmin, _xmax = self.denormalize_samples([_xmin, _xmax])
-
-        df = pd.DataFrame(data={"samples": self.denormalize_samples(community_samples)})
-        title_name = (
-            f"Q: {self.name}"
-            if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
-        )
         return (
-            ggplot(df, aes("samples"))
-            + geom_histogram(fill="#b3cde3", bins=bins)
-            + scale_x_datetime(limits=(_xmin, _xmax))
-            + labs(x="Prediction", y="Counts", title=title_name)
+            ggplot(df, aes(df.columns[1], fill=df.columns[0]))
+            + scale_fill_brewer(type="qual", palette="Pastel1")
+            + geom_histogram(position="identity", alpha=0.9, bins=bins)
+            + scale_x_datetime(limits=(xmin, xmax))
+            + facet_wrap(df.columns[0], ncol=1)
+            + guides(fill=False)
+            + ergo_theme
+            + theme(axis_text_x=element_text(rotation=45, hjust=1))
+        )
+
+    def density_plot(  # type: ignore
+        self,
+        df: pd.DataFrame,
+        xmin=None,
+        xmax=None,
+        fill: str = "#fbb4ae",
+        bins: int = 50,
+    ):
+
+        return (
+            ggplot(df, aes(df.columns[0]))
+            + geom_histogram(fill=fill, bins=bins)
+            + scale_x_datetime(limits=(xmin, xmax))
             + ergo_theme
             + theme(axis_text_x=element_text(rotation=45, hjust=1))
         )
@@ -1127,7 +1098,8 @@ class Metaculus:
 
     def login(self, username, password):
         """
-        log in to Metaculus using your credentials and store cookies, etc. in the session object for future use
+        log in to Metaculus using your credentials and store cookies,
+        etc. in the session object for future use
         """
         loginURL = f"{self.api_url}/accounts/login/"
         r = self.s.post(
@@ -1167,12 +1139,15 @@ class Metaculus:
 
     def make_question_from_data(self, data: Dict, name=None) -> MetaculusQuestion:
         """
-        Make a MetaculusQuestion given data about the question of the sort returned by the Metaculus API.
+        Make a MetaculusQuestion given data about the question
+        of the sort returned by the Metaculus API.
 
         :param data: the question data (usually from the Metaculus API)
         :param name: a custom name for the question
         :return: A MetaculusQuestion from the appropriate subclass
         """
+        if not name:
+            name = data.get("title")
         if data["possibilities"]["type"] == "binary":
             return BinaryQuestion(data["id"], self, data, name)
         if data["possibilities"]["type"] == "continuous":
@@ -1250,7 +1225,8 @@ class Metaculus:
         :param player_status: Player's status on this question
         :param cat: Category slug
         :param pages: Number of pages of questions to retrieve
-        :include_discussion_questions: If true, data for non-prediction questions will be included
+        :include_discussion_questions: If true, data for non-prediction
+            questions will be included
         """
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
@@ -1301,7 +1277,8 @@ class Metaculus:
         Convert JSON returned by Metaculus API to dataframe.
 
         :param questions_json: List of questions (as dicts)
-        :param columns: Optional list of column names to include (if omitted, every column is included)
+        :param columns: Optional list of column names to include
+            (if omitted, every column is included)
         """
         if columns is not None:
             questions_df = pd.DataFrame(

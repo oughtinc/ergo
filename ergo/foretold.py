@@ -1,4 +1,8 @@
+from dataclasses import dataclass
+from typing import List, Union
+
 import numpy as np
+import pandas as pd
 import requests
 import seaborn
 import torch
@@ -10,7 +14,8 @@ class Foretold:
     """Interface to Foretold"""
 
     def __init__(self, token=None):
-        """token (string): Specify an authorization token (supports Bot tokens from Foretold)"""
+        """token (string): Specify an authorization token
+        (supports Bot tokens from Foretold)"""
         self.token = token
         self.api_url = "https://prediction-backend.herokuapp.com/graphql"
 
@@ -21,9 +26,12 @@ class Foretold:
         return question
 
     def get_questions(self, ids):
-        """Retrieve many questions by their ids
-            ids (List[string]): List of foretold question ids (should be less than 500 per request)
-        Returns: List of questions corresponding to the ids, or None for questions that weren't found."""
+        """
+        Retrieve many questions by their ids
+            ids (List[string]): List of foretold question ids
+                (should be less than 500 per request)
+        Returns: List of questions corresponding to the ids,
+            or None for questions that weren't found."""
         measurables = self._query_measurables(ids)
         return [
             ForetoldQuestion(measurable["id"], self, measurable) if measurable else None
@@ -65,7 +73,8 @@ class Foretold:
     def _query_measurables(self, ids):
         """Retrieve data from api about many question by a list of ids"""
         if len(ids) > 500:
-            # If we want to implement this later, we can properly use the pageInfo in the request
+            # If we want to implement this later,
+            # we can properly use the pageInfo in the request
             raise NotImplementedError(
                 "We haven't implemented support for more than 500 ids per request"
             )
@@ -115,6 +124,18 @@ class Foretold:
             measurables_dict[measureable["id"]] = measureable
 
         return [measurables_dict.get(id, None) for id in ids]
+
+    def create_measurement(
+        self, measureable_id: str, cdf: "ForetoldCdf"
+    ) -> requests.Response:
+        if self.token is None:
+            raise Exception("A token is required to submit a prediction")
+        if len(cdf) > 1000:
+            raise Exception("Maximum CDF length of 1000 exceeded")
+        headers = {"Authorization": f"Bearer {self.token}"}
+        query = _measurement_query(measureable_id, cdf)
+        response = requests.post(self.api_url, json={"query": query}, headers=headers)
+        return response
 
 
 class ForetoldQuestion:
@@ -183,3 +204,61 @@ class ForetoldQuestion:
         """Plot the CDF"""
         floatCdf = self.get_float_cdf_or_error()
         seaborn.lineplot(floatCdf["xs"], floatCdf["ys"])
+
+    def submit_from_samples(
+        self, samples: Union[np.ndarray, pd.Series], length: int = 20
+    ) -> requests.Response:
+        """Submit a prediction to Foretold based on the given samples
+
+        :param samples: Samples on which to base the submission
+        :param length: The length of the CDF derived from the samples
+        """
+        cdf = ForetoldCdf.from_samples(samples, length)
+        return self.foretold.create_measurement(self.id, cdf)
+
+
+@dataclass
+class ForetoldCdf:
+
+    xs: List[float]
+    ys: List[float]
+
+    @staticmethod
+    def from_samples(
+        samples: Union[np.ndarray, pd.Series], length: int
+    ) -> "ForetoldCdf":
+        """Build a Foretold CDF representation from an array of samples
+
+        See the following for details:
+        https://docs.foretold.io/cumulative-distribution-functions-format
+
+        :param samples: Samples from which to build the CDF
+        :param length: The length of returned CDF
+        """
+        if length < 2:
+            raise ValueError("`length` must be at least 2")
+        hist, bin_edges = np.histogram(samples, bins=length - 1, density=True)  # type: ignore
+        bin_width = bin_edges[1] - bin_edges[0]
+        # Foretold expects `0 <= ys <= 1`, so we clip to that . This
+        # is defensive -- at the time of implementation it isn't known
+        # how the API handles violations of this.
+        ys = np.clip(np.hstack([np.array([0.0]), np.cumsum(hist) * bin_width]), 0, 1)  # type: ignore
+        return ForetoldCdf(bin_edges.tolist(), ys.tolist())  # type: ignore
+
+    def __len__(self):
+        return len(self.xs)
+
+
+def _measurement_query(measureable_id: str, cdf: ForetoldCdf) -> str:
+    return f"""mutation {{
+      measurementCreate(
+        input: {{
+          value: {{ floatCdf: {{ xs: {cdf.xs}, ys: {cdf.ys} }} }}
+          competitorType: COMPETITIVE
+          measurableId: "{measureable_id}"
+        }}
+      ) {{
+        id
+      }}
+    }}
+    """
