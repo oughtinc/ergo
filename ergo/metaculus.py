@@ -304,7 +304,7 @@ class BinaryQuestion(MetaculusQuestion):
         Calculate change in community prediction between the argument and most recent prediction
 
         :param since: datetime
-        :return: change in community prediction since timestamp
+        :return: change in community prediction since datetime
         """
         try:
             old = self.get_community_prediction(before=since)
@@ -755,7 +755,7 @@ class ContinuousQuestion(MetaculusQuestion):
         Calculate change in community prediction median between the argument and most recent prediction
 
         :param since: datetime
-        :return: change in median community prediction since timestamp
+        :return: change in median community prediction since datetime
         """
         try:
             old = self.get_community_prediction(before=since)
