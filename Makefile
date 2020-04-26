@@ -15,6 +15,9 @@ format: FORCE  ## Run isort and black (rewriting files)
 docs: FORCE  ## Build docs
 	poetry run $(MAKE) -C docs html
 
+serve: FORCE  ## Run Jupyter notebook server
+	poetry run python -m jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com'
+
 .PHONY: help
 
 .DEFAULT_GOAL := help
