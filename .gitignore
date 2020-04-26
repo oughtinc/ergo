@@ -8,4 +8,3 @@ conda/
 .coverage
 docs/build
 .env
-.python-version
