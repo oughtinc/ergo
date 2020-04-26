@@ -203,7 +203,7 @@ class MetaculusQuestion:
     @staticmethod
     def to_dataframe(
         questions: List["MetaculusQuestion"],
-        columns: List[str] = ["id", "name", "title", "resolve_time"],
+        columns: List[str] = ["id", "title", "resolve_time"],
     ) -> pd.DataFrame:
         """
         Summarize a list of questions in a dataframe
@@ -213,16 +213,12 @@ class MetaculusQuestion:
         :return: pandas dataframe summarizing the questions
         """
 
-        show_names = any(q.name for q in questions)
-        if show_names:
-            data = [
-                [question.name, *[question.data[key] for key in columns]]
-                for question in questions
-            ]
-            return pd.DataFrame(data, columns=["name", *columns])
-        else:
-            data = [[question.data[key] for key in columns] for question in questions]
-            return pd.DataFrame(data, columns=columns)
+        data = [
+            [question.name if key == "name" else question.data[key] for key in columns]
+            for question in questions
+        ]
+
+        return pd.DataFrame(data, columns=columns)
 
     def get_i_of_community_prediction_before(self, dt: datetime) -> Optional[int]:
         """
