@@ -202,48 +202,27 @@ class MetaculusQuestion:
 
     @staticmethod
     def to_dataframe(
-        questions: List["MetaculusQuestion"], extra_columns: List[str] = []
+        questions: List["MetaculusQuestion"],
+        columns: List[str] = ["id", "name", "title", "resolve_time"],
     ) -> pd.DataFrame:
         """
         Summarize a list of questions in a dataframe
 
         :param questions: questions to summarize
-        :param extra_columns: optional list of column names as strings
+        :param columns: list of column names as strings
         :return: pandas dataframe summarizing the questions
         """
 
-        # It's natural to pass a string to extra_columns when you just want to add
-        # one column, e.g., ergo.MetaculusQuestion.to_dataframe(qs, extra_columns="change")
-        # Because Python treats strings similarly to lists, this can lead to cryptic errors.
-        # So I'm adding this explicit error to prevent confusion.
-        if type(extra_columns) != list:
-            raise TypeError("extra_columns must be a list")
-
         show_names = any(q.name for q in questions)
         if show_names:
-            columns = ["id", *extra_columns, "name", "title", "resolve_time"]
             data = [
-                [
-                    question.id,
-                    *[question.data[key] for key in extra_columns],
-                    question.name,
-                    question.title,
-                    question.resolve_time,
-                ]
+                [question.name, *[question.data[key] for key in columns]]
                 for question in questions
             ]
+            return pd.DataFrame(data, columns=["name", *columns])
         else:
-            columns = ["id", *extra_columns, "title", "resolve_time"]
-            data = [
-                [
-                    question.id,
-                    *[question.data[key] for key in extra_columns],
-                    question.title,
-                    question.resolve_time,
-                ]
-                for question in questions
-            ]
-        return pd.DataFrame(data, columns=columns)
+            data = [[question.data[key] for key in columns] for question in questions]
+            return pd.DataFrame(data, columns=columns)
 
     def get_i_of_community_prediction_before(self, timestamp: int) -> Optional[int]:
         """
