@@ -362,6 +362,13 @@ class BinaryQuestion(MetaculusQuestion):
             {"prediction": p, "void": False},
         )
 
+    def sample_community(self) -> bool:
+        """
+        Sample from the Metaculus community distribution (Bernoulli).
+        """
+        community_prediction = self.get_community_prediction()
+        return ppl.flip(community_prediction)
+
 
 @dataclass
 class SubmissionLogisticParams(logistic.LogisticParams):
