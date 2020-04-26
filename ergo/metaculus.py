@@ -34,6 +34,7 @@ We predict that the admit rate will be 20% higher than the current community pre
     <Response [202]>
 """
 
+import bisect
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 import functools
@@ -120,7 +121,7 @@ class MetaculusQuestion:
     """
 
     id: int
-    data: Optional[object]
+    data: Dict
     metaculus: "Metaculus"
     name: Optional[str]
 
@@ -185,6 +186,15 @@ class MetaculusQuestion:
             return self.data["title"]
         return "<MetaculusQuestion>"
 
+    def set_data(self, key: str, value: Any):
+        """
+        Set key on data dict
+
+        :param key:
+        :param value:
+        """
+        self.data[key] = value
+
     def refresh_question(self):
         """
         Refetch the question data from Metaculus,
@@ -202,27 +212,41 @@ class MetaculusQuestion:
         raise NotImplementedError("This should be implemented by a subclass")
 
     @staticmethod
-    def to_dataframe(questions: List["MetaculusQuestion"]) -> pd.DataFrame:
+    def to_dataframe(
+        questions: List["MetaculusQuestion"],
+        columns: List[str] = ["id", "title", "resolve_time"],
+    ) -> pd.DataFrame:
         """
         Summarize a list of questions in a dataframe
 
         :param questions: questions to summarize
+        :param columns: list of column names as strings
         :return: pandas dataframe summarizing the questions
         """
-        show_names = any(q.name for q in questions)
-        if show_names:
-            columns = ["id", "name", "title", "resolve_time"]
-            data = [
-                [question.id, question.name, question.title, question.resolve_time]
-                for question in questions
-            ]
-        else:
-            columns = ["id", "title", "resolve_time"]
-            data = [
-                [question.id, question.title, question.resolve_time]
-                for question in questions
-            ]
+
+        data = [
+            [question.name if key == "name" else question.data[key] for key in columns]
+            for question in questions
+        ]
+
         return pd.DataFrame(data, columns=columns)
+
+    def get_community_prediction(self, before: datetime = None):
+        if len(self.prediction_timeseries) == 0:
+            raise LookupError  # No community prediction exists yet
+
+        if before is None:
+            return self.prediction_timeseries[-1]["community_prediction"]
+
+        i = bisect.bisect_left(
+            [prediction["t"] for prediction in self.prediction_timeseries],
+            before.timestamp(),
+        )
+
+        if i == len(self.prediction_timeseries):  # No prediction predates
+            raise LookupError
+
+        return self.prediction_timeseries[i]["community_prediction"]
 
     @staticmethod
     def get_central_quantiles(
@@ -292,6 +316,23 @@ class BinaryQuestion(MetaculusQuestion):
         return ScoredPrediction(
             prediction["t"], prediction, resolution, score, self.__str__()
         )
+
+    def change_since(self, since: datetime):
+        """
+        Calculate change in community prediction between the argument and most recent
+        prediction
+
+        :param since: datetime
+        :return: change in community prediction since datetime
+        """
+        try:
+            old = self.get_community_prediction(before=since)
+            new = self.get_community_prediction()
+        except LookupError:
+            # Happens if no prediction predates since or no prediction yet
+            return 0
+
+        return new - old
 
     def score_my_predictions(self):
         """
@@ -767,6 +808,22 @@ class ContinuousQuestion(MetaculusQuestion):
             )
             + ergo_theme
         )
+
+    def change_since(self, since: datetime):
+        """
+        Calculate change in community prediction median between the argument and most
+        recent prediction
+
+        :param since: datetime
+        :return: change in median community prediction since datetime
+        """
+        try:
+            old = self.get_community_prediction(before=since)
+            new = self.get_community_prediction()
+        except LookupError:
+            return 0
+
+        return new["q2"] - old["q2"]
 
     def density_plot(
         self, df: pd.DataFrame, xmin=None, xmax=None, fill: str = "#fbb4ae", **kwargs
