@@ -74,7 +74,8 @@ from ergo.theme import ergo_theme  # type: ignore
 @dataclass
 class ScoredPrediction:
     """
-    A prediction scored according to how it resolved or according to the current community prediction
+    A prediction scored according to how it resolved or
+    according to the current community prediction
     """
 
     time: float
@@ -126,9 +127,12 @@ class MetaculusQuestion:
     def __init__(self, id: int, metaculus: "Metaculus", data: Dict, name=None):
         """
         :param id: question id on Metaculus
-        :param metaculus: Metaculus class instance, specifies which user to use for e.g. submitting predictions
-        :param data: information about the question, e.g. as returned by the Metaculus API
-        :param name: name for the question to be e.g. used in graph titles, defaults to None
+        :param metaculus: Metaculus class instance, specifies which user to use for
+            e.g. submitting predictions
+        :param data: information about the question,
+            e.g. as returned by the Metaculus API
+        :param name: name for the question to be
+            e.g. used in graph titles, defaults to None
         """
         self.id = id
         self.data = data
@@ -138,13 +142,16 @@ class MetaculusQuestion:
     @property
     def latest_community_percentiles(self):
         """
-        :return: Some percentiles for the metaculus commununity's latest rough prediction. `prediction_histogram` returns a more fine-grained histogram of the community prediction
+        :return: Some percentiles for the metaculus commununity's latest rough
+            prediction. `prediction_histogram` returns a more fine-grained
+            histogram of the community prediction
         """
         return self.prediction_timeseries[-1]["community_prediction"]
 
     def __getattr__(self, name):
         """
-        If an attribute isn't directly on the class, check whether it's in the raw question data. If it's a time, format it appropriately.
+        If an attribute isn't directly on the class, check whether it's in the
+        raw question data. If it's a time, format it appropriately.
 
         :param name: attr name
         :return: attr value
@@ -152,7 +159,8 @@ class MetaculusQuestion:
         if name in self.data:
             if name.endswith("_time"):
                 # could use dateutil.parser to deal with timezones better,
-                # but opted for lightweight since datetime.fromisoformat will fix this in python 3.7
+                # but opted for lightweight since datetime.fromisoformat
+                # will fix this in python 3.7
                 try:
                     # attempt to parse with microseconds
                     return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%S%fZ")
@@ -179,14 +187,16 @@ class MetaculusQuestion:
 
     def refresh_question(self):
         """
-        Refetch the question data from Metaculus, used when the question data might have changed
+        Refetch the question data from Metaculus,
+        used when the question data might have changed
         """
         r = self.metaculus.s.get(f"{self.metaculus.api_url}/questions/{self.id}")
         self.data = r.json()
 
     def sample_community(self):
         """
-        Get one sample from the distribution of the Metaculus community's prediction on this question
+        Get one sample from the distribution of the Metaculus community's
+        prediction on this question
         (sample is denormalized/on the the true scale of the question)
         """
         raise NotImplementedError("This should be implemented by a subclass")
@@ -221,12 +231,17 @@ class MetaculusQuestion:
         side_cut_from: str = "both",
     ):
         """
-        Get the values that bound the central (percent_kept) of the sample distribution, i.e.,  cutting the tails from these values will give you the central. If passed a dataframe with multiple variables, the bounds that encompass all variables will be returned.
+        Get the values that bound the central (percent_kept) of the sample distribution,
+        i.e.,  cutting the tails from these values will give you the central.
+        If passed a dataframe with multiple variables, the bounds that encompass
+        all variables will be returned.
 
         :param df: pandas dataframe of one or more column of samples
         :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
-        :return: lower and upper values of the central (percent_kept) of the sample distribution.
+        :param side_cut_from: which side to cut tails from,
+            either 'both','lower', or 'upper'
+        :return: lower and upper values of the central (percent_kept) of
+            the sample distribution.
         """
 
         if side_cut_from not in ("both", "lower", "upper"):
@@ -266,8 +281,11 @@ class BinaryQuestion(MetaculusQuestion):
         Score a prediction relative to a resolution using a Brier Score.
 
         :param prediction: how likely is the event to happen, from 0 to 1?
-        :param resolution: how likely is the event to happen, from 0 to 1? (0 if it didn't, 1 if it did)
-        :return: ScoredPrediction with Brier score, see https://en.wikipedia.org/wiki/Brier_score#Definition. 0 is best, 1 is worst, 0.25 is chance
+        :param resolution: how likely is the event to happen, from 0 to 1?
+            (0 if it didn't, 1 if it did)
+        :return: ScoredPrediction with Brier score, see
+            https://en.wikipedia.org/wiki/Brier_score#Definition
+            0 is best, 1 is worst, 0.25 is chance
         """
         predicted = prediction["x"]
         score = (resolution - predicted) ** 2
@@ -277,7 +295,9 @@ class BinaryQuestion(MetaculusQuestion):
 
     def score_my_predictions(self):
         """
-        Score all of my predictions according to the question resolution (or according to the current community prediction if the resolution isn't available)
+        Score all of my predictions according to the question resolution
+        (or according to the current community prediction if the resolution
+        isn't available)
 
         :return: List of ScoredPredictions with Brier scores
         """
@@ -315,7 +335,8 @@ class SubmissionLogisticParams(logistic.LogisticParams):
 @dataclass
 class SubmissionMixtureParams:
     """
-    Parameters needed to submit a prediction to Metaculus (in the form of a logistic mixture)
+    Parameters needed to submit a prediction to Metaculus
+    (in the form of a logistic mixture)
     """
 
     components: List[SubmissionLogisticParams]
@@ -324,20 +345,23 @@ class SubmissionMixtureParams:
 
 class ContinuousQuestion(MetaculusQuestion):
     """
-    A continuous Metaculus question -- a question of the form, what's your distribution on this event?
+    A continuous Metaculus question -- a question of the form,
+    what's your distribution on this event?
     """
 
     @property
     def low_open(self) -> bool:
         """
-        Are you allowed to place probability mass below the bottom of this question's range?
+        Are you allowed to place probability mass below the bottom
+        of this question's range?
         """
         return self.possibilities["low"] == "tail"
 
     @property
     def high_open(self) -> bool:
         """
-        Are you allowed to place probability mass above the top of this question's range?
+        Are you allowed to place probability mass
+        above the top of this question's range?
         """
         return self.possibilities["high"] == "tail"
 
@@ -371,11 +395,12 @@ class ContinuousQuestion(MetaculusQuestion):
             else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
         )
 
-    # TODO: maybe it's better to fit the logistic first then normalize, rather than the other way around?
+    # TODO: maybe it's better to fit the logistic first then normalize,
+    # rather than the other way around?
     def normalize_samples(self, samples):
         """
-        The Metaculus API accepts normalized predictions rather than predictions on the true scale of the question.
-        Normalize samples to fit that scale.
+        The Metaculus API accepts normalized predictions rather than predictions on
+        the true scale of the question. Normalize samples to fit that scale.
 
         :param samples: samples from the true-scale prediction distribution
         """
@@ -386,13 +411,15 @@ class ContinuousQuestion(MetaculusQuestion):
     ) -> SubmissionLogisticParams:
         """
         Get the params needed to submit a logistic to Metaculus as part of a prediction.
-        See comments for more explanation of how the params need to be transformed for Metaculus to accept them
+        See comments for more explanation of how the params need to be transformed
+        for Metaculus to accept them
 
         :param logistic_params: params for a logistic on the normalized scale
         :return: params to submit the logistic to Metaculus as part of a prediction
         """
         distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
-        # The loc and scale have to be within a certain range for the Metaculus API to accept the prediction.
+        # The loc and scale have to be within a certain range for the
+        # Metaculus API to accept the prediction.
 
         # max loc of 3 set based on API response to prediction on
         # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
@@ -408,12 +435,14 @@ class ContinuousQuestion(MetaculusQuestion):
 
         if self.low_open:
             # We're not really sure what the deal with the low and high is.
-            # Presumably they're supposed to be the points at which Metaculus "cuts off" your distribution
-            # and ignores porbability mass assigned below/above.
-            # But we're not actually trying to use them to "cut off" our distribution in a smart way;
-            # we're just trying to include as much of our distribution as we can without the API getting unhappy
-            # (we belive that if you set the low higher than the value below [or if you set the high lower],
-            # then the API will reject the prediction, though we haven't tested that extensively)
+            # Presumably they're supposed to be the points at which Metaculus "cuts off"
+            # your distribution and ignores porbability mass assigned below/above.
+            # But we're not actually trying to use them to "cut off" our distribution
+            # in a smart way; we're just trying to include as much of our distribution
+            # as we can without the API getting unhappy
+            # (we belive that if you set the low higher than the value below
+            # [or if you set the high lower], then the API will reject the prediction,
+            # though we haven't tested that extensively)
             min_open_low = 0.01
             low = max(distribution.cdf(0), min_open_low)
         else:
@@ -444,17 +473,18 @@ class ContinuousQuestion(MetaculusQuestion):
         A distribution for the portion of the current normalized community prediction
         that's within the question's range.
 
-        :return: distribution on integers referencing 0...(len(self.prediction_histogram)-1)
+        :return: distribution on integers
+        referencing 0...(len(self.prediction_histogram)-1)
         """
         y2 = [p[2] for p in self.prediction_histogram]
         return dist.Categorical(probs=torch.tensor(y2))
 
     def sample_normalized_community(self) -> float:
         """
-        Sample an approximation of the entire current community prediction, on the normalized scale.
-        The main reason that it's just an approximation is that we don't know
-        exactly where probability mass outside of the question range should be, so we place it arbitrarily
-        (see comment for more)
+        Sample an approximation of the entire current community prediction,
+        on the normalized scale. The main reason that it's just an approximation
+        is that we don't know exactly where probability mass outside of the question
+        range should be, so we place it arbitrarily (see comment for more)
 
         :return: One sample on the normalized scale
         """
@@ -488,7 +518,8 @@ class ContinuousQuestion(MetaculusQuestion):
         Sample an approximation of the entire current community prediction,
         on the true scale of the question.
         The main reason that it's just an approximation is that we don't know
-        exactly where probability mass outside of the question range should be, so we place it arbitrarily
+        exactly where probability mass outside of the question range should be,
+        so we place it arbitrarily
 
         :return: One sample on the true scale
         """
@@ -505,7 +536,8 @@ class ContinuousQuestion(MetaculusQuestion):
         self, mixture_params: logistic.LogisticMixtureParams
     ) -> SubmissionMixtureParams:
         """
-        Get parameters to submit a prediction to the Metaculus API using a logistic mixture
+        Get parameters to submit a prediction to the Metaculus API using a
+        logistic mixture
 
         :param mixture_params: normalized mixture parameters
         :return: normalized parameters clipped and formatted for the API
@@ -532,8 +564,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def format_logistic_for_api(
         submission: SubmissionLogisticParams, weight: float
     ) -> dict:
-        # convert all the numbers to floats here so that you can be sure that wherever they originated
-        # (e.g. numpy), they'll be regular old floats that can be converted to json by json.dumps
+        # convert all the numbers to floats here so that you can be sure that
+        # wherever they originated (e.g. numpy), they'll be regular old floats that
+        # can be converted to json by json.dumps
         return {
             "kind": "logistic",
             "x0": float(submission.loc),
@@ -569,7 +602,8 @@ class ContinuousQuestion(MetaculusQuestion):
         Submit prediction to Metaculus based on samples from a prediction distribution
 
         :param samples: Samples from a distribution answering the prediction question
-        :param samples_for_fit: How many samples to take to fit the logistic mixture. More will be slower but will give a better fit
+        :param samples_for_fit: How many samples to take to fit the logistic mixture.
+            More will be slower but will give a better fit
         :return: logistic mixture params clipped and formatted to submit to Metaculus
         """
         submission = self.get_submission_from_samples(samples, samples_for_fit)
@@ -606,12 +640,17 @@ class ContinuousQuestion(MetaculusQuestion):
         num_samples: int = 1000,
         **kwargs,
     ):
-        """Plot prediction on the true question scale from samples or a submission object. Optionally compare prediction against a sample from the distribution of community predictions
+        """Plot prediction on the true question scale from samples or a submission
+        object. Optionally compare prediction against a sample from the distribution
+        of community predictions
 
-        :param samples: samples from a distribution answering the prediction question (true scale) or a prediction object
+        :param samples: samples from a distribution answering the prediction question
+            (true scale) or a prediction object
         :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
-        :param show_community: boolean indicating whether comparison to community predictions should be made
+        :param side_cut_from: which side to cut tails from,
+            either 'both','lower', or 'upper'
+        :param show_community: boolean indicating whether comparison
+            to community predictions should be made
         :param num_samples: number of samples from the community
         :param **kwargs: additional plotting parameters
         """
@@ -688,7 +727,8 @@ class ContinuousQuestion(MetaculusQuestion):
         Plot samples from the community prediction on this question
 
         :param percent_kept: percentage of sample distrubtion to keep
-        :param side_cut_from: which side to cut tails from, either 'both','lower', or 'upper'
+        :param side_cut_from: which side to cut tails from,
+            either 'both','lower', or 'upper'
         :param num_samples: number of samples from the community
         :param **kwargs: additional plotting parameters
         """
@@ -749,7 +789,8 @@ class LinearQuestion(ContinuousQuestion):
         """
         Map samples from their true scale to the Metaculus normalized scale
 
-        :param samples: samples from a distribution answering the prediction question (true scale)
+        :param samples: samples from a distribution answering the prediction question
+            (true scale)
         :return: samples on the normalized scale
         """
         return (samples - self.question_range["min"]) / (self.question_range_width)
@@ -759,7 +800,8 @@ class LinearQuestion(ContinuousQuestion):
         Map samples from the Metaculus normalized scale to the true scale
 
         :param samples: samples on the normalized scale
-        :return: samples from a distribution answering the prediction question (true scale)
+        :return: samples from a distribution answering the prediction question
+            (true scale)
         """
 
         # in case samples are in some other array-like format
@@ -1001,7 +1043,8 @@ class Metaculus:
 
     def login(self, username, password):
         """
-        log in to Metaculus using your credentials and store cookies, etc. in the session object for future use
+        log in to Metaculus using your credentials and store cookies,
+        etc. in the session object for future use
         """
         loginURL = f"{self.api_url}/accounts/login/"
         r = self.s.post(
@@ -1041,7 +1084,8 @@ class Metaculus:
 
     def make_question_from_data(self, data: Dict, name=None) -> MetaculusQuestion:
         """
-        Make a MetaculusQuestion given data about the question of the sort returned by the Metaculus API.
+        Make a MetaculusQuestion given data about the question
+        of the sort returned by the Metaculus API.
 
         :param data: the question data (usually from the Metaculus API)
         :param name: a custom name for the question
@@ -1126,7 +1170,8 @@ class Metaculus:
         :param player_status: Player's status on this question
         :param cat: Category slug
         :param pages: Number of pages of questions to retrieve
-        :include_discussion_questions: If true, data for non-prediction questions will be included
+        :include_discussion_questions: If true, data for non-prediction
+            questions will be included
         """
         query_params = [f"status={question_status}", "order_by=-publish_time"]
         if player_status != "any":
@@ -1177,7 +1222,8 @@ class Metaculus:
         Convert JSON returned by Metaculus API to dataframe.
 
         :param questions_json: List of questions (as dicts)
-        :param columns: Optional list of column names to include (if omitted, every column is included)
+        :param columns: Optional list of column names to include
+            (if omitted, every column is included)
         """
         if columns is not None:
             questions_df = pd.DataFrame(
