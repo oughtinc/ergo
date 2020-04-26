@@ -438,9 +438,7 @@ class ContinuousQuestion(MetaculusQuestion):
     @property
     def title_name(self):
         return (
-            f"Q: {self.name}"
-            if self.name
-            else "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
+            "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
         )
 
     # TODO: maybe it's better to fit the logistic first then normalize,
