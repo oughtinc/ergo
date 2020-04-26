@@ -224,11 +224,11 @@ class MetaculusQuestion:
             data = [[question.data[key] for key in columns] for question in questions]
             return pd.DataFrame(data, columns=columns)
 
-    def get_i_of_community_prediction_before(self, timestamp: int) -> Optional[int]:
+    def get_i_of_community_prediction_before(self, dt: datetime) -> Optional[int]:
         """
         Get index of most recent community prediction that predates timestamp
 
-        :param timestamp:
+        :param dt: datetime
         :return: index of most recent community prediction that predates timestamp
         """
         j = 1
@@ -242,7 +242,7 @@ class MetaculusQuestion:
                 j = j - 1
                 break
 
-            timestamp_difference = self.prediction_timeseries[-j]["t"] - timestamp
+            timestamp_difference = self.prediction_timeseries[-j]["t"] - dt.timestamp()
 
             if timestamp_difference <= 0:
                 have_not_gone_far_back_enough = False
@@ -316,11 +316,11 @@ class BinaryQuestion(MetaculusQuestion):
             prediction["t"], prediction, resolution, score, self.__str__()
         )
 
-    def change_since(self, since: int):
+    def change_since(self, since: datetime):
         """
         Calculate change in community prediction between the argument and most recent prediction
 
-        :param since: timestamp
+        :param since: datetime
         :return: change in community prediction since timestamp
         """
         i = self.get_i_of_community_prediction_before(since)
@@ -765,11 +765,11 @@ class ContinuousQuestion(MetaculusQuestion):
             + ergo_theme
         )
 
-    def change_since(self, since: int):
+    def change_since(self, since: datetime):
         """
         Calculate change in community prediction median between the argument and most recent prediction
 
-        :param since: timestamp
+        :param since: datetime
         :return: change in median community prediction since timestamp
         """
         i = self.get_i_of_community_prediction_before(since)
