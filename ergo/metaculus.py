@@ -34,6 +34,7 @@ We predict that the admit rate will be 20% higher than the current community pre
     <Response [202]>
 """
 
+import bisect
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 import functools
@@ -227,43 +228,15 @@ class MetaculusQuestion:
         if before is None:
             return self.prediction_timeseries[-1]["community_prediction"]
 
-        i = self.get_i_of_community_prediction_before(before)
+        i = bisect.bisect_left(
+            [prediction["t"] for prediction in self.prediction_timeseries],
+            before.timestamp(),
+        )
 
-        if i is None:
-            raise LookupError  # No community prediction exists before this date
+        if i == len(self.prediction_timeseries):  # No prediction predates
+            raise LookupError
 
         return self.prediction_timeseries[i]["community_prediction"]
-
-    def get_i_of_community_prediction_before(self, dt: datetime) -> Optional[int]:
-        """
-        Get index of most recent community prediction that predates timestamp
-
-        :param dt: datetime
-        :return: index of most recent community prediction that predates timestamp
-        """
-        j = 1
-
-        have_not_gone_far_back_enough = True
-
-        while have_not_gone_far_back_enough:
-            if len(self.prediction_timeseries) < j:
-                # This means we went past the beginning of the timeseries
-                # and need to bring j back one.
-                j = j - 1
-                break
-
-            timestamp_difference = self.prediction_timeseries[-j]["t"] - dt.timestamp()
-
-            if timestamp_difference <= 0:
-                have_not_gone_far_back_enough = False
-            else:
-                j = j + 1
-
-        # The following happens if there aren't any community predictions yet.
-        if j == 0:
-            return None
-
-        return len(self.prediction_timeseries) - j
 
     @staticmethod
     def get_central_quantiles(
@@ -337,6 +310,7 @@ class BinaryQuestion(MetaculusQuestion):
             old = self.get_community_prediction(before=since)
             new = self.get_community_prediction()
         except LookupError:
+            # Happens if no prediction predates since or no prediction yet
             return 0
 
         return new - old
