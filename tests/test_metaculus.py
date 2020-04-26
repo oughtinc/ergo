@@ -209,6 +209,10 @@ class TestMetaculus:
     def test_get_community_prediction_log(self):
         assert self.continuous_log_open_question.sample_community() > 0
 
+    def test_sample_community_binary(self):
+        value = self.binary_question.sample_community()
+        assert bool(value) in (True, False)
+
 
 # Visual tests -- eyeball the results from these to see if they seem reasonable
 # leave these commented out usually, just use them if they seem useful

@@ -153,8 +153,8 @@ flip = bernoulli
 
 def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
     """
-    1. Run model forward, record samples for variables
-    2. Return dataframe with one row for each execution
+    Run model forward, record samples for variables. Return dataframe
+    with one row for each execution.
     """
     model = name_count(model)
     samples: List[Dict[str, float]] = []
@@ -178,12 +178,14 @@ def infer_and_run(
     early_stopping_patience=200,
 ) -> pd.DataFrame:
     """
-    debug - whether to output debug information
-    num_iterations - Number of optimizer iterations
-    learning_rate - Optimizer learning rate
-    early_stopping_patience - Stop training if loss hasn't
-        improved for this many iterations
-  """
+    :param model: A Python callable to run
+    :param samples: Number of samples to return
+    :param num_iterations: Number of optimizer iterations
+    :param debug: whether to output debug information
+    :param learning_rate: Optimizer learning rate
+    :param early_stopping_patience: Stop training if loss hasn't
+      improved for this many iterations
+    """
 
     def to_numpy(d):
         return {k: v.detach().numpy() for k, v in d.items()}
