@@ -22,6 +22,7 @@ jaxlib = "0.1.44"
 pandas = "1.0.3"
 sphinx-autodoc-typehints = "^1.10.3"
 plotnine = "^0.6.0"
+numpyro = {git = "https://github.com/pyro-ppl/numpyro.git", rev = "84bcbce2830c72af6292e2752cc338952b16cbf1"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

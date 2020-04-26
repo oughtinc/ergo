@@ -713,6 +713,29 @@ version = "1.18.3"
 
 [[package]]
 category = "main"
+description = "Pyro PPL on NumPy"
+name = "numpyro"
+optional = false
+python-versions = "*"
+version = "0.2.4"
+
+[package.dependencies]
+jax = "rev 2512ec6ebebf1b26d2aefbe618b4c147c251d194"
+jaxlib = ">=0.1.43"
+tqdm = "*"
+
+[package.extras]
+dev = ["ipython", "isort"]
+doc = ["sphinx", "sphinx-rtd-theme", "sphinx-gallery"]
+examples = ["matplotlib", "seaborn"]
+test = ["flake8", "pytest (>=4.1)", "pyro-api (>=0.1.1)"]
+
+[package.source]
+reference = "84bcbce2830c72af6292e2752cc338952b16cbf1"
+type = "git"
+url = "https://github.com/pyro-ppl/numpyro.git"
+[[package]]
+category = "main"
 description = "Optimizing numpys einsum function"
 name = "opt-einsum"
 optional = false
@@ -895,7 +918,7 @@ wcwidth = "*"
 [[package]]
 category = "dev"
 description = "Run a subprocess in a pseudo terminal"
-marker = "sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\""
+marker = "python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\" and (python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\")"
 name = "ptyprocess"
 optional = false
 python-versions = "*"
@@ -1498,7 +1521,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "e5e503f5bf5abcd5708b9dd66a2a126ac3c47f6a660e9382f84478be9b39a7c8"
+content-hash = "5b43f8130e1c5c0770cb9e22b8c92db97a5821d8d02ea99d846ddfb2083f7640"
 python-versions = "~3.6.8"
 
 [metadata.files]
@@ -1844,6 +1867,7 @@ numpy = [
     {file = "numpy-1.18.3-cp38-cp38-win_amd64.whl", hash = "sha256:c60175d011a2e551a2f74c84e21e7c982489b96b6a5e4b030ecdeacf2914da68"},
     {file = "numpy-1.18.3.zip", hash = "sha256:e46e2384209c91996d5ec16744234d1c906ab79a701ce1a26155c9ec890b8dc8"},
 ]
+numpyro = []
 opt-einsum = [
     {file = "opt_einsum-3.2.1-py3-none-any.whl", hash = "sha256:96f819d46da2f937eaf326336a114aaeccbcbdb9de460d42e8b5f480a69adca7"},
     {file = "opt_einsum-3.2.1.tar.gz", hash = "sha256:83b76a98d18ae6a5cc7a0d88955a7f74881f0e567a0f4c949d24c942753eb998"},
