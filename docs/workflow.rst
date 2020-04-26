@@ -28,7 +28,7 @@ instructions for connecting to a local runtime`_.
 Before submitting a PR
 ~~~~~~~~~~~~~~~~~~~~~~
 
-1. Run `poetry install` to make sure you have the latest dependencies
+1. Run ``poetry install`` to make sure you have the latest dependencies
 2. Format code using ``make format`` (black, isort)
 3. Run linting using ``make lint`` (flake8, mypy, black check)
 4. Run tests using ``make test``
