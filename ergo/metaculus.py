@@ -220,6 +220,20 @@ class MetaculusQuestion:
 
         return pd.DataFrame(data, columns=columns)
 
+    def get_community_prediction(self, before: datetime = None):
+        if len(self.prediction_timeseries) == 0:
+            raise LookupError  # No community prediction exists yet
+
+        if before is None:
+            return self.prediction_timeseries[-1]["community_prediction"]
+
+        i = self.get_i_of_community_prediction_before(before)
+
+        if i is None:
+            raise LookupError  # No community prediction exists before this date
+
+        return self.prediction_timeseries[i]["community_prediction"]
+
     def get_i_of_community_prediction_before(self, dt: datetime) -> Optional[int]:
         """
         Get index of most recent community prediction that predates timestamp
@@ -319,11 +333,12 @@ class BinaryQuestion(MetaculusQuestion):
         :param since: datetime
         :return: change in community prediction since timestamp
         """
-        i = self.get_i_of_community_prediction_before(since)
-        if i is None:
+        try:
+            old = self.get_community_prediction(before=since)
+            new = self.get_community_prediction()
+        except LookupError:
             return 0
-        old = self.prediction_timeseries[i]["community_prediction"]
-        new = self.prediction_timeseries[-1]["community_prediction"]
+
         return new - old
 
     def score_my_predictions(self):
@@ -768,12 +783,13 @@ class ContinuousQuestion(MetaculusQuestion):
         :param since: datetime
         :return: change in median community prediction since timestamp
         """
-        i = self.get_i_of_community_prediction_before(since)
-        if i is None:
+        try:
+            old = self.get_community_prediction(before=since)
+            new = self.get_community_prediction()
+        except LookupError:
             return 0
-        old = self.prediction_timeseries[i]["community_prediction"]["q2"]
-        new = self.prediction_timeseries[-1]["community_prediction"]["q2"]
-        return new - old
+
+        return new["q2"] - old["q2"]
 
 
 class LinearQuestion(ContinuousQuestion):
