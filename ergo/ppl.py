@@ -1,22 +1,23 @@
 """
 This module provides a few lightweight wrappers around probabilistic
-programming primitives from Pyro.
+programming primitives from Numpyro.
 """
 
 import math
 from typing import Dict, List
 
+import jax.numpy as np
+import numpyro
+import numpyro.distributions as dist  # type: ignore
 import pandas as pd
-import pyro
-from pyro.contrib.autoname import name_count
-import pyro.distributions as dist  # type: ignore
-from pyro.infer import SVI, Predictive, Trace_ELBO  # type: ignore
-import torch
 from tqdm.autonotebook import tqdm  # type: ignore
 
-# Config
+from ergo.autoname import autoname
 
-pyro.enable_validation(True)
+
+def to_float(value):
+    """Convert value to float"""
+    return np.asscalar(value)
 
 
 # Core functionality
@@ -28,24 +29,17 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
 
     :param dist: A Pyro distribution
     :param name: Name to assign to this sampling site in the execution trace
-    :return: A sample from the distribution (usually Torch tensor)
+    :return: A sample from the distribution
     """
     if not name:
         # If no name is provided, the model should use the @name_count
         # decorator to avoid using the same name for multiple variables
         name = "_var"
-    return pyro.sample(name, dist, **kwargs)
+    return numpyro.sample(name, dist, **kwargs)
 
 
 def tag(value, name: str):
-    if not isinstance(value, torch.Tensor):
-        value = torch.tensor(value)  # type: ignore
-    return pyro.deterministic(name, value)
-
-
-def to_float(value):
-    """Convert value to float"""
-    return torch.tensor(value).type(torch.float)
+    return numpyro.deterministic(name, value)
 
 
 # Provide samplers for primitive distributions
@@ -132,10 +126,9 @@ def beta_from_hits(hits, total, **kwargs):
 
 def random_choice(options, ps=None):
     if ps is None:
-        ps = torch.tensor([1 / len(options)] * len(options))
+        ps = np.array([1 / len(options)] * len(options))
     else:
-        # in case ps are passed in as some array-like type other than torch.tensor
-        ps = torch.tensor(ps)
+        ps = np.array(ps)
 
     idx = sample(dist.Categorical(ps))
     return options[idx]
@@ -148,89 +141,34 @@ def random_integer(min: int, max: int, **kwargs) -> int:
 flip = bernoulli
 
 
-# Stats
+# Inference
 
 
-def run(model, num_samples=5000, ignore_unnamed=True) -> pd.DataFrame:
+def tag_return(model):
+    def wrapped():
+        value = model()
+        tag(value, "_return")
+        return value
+
+    return wrapped
+
+
+def run(model, num_samples=5000, ignore_unnamed=True, rng_seed=0) -> pd.DataFrame:
     """
     Run model forward, record samples for variables. Return dataframe
     with one row for each execution.
     """
-    model = name_count(model)
+    model = numpyro.handlers.trace(
+        numpyro.handlers.seed(autoname(model), rng_seed=rng_seed)
+    )
     samples: List[Dict[str, float]] = []
     for _ in tqdm(range(num_samples)):
         sample: Dict[str, float] = {}
-        trace = pyro.poutine.trace(model).get_trace()
-        for name in trace.nodes.keys():
-            if trace.nodes[name]["type"] == "sample":
-                if not ignore_unnamed or not name.startswith("_var"):
-                    sample[name] = trace.nodes[name]["value"].item()
+        trace = model.get_trace()
+        for name in trace.keys():
+            if trace[name]["type"] in ("sample", "deterministic"):
+                if ignore_unnamed and name.startswith("_"):
+                    continue
+                sample[name] = trace[name]["value"].item()
         samples.append(sample)
     return pd.DataFrame(samples)  # type: ignore
-
-
-def infer_and_run(
-    model,
-    num_samples=5000,
-    num_iterations=2000,
-    debug=False,
-    learning_rate=0.01,
-    early_stopping_patience=200,
-) -> pd.DataFrame:
-    """
-    :param model: A Python callable to run
-    :param samples: Number of samples to return
-    :param num_iterations: Number of optimizer iterations
-    :param debug: whether to output debug information
-    :param learning_rate: Optimizer learning rate
-    :param early_stopping_patience: Stop training if loss hasn't
-      improved for this many iterations
-    """
-
-    def to_numpy(d):
-        return {k: v.detach().numpy() for k, v in d.items()}
-
-    def debug_output(guide):
-        quantiles = to_numpy(guide.quantiles([0.05, 0.5, 0.95]))
-        for k, v in quantiles.items():
-            print(f"{k}: {v[1]:.4f} [{v[0]:.4f}, {v[2]:.4f}]")
-
-    model = name_count(model)
-
-    # Automatically chooses a normal distribution for each variable
-    guide = pyro.infer.autoguide.AutoNormal(
-        model, init_loc_fn=pyro.infer.autoguide.init_to_median
-    )
-    pyro.clear_param_store()
-
-    if debug:
-        guide(training=True)  # Needed to initialize the guide before output
-        debug_output(guide)
-        print()
-
-    adam = pyro.optim.Adam({"lr": learning_rate})
-    svi = SVI(model, guide, adam, loss=Trace_ELBO())
-
-    best_loss = None
-    last_improvement = None
-
-    for j in range(num_iterations):
-        # calculate the loss and take a gradient step
-        loss = svi.step(training=True)
-        if best_loss is None or best_loss > loss:
-            best_loss = loss
-            last_improvement = j
-        if j % 100 == 0:
-            if debug:
-                print("[iteration %04d]" % (j + 1))
-                print(f"loss: {loss:.4f}")
-                debug_output(guide)
-                print()
-            if j > (last_improvement + early_stopping_patience):
-                print("Stopping Early")
-                break
-
-    print(f"Final loss: {loss:.4f}")
-    predictive = Predictive(model, guide=guide, num_samples=num_samples)
-    raw_samples = predictive(training=False)
-    return pd.DataFrame(to_numpy(raw_samples))

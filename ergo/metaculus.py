@@ -13,7 +13,8 @@ We predict that the admit rate will be 20% higher than the current community pre
 .. doctest::
     >>> import os
     >>> import ergo
-    >>> import numpy as np
+    >>> import jax.numpy as np
+    >>> from numpyro.handlers import seed
 
     >>> metaculus = ergo.Metaculus(
     ...     username=os.getenv("METACULUS_USERNAME"),
@@ -24,9 +25,10 @@ We predict that the admit rate will be 20% higher than the current community pre
     >>> harvard_question = metaculus.get_question(3622)
     >>> # harvard_question.show_community_prediction()
 
-    >>> community_prediction_samples = np.array(
-    ... [harvard_question.sample_community() for _ in range (0,5000)]
-    ... )
+    >>> with seed(rng_seed=0):
+    ...     community_prediction_samples = np.array(
+    ...       [harvard_question.sample_community() for _ in range (0,5000)]
+    ...     )
     >>> my_prediction_samples = community_prediction_samples * 1.2
 
     >>> # harvard_question.show_submission(my_prediction_samples)
@@ -43,7 +45,8 @@ import math
 import textwrap
 from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
+import jax.numpy as np
+import numpyro.distributions as dist
 import pandas as pd
 from plotnine import (  # type: ignore
     aes,
@@ -61,10 +64,8 @@ from plotnine import (  # type: ignore
     theme,
     xlim,
 )
-import pyro.distributions as dist
 import requests
 from scipy import stats
-import torch
 from typing_extensions import Literal
 
 import ergo.logistic as logistic
@@ -525,7 +526,7 @@ class ContinuousQuestion(MetaculusQuestion):
         referencing 0...(len(self.prediction_histogram)-1)
         """
         y2 = [p[2] for p in self.prediction_histogram]
-        return dist.Categorical(probs=torch.tensor(y2))
+        return dist.Categorical(probs=np.array(y2))
 
     def sample_normalized_community(self) -> float:
         """
@@ -537,15 +538,11 @@ class ContinuousQuestion(MetaculusQuestion):
         :return: One sample on the normalized scale
         """
 
-        # 0.02 is chosen pretty arbitrarily based on what I think will work best
-        # from playing around with the Metaculus API previously.
-        # Feel free to tweak if something else seems better.
-        # Ideally this wouldn't be a fixed number and would depend on
-        # how spread out we actually expect the probability mass to be
-        outside_range_scale = 0.02
+        # FIXME: Samples below/above range are pretty arbitrary
+        outside_range_scale = 1
+        sample_below_range = -ppl.lognormal(0, 1 / outside_range_scale)
+        sample_above_range = 1 + ppl.lognormal(1, 1 / outside_range_scale)
 
-        sample_below_range = -abs(np.random.logistic(0, outside_range_scale))  # type: ignore
-        sample_above_range = abs(np.random.logistic(1, outside_range_scale))  # type: ignore
         sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
             len(self.prediction_histogram)
         )
@@ -553,7 +550,6 @@ class ContinuousQuestion(MetaculusQuestion):
         p_below = self.latest_community_percentiles["low"]
         p_above = 1 - self.latest_community_percentiles["high"]
         p_in_range = 1 - p_below - p_above
-
         return float(
             ppl.random_choice(
                 [sample_below_range, sample_in_range, sample_above_range],
@@ -575,7 +571,7 @@ class ContinuousQuestion(MetaculusQuestion):
         if not self.has_predictions:
             raise ValueError("There are currently no predictions for this question")
         normalized_sample = self.sample_normalized_community()
-        sample = torch.tensor(self.denormalize_samples([normalized_sample]))
+        sample = np.array(self.denormalize_samples([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
         return float(sample)
@@ -598,13 +594,13 @@ class ContinuousQuestion(MetaculusQuestion):
         return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
 
     def get_submission_from_samples(
-        self, samples: Union[pd.Series, np.ndarray], samples_for_fit=5000
+        self, samples: Union[pd.Series, np.ndarray], samples_for_fit=5000, verbose=False
     ) -> SubmissionMixtureParams:
-        if not type(samples) in [pd.Series, np.ndarray]:
+        if not type(samples) in [pd.Series, np.ndarray, np.DeviceArray]:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
         mixture_params = logistic.fit_mixture(
-            normalized_samples, num_samples=samples_for_fit
+            normalized_samples, num_samples=samples_for_fit, verbose=verbose
         )
         return self.get_submission(mixture_params)
 
@@ -645,7 +641,9 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return r
 
-    def submit_from_samples(self, samples, samples_for_fit=5000) -> requests.Response:
+    def submit_from_samples(
+        self, samples, samples_for_fit=5000, verbose=False
+    ) -> requests.Response:
         """
         Submit prediction to Metaculus based on samples from a prediction distribution
 
@@ -654,7 +652,9 @@ class ContinuousQuestion(MetaculusQuestion):
             More will be slower but will give a better fit
         :return: logistic mixture params clipped and formatted to submit to Metaculus
         """
-        submission = self.get_submission_from_samples(samples, samples_for_fit)
+        submission = self.get_submission_from_samples(
+            samples, samples_for_fit, verbose=verbose
+        )
         return self.submit(submission)
 
     @staticmethod

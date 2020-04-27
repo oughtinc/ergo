@@ -5,6 +5,6 @@ ergo.egg-info/
 *__pycache__*
 dist/
 conda/
-.coverage
 docs/build
 .env
+.coverage*

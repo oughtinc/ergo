@@ -17,9 +17,9 @@ class autoname(Messenger):
         return name
 
     def process_message(self, msg):
-        if msg['type'] == "sample":
+        if msg["type"] == "sample":
             msg["name"] = self._increment_name(msg["name"], "sample")
 
     def postprocess_message(self, msg):
-        if msg['type'] == "sample":        
+        if msg["type"] == "sample":
             self._names.add((msg["name"], "sample"))

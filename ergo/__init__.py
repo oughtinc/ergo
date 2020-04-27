@@ -18,7 +18,6 @@ from .ppl import (
     categorical,
     flip,
     halfnormal_from_interval,
-    infer_and_run,
     lognormal,
     lognormal_from_interval,
     normal,

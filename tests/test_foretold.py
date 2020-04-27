@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
-import numpy as np
+import jax.numpy as np
+import numpy as onp
 import pandas as pd
 import pytest
 import scipy.stats  # type: ignore
@@ -19,13 +20,15 @@ class TestForetold:
         assert dist.quantile(0.25) < 100
         assert dist.quantile(0.75) > 100
 
-        num_samples = 20000
+        num_samples = 5000
         samples = ergo.run(
             lambda: ergo.tag(dist.sample_community(), "sample"), num_samples=num_samples
-        )
+        )["sample"]
         # Probability mass is split evenly between both modes of the distribution,
         # so approximately half of the samples should be lower than 100
-        assert np.count_nonzero(samples > 100) == pytest.approx(num_samples / 2, 0.1)
+        assert float(onp.count_nonzero(samples > 100)) == pytest.approx(
+            num_samples / 2, 0.1
+        )
 
     def test_foretold_multiple_questions(self):
         foretold = ergo.Foretold()
@@ -52,7 +55,7 @@ class TestForetold:
             foretold.get_questions(ids)
 
     def test_cdf_from_samples_numpy(self):
-        samples = np.random.normal(loc=0, scale=1, size=1000)
+        samples = onp.random.normal(loc=0, scale=1, size=1000)
         cdf = ergo.foretold.ForetoldCdf.from_samples(samples, length=100)
         xs = np.array(cdf.xs)
         ys = np.array(cdf.ys)
@@ -67,7 +70,7 @@ class TestForetold:
         assert np.all(np.abs(true_ys - ys) < 0.1)
 
     def test_cdf_from_samples_pandas(self):
-        df = pd.DataFrame({"samples": np.random.normal(loc=0, scale=1, size=100)})
+        df = pd.DataFrame({"samples": onp.random.normal(loc=0, scale=1, size=100)})
         cdf = ergo.foretold.ForetoldCdf.from_samples(df["samples"], length=50)
         assert len(cdf.xs) == 50
         assert len(cdf.ys) == 50
@@ -85,6 +88,6 @@ class TestForetold:
     def test_create_measurement(self):
         foretold = ergo.Foretold(token="")
         question = foretold.get_question("cf86da3f-c257-4787-b526-3ef3cb670cb4")
-        samples = np.random.normal(loc=150, scale=5, size=1000)
+        samples = onp.random.normal(loc=150, scale=5, size=1000)
         r = question.submit_from_samples(samples, length=20)
         assert r.status_code == HTTPStatus.OK

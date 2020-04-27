@@ -8,7 +8,6 @@ from jax.interpreters.xla import DeviceArray
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
-import torch
 from tqdm.autonotebook import tqdm  # type: ignore
 
 from ergo.ppl import categorical
@@ -92,7 +91,7 @@ def fit_mixture(
     for i in tqdm(range(num_samples)):
         components = get_params(opt_state)
         grads = -grad_mixture_logpdf(data_as_np_array, components)
-        if np.any(np.isnan(grads)):
+        if np.any(np.isnan(grads)) and verbose:
             print("Encoutered nan gradient, stopping early")
             print(grads)
             print(components)
@@ -112,6 +111,6 @@ def fit_single(samples) -> LogisticParams:
 
 
 def sample_mixture(mixture_params):
-    i = categorical(torch.tensor(mixture_params.probs))
+    i = categorical(np.array(mixture_params.probs))
     component_params = mixture_params.components[i]
     return onp.random.logistic(loc=component_params.loc, scale=component_params.scale)
