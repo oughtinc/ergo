@@ -62,7 +62,9 @@ class TestMetaculus:
 
     def test_question_name_default(self):
         """make sure we get the correct default name if no name is specified"""
-        assert self.mock_log_question.name == tests.mocks.mock_log_question_data["title"]
+        assert (
+            self.mock_log_question.name == tests.mocks.mock_log_question_data["title"]
+        )
 
     def test_date_normalize_denormalize(self):
         samples = self.mock_date_samples
