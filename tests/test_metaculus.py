@@ -4,10 +4,7 @@ import os
 import pprint
 from typing import cast
 
-from dotenv import load_dotenv
 import jax.numpy as np
-import numpy as onp
-import numpyro
 import pandas as pd
 import pytest
 import requests
@@ -21,14 +18,14 @@ pp = pprint.PrettyPrinter(indent=4)
 
 uname = cast(str, os.getenv("METACULUS_USERNAME"))
 pwd = cast(str, os.getenv("METACULUS_PASSWORD"))
-user_id = cast(str, os.getenv("METACULUS_USER_ID"))
+user_id_str = cast(str, os.getenv("METACULUS_USER_ID"))
 
-if None in [uname, pwd, user_id]:
+if None in [uname, pwd, user_id_str]:
     raise ValueError(
         ".env is missing METACULUS_USERNAME, METACULUS_PASSWORD, or METACULUS_USER_ID"
     )
 
-user_id = int(user_id)
+user_id = int(user_id_str)
 
 
 @random_seed
