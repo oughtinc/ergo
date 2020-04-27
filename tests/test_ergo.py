@@ -1,12 +1,7 @@
-import pytest
-
 import ergo
 
 
 class TestPPL:
-    @pytest.mark.xfail(
-        reason="Either there is a bug or the lognormal parameterization has changed between Pyro and Numpyro"
-    )
     def test_sampling(self):
         def model():
             x = ergo.lognormal_from_interval(1, 10, name="x")
