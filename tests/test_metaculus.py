@@ -60,6 +60,12 @@ class TestMetaculus:
         """make sure we're getting the user-specific data"""
         assert "my_predictions" in self.continuous_linear_open_question.data
 
+    def test_question_name_default(self):
+        """make sure we get the correct default name if no name is specified"""
+        assert (
+            self.mock_log_question.name == tests.mocks.mock_log_question_data["title"]
+        )
+
     def test_date_normalize_denormalize(self):
         samples = self.mock_date_samples
         normalized = self.continuous_linear_date_open_question.normalize_samples(

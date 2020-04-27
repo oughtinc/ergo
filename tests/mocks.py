@@ -22,4 +22,5 @@ mock_log_question_data = {
         "type": "continuous",
         "scale": {"deriv_ratio": 10, "min": 1, "max": 10},
     },
+    "title": "question_title",
 }
