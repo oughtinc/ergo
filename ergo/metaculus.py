@@ -1273,9 +1273,9 @@ class Metaculus:
         questions = get_questions_for_pages(query_string, pages)
 
         # add additional fields ommited from previous query
-        for i, _q in enumerate(questions):
-            _r = self.s.get(f"{self.api_url}/questions/{_q['id']}")
-            questions[i] = dict(_r.json(), **_q)
+        for i, q in enumerate(questions):
+            r = self.s.get(f"{self.api_url}/questions/{q['id']}")
+            questions[i] = dict(r.json(), **q)
 
         if not include_discussion_questions:
             questions = [
