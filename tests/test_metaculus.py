@@ -190,7 +190,6 @@ class TestMetaculus:
         scaled_params = self.continuous_linear_open_question.get_true_scale_mixture(
             latest_prediction
         )
-        raise Exception(scaled_params)
         prediction_samples = np.array(
             [ergo.logistic.sample_mixture(scaled_params) for _ in range(0, 1000)]
         )
