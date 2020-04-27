@@ -2,9 +2,9 @@ from numpyro.primitives import Messenger
 
 
 class autoname(Messenger):
-    def __init__(self, fn):
+    def __enter__(self):
         self._names = set()
-        super(autoname, self).__init__(fn)
+        super(autoname, self).__enter__()
 
     def _increment_name(self, name, label):
         while (name, label) in self._names:
