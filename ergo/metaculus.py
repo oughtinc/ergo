@@ -436,10 +436,8 @@ class ContinuousQuestion(MetaculusQuestion):
         return scale_x_continuous()
 
     @property
-    def title_name(self):
-        return (
-            "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
-        )
+    def plot_title(self):
+        return "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
 
     # TODO: maybe it's better to fit the logistic first then normalize,
     # rather than the other way around?
@@ -758,7 +756,7 @@ class ContinuousQuestion(MetaculusQuestion):
             df["prediction"] = self.denormalize_samples(df["prediction"])
 
             plot = self.density_plot(df, _xmin, _xmax, fill="#b3cde3", **kwargs) + labs(
-                x="Prediction", y="Density", title=self.title_name
+                x="Prediction", y="Density", title=self.plot_title
             )
             plot.draw()
 
@@ -795,7 +793,7 @@ class ContinuousQuestion(MetaculusQuestion):
         plot = self.density_plot(df, _xmin, _xmax, **kwargs) + labs(
             x="Prediction",
             y="Density",
-            title=self.title_name + "\n\nCommunity Predictions",
+            title=self.plot_title + "\n\nCommunity Predictions",
         )
         plot.draw()
 
@@ -809,7 +807,7 @@ class ContinuousQuestion(MetaculusQuestion):
             + labs(
                 x="Prediction",
                 y="Density",
-                title=self.title_name + "\n\nPrediction vs Community",
+                title=self.plot_title + "\n\nPrediction vs Community",
             )
             + ergo_theme
         )
