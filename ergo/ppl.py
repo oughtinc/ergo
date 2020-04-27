@@ -158,17 +158,16 @@ def run(model, num_samples=5000, ignore_unnamed=True, rng_seed=0) -> pd.DataFram
     Run model forward, record samples for variables. Return dataframe
     with one row for each execution.
     """
-    model = numpyro.handlers.trace(
-        numpyro.handlers.seed(autoname(model), rng_seed=rng_seed)
-    )
-    samples: List[Dict[str, float]] = []
-    for _ in tqdm(range(num_samples)):
-        sample: Dict[str, float] = {}
-        trace = model.get_trace()
-        for name in trace.keys():
-            if trace[name]["type"] in ("sample", "deterministic"):
-                if ignore_unnamed and name.startswith("_"):
-                    continue
-                sample[name] = trace[name]["value"].item()
-        samples.append(sample)
+    model = numpyro.handlers.trace(autoname(model))
+    with numpyro.handlers.seed(rng_seed=rng_seed):
+        samples: List[Dict[str, float]] = []
+        for _ in tqdm(range(num_samples)):
+            sample: Dict[str, float] = {}
+            trace = model.get_trace()
+            for name in trace.keys():
+                if trace[name]["type"] in ("sample", "deterministic"):
+                    if ignore_unnamed and name.startswith("_"):
+                        continue
+                    sample[name] = trace[name]["value"].item()
+            samples.append(sample)
     return pd.DataFrame(samples)  # type: ignore
