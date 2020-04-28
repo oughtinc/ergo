@@ -27,7 +27,7 @@ We predict that the admit rate will be 20% higher than the current community pre
 
     >>> with seed(rng_seed=0):
     ...     community_prediction_samples = np.array(
-    ...       [harvard_question.sample_community() for _ in range (0,5000)]
+    ...       [harvard_question.sample_community() for _ in range(0, 5000)]
     ...     )
     >>> my_prediction_samples = community_prediction_samples * 1.2
 
