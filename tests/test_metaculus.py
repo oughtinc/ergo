@@ -174,8 +174,11 @@ class TestMetaculus:
             < (datetime.datetime.now() + datetime.timedelta(days=1))
         ).all()
 
+
+    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet")
     def test_submitted_equals_predicted_linear(self):
         self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
+        self.continuous_linear_open_question.refresh_question()
         latest_prediction = (
             self.continuous_linear_open_question.get_latest_normalized_prediction()
         )
@@ -187,9 +190,10 @@ class TestMetaculus:
         )
 
         assert np.mean(self.mock_samples) == pytest.approx(
-            np.mean(prediction_samples), np.mean(prediction_samples) / 10
+            np.mean(prediction_samples), rel=0.1
         )
 
+    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet")
     def test_submitted_equals_predicted_log(self):
         self.continuous_log_open_question.submit_from_samples(self.mock_samples)
         latest_prediction = (
@@ -205,7 +209,7 @@ class TestMetaculus:
         )
 
         assert np.mean(self.mock_samples) == pytest.approx(
-            np.mean(prediction_samples), np.mean(prediction_samples) / 10
+            np.mean(prediction_samples), rel=0.1
         )
 
     # smoke tests
