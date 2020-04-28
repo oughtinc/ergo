@@ -16,6 +16,10 @@ from tests.utils import random_seed
 pp = pprint.PrettyPrinter(indent=4)
 
 
+from dotenv import load_dotenv
+load_dotenv()
+
+
 uname = cast(str, os.getenv("METACULUS_USERNAME"))
 pwd = cast(str, os.getenv("METACULUS_PASSWORD"))
 user_id_str = cast(str, os.getenv("METACULUS_USER_ID"))
@@ -281,3 +285,7 @@ class TestMetaculus:
 
 #     def test_show_community_prediction(self):
 #         self.sf_question.show_community_prediction()
+
+
+if __name__ == "__main__":
+    TestMetaculus().test_submitted_equals_predicted_linear()
