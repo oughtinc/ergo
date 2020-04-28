@@ -181,6 +181,25 @@ class TestMetaculus:
 
     @pytest.mark.xfail(reason="Fitting doesn't reliably work yet")
     @random_seed
+    def test_submission_from_samples_linear(self):
+        mixture_params = self.continuous_linear_open_question.get_submission_from_samples(
+            self.mock_samples
+        )
+        normalized_mixture_samples = [
+            ergo.logistic.sample_mixture(mixture_params) for _ in range(5000)
+        ]
+        mixture_samples = self.continuous_linear_open_question.denormalize_samples(
+            normalized_mixture_samples
+        )
+        assert float(np.mean(self.mock_samples)) == pytest.approx(
+            float(np.mean(mixture_samples)), rel=0.1
+        )
+        assert float(np.var(self.mock_samples)) == pytest.approx(
+            float(np.var(mixture_samples)), rel=0.2
+        )
+
+    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet")
+    @random_seed
     def test_submitted_equals_predicted_linear(self):
         self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
         self.continuous_linear_open_question.refresh_question()
