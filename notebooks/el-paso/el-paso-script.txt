@@ -1,0 +1,461 @@
+%%capture
+%pip install poetry
+%pip install git+https://github.com/oughtinc/ergo.git@9e7bff1258896368a48bfdc72a01c05f0974f68f
+%pip install xlrd
+
+%load_ext google.colab.data_table
+
+%%capture
+import ergo
+import numpy as np
+import pandas as pd
+import ssl
+import math
+import datetime
+import warnings
+import functools
+import seaborn
+import sklearn
+
+from datetime import timedelta, date
+
+warnings.filterwarnings(module="plotnine", action="ignore")
+warnings.filterwarnings(module="jax", action="ignore")
+ssl._create_default_https_context = ssl._create_unverified_context
+
+metaculus = ergo.Metaculus(
+    username="oughtpublic", 
+    password="123456",
+    api_domain = "pandemic"
+)
+
+questions = metaculus.get_questions(cat="internal--el-paso")
+
+# the most logical order for the questions
+order = [4128, 4137, 4152, 4170, 4155, 4154, 4153, 4204, 4201, 4185]
+
+questions.sort(key = lambda q: order.index(q.id))
+
+ergo.MetaculusQuestion.to_dataframe(questions)
+
+START_DATE = date(2020, 4, 1)
+
+
+def daterange(start_date, end_date):
+    for n in range(int((end_date - start_date).days)):
+        yield start_date + timedelta(n)
+
+
+# Memoization
+
+memoized_functions = []
+
+def mem(func):
+    func = functools.lru_cache(None)(func)
+    memoized_functions.append(func)
+    return func
+
+def clear_mem():
+    for func in memoized_functions:
+        func.cache_clear()
+
+
+# Associating functions with Metaculus questions
+
+question_samplers = {}
+question_function_names = {}
+id_to_question = dict((q.id, q) for q in questions)
+
+def question(question_id, community_weight=0):
+    q = id_to_question[question_id]
+    q.refresh_question()
+    def decorator(func):
+        @functools.wraps(func)
+        @mem
+        def sampler():
+            if ergo.flip(community_weight):
+                value = q.sample_community()
+            else:
+                value = func()
+            tagged_value = value
+            if isinstance(value, date):
+                # FIXME: Ergo needs to handle dates
+                tagged_value = int((value - START_DATE).days)
+            ergo.tag(tagged_value, str(question_id))
+            return value
+        question_samplers[question_id] = sampler
+        question_function_names[question_id] = func.__name__
+        sampler.question_id = question_id
+        return sampler
+    return decorator
+
+def summarize_question_samples(samples):
+    summary = samples.describe().transpose().round(2)
+    summary.index = question_names = [question_function_names[int(i)] for i in summary.index]
+    display(summary)
+
+# Plotting distributions on return values
+
+def quick_plot(model, num_samples=5000, transform=lambda x: x):
+    import seaborn
+    def wrapper():
+        value = transform(model())
+        ergo.tag(value, "value")
+    samples = ergo.run(wrapper, num_samples=num_samples)
+    return seaborn.distplot(samples["value"])
+
+def plot_question(question_fn, num_samples=200):
+  def model():
+      clear_mem()
+      question_fn()
+
+  samples = ergo.run(model, num_samples=num_samples)
+
+  summarize_question_samples(samples)
+  question_id = question_fn.question_id
+
+  q = id_to_question[question_id]
+  key = str(q.id)
+  q_samples = samples[str(q.id)]
+
+  if key == "4128": # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
+      q_samples = np.array([START_DATE + timedelta(s) for s in q_samples])
+
+  q.refresh_question() 
+  print(q.show_prediction(samples=q_samples, show_community=True, percent_kept=0.9))
+
+texas_cases = pd.read_excel("https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx")
+texas_cases.columns = texas_cases.iloc[1]
+
+el_paso_cases = (texas_cases.loc[texas_cases["County Name"] == "El Paso"]
+                 .drop(columns=["County Name", "Population"])
+                 .transpose())
+
+el_paso_cases.columns = ["Cases so far"]
+
+def get_date(column_name):
+  date_str = column_name.split("\n")[1]
+  month_str, day_str = date_str.split("-")
+  return date(2020, int(month_str), int(day_str))
+
+el_paso_cases.index = [get_date(id) for id in el_paso_cases.index]
+
+el_paso_cases["New cases"] = el_paso_cases["Cases so far"].diff()
+
+el_paso_cases.tail()
+
+projected_cases = pd.read_csv(
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSurcOWEsa7DBCRfONFA2Gxf802Rj1FebYSyVzvACysenRcD79Fs0ykXWJakIhGcW48_ymgw35TKga-/pub?gid=1213113172&single=true&output=csv",
+    index_col="Date",
+    parse_dates=True,
+)
+
+projected_cases = projected_cases.dropna()
+projected_cases["Cases so far"] = projected_cases["Cases so far"].apply(lambda str: int(str.replace(",", "")))
+projected_cases["New cases"] = projected_cases["Cases so far"].diff()
+
+projected_cases
+
+compiled_data = pd.read_csv(
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQEZk_8wZMF5MEm_f66wpev4nkWP7edQ8l6SwcbUd68zFZw6EVizh-jplw2_9gZBGyhNaJk5R_CG25k/pub?gid=0&single=true&output=csv",
+    index_col="date",
+    parse_dates=True,
+)
+compiled_data = compiled_data.rename(columns={"in_hospital": "In hospital confirmed"})
+
+compiled_data
+
+@mem
+def hospital_stay_days():
+    hospital_stay_days_point_estimate = 7
+
+    hospital_stay_days_fuzzed = round(
+        float(ergo.normal_from_interval(
+            hospital_stay_days_point_estimate * 0.5,
+            hospital_stay_days_point_estimate * 1.5
+        ))
+    )
+
+    return max(1, hospital_stay_days_fuzzed)
+
+
+@mem
+def get_hospital_confirmed_from_daily_infected_model(daily_infections):    
+    # from https://penn-chime.phl.io/
+
+    has_hospital_confirmed = compiled_data[compiled_data["In hospital confirmed"].notna()]
+
+    data_dates = has_hospital_confirmed.index
+
+    # for each date for which we have data for how many lab-confirmed COVID patients were in the hospital,
+    # how many new confirmed cases were there over the past hospital_stay_days days?
+    def get_recent_infected_data(date):
+      return sum([daily_infections(date - timedelta(n))
+        for n in range(0, hospital_stay_days())])
+
+    recent_infected_data = [[get_recent_infected_data(date)]
+      for date in data_dates]
+
+    reg = sklearn.linear_model.LinearRegression(fit_intercept=False).fit(
+        recent_infected_data,
+        has_hospital_confirmed["In hospital confirmed"])
+
+    # TODO: consider adding uncertainty to the fit here
+
+    # now that we've related current hospitalized cases and recent confirmed cases,
+    # return a function that allows us to predict hospitalized cases given estimates
+    # of future confirmed cases
+    def hospital_confirmed_from_daily_infected_model(date: date):
+      recent_infected = sum([daily_infections(date - timedelta(n))
+        for n in range(0, hospital_stay_days())])
+      return round(reg.predict([[recent_infected]])[0])
+  
+    return hospital_confirmed_from_daily_infected_model
+
+@mem
+def daily_infections(date: date) -> int:
+    """
+    What is the number of reported (new) Covid-19 infections on [date]?
+    """
+    try:
+        # Look up Texas Government data
+        new_cases = el_paso_cases.loc[date, "New cases"]
+        if np.isnan(new_cases):
+            raise KeyError
+        return new_cases
+    except KeyError:
+        try:
+            # Look up projections from @onlyasith's model
+            cases = projected_cases.loc[date, "New cases"]
+            if np.isnan(cases):
+                raise KeyError
+            
+            # Add some (fairly arbitrary) uncertainty around this point estimate
+            if cases == 0:
+              return cases
+            cases_estimate = ergo.lognormal_from_interval(cases * 0.8, cases * 1.2)
+            return np.clip(cases_estimate, cases * 0.5, cases * 2)
+        except KeyError:
+            # We're beyond the time range for data and model
+            return 0
+
+@mem
+def mean_infections(start_date: date, end_date: date):
+    """
+    What is the average number of reported new infections for this range of 
+    dates? (Including start date, excluding end date)
+    """
+    days = daterange(start_date, end_date)
+    return np.mean([daily_infections(day) for day in days])
+
+# Build @brachbach regression model
+hospital_confirmed_from_daily_infected_model = get_hospital_confirmed_from_daily_infected_model(daily_infections)
+
+@mem
+def hospital_confirmed_for_date(date: date) -> int:
+    """
+    The total number of lab-confirmed COVID-19 patients in El Paso County in
+    the hospital on this date
+    """
+    try:
+        # Look up in-hospital confirmed cases from @KrisMoore's compiled data
+        new_hospital_confirmed = compiled_data.loc[date, "In hospital confirmed"]
+        if np.isnan(new_hospital_confirmed):
+            raise KeyError
+        return new_hospital_confirmed
+    except KeyError:
+        try:
+            # Get point estimate from @brachbach's regression model
+            cases = hospital_confirmed_from_daily_infected_model(date)
+            
+            # Add some (fairly arbitrary) uncertainty around this point estimate
+            if cases == 0:
+              return cases
+            cases_estimate = ergo.lognormal_from_interval(cases * 0.8, cases * 1.2)
+            return np.clip(cases_estimate, cases * 0.5, cases * 2)
+        except KeyError:
+            return 0
+
+@mem
+def frac_icu_ventilation():
+    """
+    Proportion of ICU admissions requiring ventilation
+
+    Approach (PabloStafforini et al): 
+    https://pandemic.metaculus.com/questions/4154/#comment-28155
+
+    TODO: 
+    - Improve how we use case data
+    - Add qualitative adjustments
+    """
+    ventilation_pseudocounts = 25 + 17 + 0.05 * 1150 + 0.1 * 132
+    icu_pseudocounts = 100 + 36 + 0.05 * 1300 + 0.1 * 196
+    return ergo.beta_from_hits(ventilation_pseudocounts, icu_pseudocounts)
+
+@question(4128, community_weight=0.5)
+def peak_infection_date() -> date:
+    """
+    When will El Paso County, Texas, experience its first peak number of COVID
+    infections?
+    """    
+    end_date = date(2020, 7, 1)
+    for today in daterange(START_DATE, end_date):
+        yesterday = today - timedelta(1)
+        tomorrow = today + timedelta(1)
+        two_day_mean = mean_infections(yesterday, tomorrow)
+        future_means = [mean_infections(today + timedelta(i), today + timedelta(i+2)) for i in range(10)]
+        if two_day_mean > max(future_means):
+            return today
+    return end_date
+plot_question(peak_infection_date)
+
+@question(4137, community_weight=0.5)
+def peak_infections():
+    """
+    How many new infections will be reported in El Paso on the day on which
+    the number of new reported infections peaks?
+    """
+    peak = peak_infection_date()
+    return daily_infections(peak)
+plot_question(peak_infections)
+
+@question(4152, community_weight=0.5)
+def mean_infections_peak345():
+    """
+    What will the average number of reported daily infections be in El Paso,
+    over the 3rd, 4th and 5th days after the first "peak"?
+    """
+    peak = peak_infection_date()
+    return mean_infections(peak + timedelta(3), peak + timedelta(6))
+plot_question(mean_infections_peak345)
+
+
+@question(4170, community_weight=0.8)
+def mean_infections_peak678():
+    """
+    What will the average number of reported daily infections be in El Paso,
+    over the 6th, 7th and 8th days after the first "peak"?  
+    """
+    peak = peak_infection_date()
+    return mean_infections(peak + timedelta(6), peak + timedelta(9))
+plot_question(mean_infections_peak678)
+
+@question(4155, community_weight=0.7)
+def frac_patients_icu():
+    """
+    What portion of in-hospital cases in El Paso County will require admission
+    to the ICU?
+
+    Following @katifish's approach:
+    https://pandemic.metaculus.com/questions/4155/#comment-28054
+
+    TODO: Add others from katifish comment
+    """
+    alpha = 0.1 # Rescaling counts becase we're more uncertain than implied by counts
+    return ergo.random_choice([
+      ergo.beta_from_hits(alpha * 121, alpha * 508),
+      ergo.beta_from_hits(alpha * 181, alpha * 507),
+    ])
+plot_question(frac_patients_icu)
+
+@question(4154, community_weight=0.3)
+def frac_patients_invasive():
+    """
+    What portion of in-hospital patients with Covid-19 in El Paso County will
+    require invasive ventilation?
+
+    Following @PabloStafforini's indirect estimation approach:
+    https://pandemic.metaculus.com/questions/4154/#comment-28155
+
+    TODO:
+    - Combine with direct estimate
+      direct_estimate = ergo.beta_from_hits(0.1 * 130, 0.1 * 393)
+    """
+    return frac_patients_icu() * frac_icu_ventilation()
+plot_question(frac_patients_invasive)
+
+@question(4153, community_weight=0.3)
+def max_30d_hospital_confirmed_for_peak():
+    """
+    What will the maximum number of in-hospital lab-confirmed COVID-19 
+    patients in El Paso County, in the 30-day period during which the "peak"
+    occurs?
+    """
+    peak = peak_infection_date()
+    days = daterange(peak - timedelta(15), peak + timedelta(15))
+    return max(hospital_confirmed_for_date(day) for day in days)
+
+plot_question(max_30d_hospital_confirmed_for_peak)
+
+@question(4204)
+def peak_icu_admissions():
+    """
+    How many patients with Covid-19 in El Paso County will be admitted to the
+    ICU on the day when the number of hospital admissions of cases peak?
+
+    Following @Tamay's approach:
+    https://pandemic.metaculus.com/questions/4204/
+
+    Alternative:    
+    - peak = peak_hospitalizations_date()
+    - return daily_icu_admissions(peak)
+
+    FIXME: Admissions vs in-hospital patients unclear
+
+    Not mixing in community since this is just the product of two other questions.    
+    """
+    max_patients = max_30d_hospital_confirmed_for_peak()
+    return max_patients * frac_patients_icu()
+plot_question(max_30d_hospital_confirmed_for_peak)
+
+@question(4201)
+def peak_invasive_ventilation():
+    """
+    How many patients with Covid-19 in El Paso County will require invasive 
+    ventilation on the day when the number of hospital admissions of cases 
+    peak?
+
+    Following @Tamay's approach:
+    https://pandemic.metaculus.com/questions/4201/#comment-28004
+
+    Not mixing in community since this is just the product of two other questions.
+    """
+    return frac_icu_ventilation() * peak_icu_admissions()
+
+plot_question(peak_invasive_ventilation)
+
+def model():
+    clear_mem()
+    for question_sampler in question_samplers.values():
+        question_sampler()
+
+samples = ergo.run(model, num_samples=2000)
+
+summarize_question_samples(samples)
+
+submissions = {}
+for q in questions:
+    print(q.id)
+    if q.id == 4185: # We didn't predict the unemployment question
+        continue
+
+    key = str(q.id)
+    q_samples = samples[str(q.id)]
+
+    if key == "4128": # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
+        q_samples = np.array([START_DATE + timedelta(s) for s in q_samples])
+    
+    q.refresh_question()
+
+    if q.id in [4201, 4204, 4137, 4152, 4170, 4153]:
+      # Clip extreme values for questions that we had issues fitting
+      (sample_min, sample_max) = np.quantile(q_samples, [0.02, 0.98])
+      q_samples = q_samples[(q_samples >= sample_min) & (q_samples <= sample_max)]
+
+    submission = q.get_submission_from_samples(q_samples)
+    submissions[q] = submission
+    print(q.show_prediction(samples=submission, show_community=True, percent_kept=0.9))
+
+# Should we submit this to Metaculus? If so, uncomment the following line:
+# for q, submission in submissions.items():  
+#     q.submit(submission)
