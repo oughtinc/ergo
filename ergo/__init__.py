@@ -1,6 +1,5 @@
 __version__ = "0.8.3"
 
-import ergo.data
 import ergo.logistic
 import ergo.metaculus
 import ergo.ppl

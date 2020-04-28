@@ -14,9 +14,3 @@ class TestPPL:
         assert 3.5 < stats["x"]["mean"] < 4.5
         assert 0.1 < stats["y"]["mean"] < 0.3
         assert 0.6 < stats["z"]["mean"] < 1.0
-
-
-class TestData:
-    def test_confirmed_infections(self):
-        confirmed = ergo.data.covid19.ConfirmedInfections()
-        assert confirmed.get("Iran", "3/25/20") == 27017
