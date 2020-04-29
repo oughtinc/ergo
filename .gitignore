@@ -8,3 +8,4 @@ conda/
 docs/build
 .env
 .coverage*
+.ipynb_checkpoints
