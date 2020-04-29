@@ -1,6 +1,6 @@
 %%capture
 %pip install poetry
-%pip install git+https://github.com/oughtinc/ergo.git@munging-to-files
+%pip install git+https://github.com/oughtinc/ergo.git@9e7bff1258896368a48bfdc72a01c05f0974f68f
 %pip install xlrd
 
 %load_ext google.colab.data_table
@@ -22,6 +22,7 @@ warnings.filterwarnings(module="plotnine", action="ignore")
 warnings.filterwarnings(module="jax", action="ignore")
 ssl._create_default_https_context = ssl._create_unverified_context
 
+%%capture
 !git clone -b munging-to-files https://github.com/oughtinc/ergo
 
 import sys
@@ -100,8 +101,10 @@ def question(question_id, community_weight=0):
     return decorator
 
 def summarize_question_samples(samples):
+    print(samples)
     summary = samples.describe().transpose().round(2)
-    summary.index = [question_function_names[int(i)] for i in summary.index]
+    print(summary)
+    summary.index = question_names = [question_function_names[int(i)] for i in summary.index]
     display(summary)
 
 # Plotting distributions on return values
