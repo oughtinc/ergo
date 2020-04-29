@@ -4,23 +4,31 @@ from typing import Callable
 import pandas as pd
 import sklearn
 
-import ergo
-
 
 def get_hospital_stay_days():
     # from https://penn-chime.phl.io/
     hospital_stay_days_point_estimate = 7
 
-    hospital_stay_days_fuzzed = round(
-        float(
-            ergo.normal_from_interval(
-                hospital_stay_days_point_estimate * 0.5,
-                hospital_stay_days_point_estimate * 1.5,
-            )
-        )
-    )
+    # get_hospital_confirmed_from_daily_infected_model causes random choices
+    # (because hospital_stay_days is random)
+    # but we’re calling it outside of the model functions so it’s only called once.
+    # this will give weird/wrong results.
+    # moving hospital_confirmed_from_daily_infected_model =
+    # get_hospital_confirmed_from_daily_infected_model(daily_infections)
+    # inside hospital_confirmed_for_date will fix this
+    # but will make the model pretty slow since each call to the model reruns regression
+    # hospital_stay_days_fuzzed = round(
+    #     float(
+    #         ergo.normal_from_interval(
+    #             hospital_stay_days_point_estimate * 0.5,
+    #             hospital_stay_days_point_estimate * 1.5,
+    #         )
+    #     )
+    # )
 
-    return max(1, hospital_stay_days_fuzzed)
+    # return max(1, hospital_stay_days_fuzzed)
+
+    return hospital_stay_days_point_estimate
 
 
 def get_daily_hospital_confirmed(
