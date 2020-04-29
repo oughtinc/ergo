@@ -716,7 +716,16 @@ class ContinuousQuestion(MetaculusQuestion):
                     "Samples should be a list, numpy arrray or pandas series"
                 )
             num_samples = samples.shape[0]
-            df["samples"] = self.normalize_samples(samples)
+
+            if type(samples) == pd.DataFrame:
+                if plot != "samples" and samples.shape[1] > 1:
+                    raise ValueError(
+                        "For multiple predictions comparisons, only samples can be compared (The plot parameter can only be 'samples')"
+                    )
+                for col in samples:
+                    df[col] = self.normalize_samples(samples[col])
+            else:
+                df["samples"] = self.normalize_samples(samples)
 
         if plot in ("fitted", "both"):
             prediction = self.get_submission_from_samples(samples)
@@ -738,7 +747,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
         for col in df:
             df[col] = self.denormalize_samples(df[col])
-        # import ipdb; ipdb.set_trace()
+
         df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
 
         plot = self.comparison_plot(df, xmin, xmax, **kwargs) + labs(
@@ -748,9 +757,7 @@ class ContinuousQuestion(MetaculusQuestion):
             if show_community
             else self.plot_title,
         )
-        return (plot, xmin, xmax)
-
-        plot.draw()
+        plot.draw()  # type: ignore
 
     def show_community_prediction(
         self,
@@ -790,7 +797,6 @@ class ContinuousQuestion(MetaculusQuestion):
         plot.draw()
 
     def comparison_plot(self, df: pd.DataFrame, xmin=None, xmax=None, **kwargs):
-        print(xmin, xmax)
         return (
             ggplot(df, aes(df.columns[1], fill=df.columns[0]))
             + scale_fill_brewer(type="qual", palette="Pastel1")
