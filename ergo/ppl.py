@@ -8,9 +8,9 @@ from typing import Dict, List
 
 import jax.numpy as np
 import numpyro
-import numpyro.distributions as dist  # type: ignore
+import numpyro.distributions as dist
 import pandas as pd
-from tqdm.autonotebook import tqdm  # type: ignore
+from tqdm.autonotebook import tqdm
 
 from ergo.autoname import autoname
 
@@ -32,9 +32,8 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
     :return: A sample from the distribution
     """
     if not name:
-        # If no name is provided, the model should use the @name_count
-        # decorator to avoid using the same name for multiple variables
-        name = "_var"
+        # Values that aren't explicitly named
+        name = "_v"
     return numpyro.sample(name, dist, **kwargs)
 
 
@@ -144,21 +143,22 @@ flip = bernoulli
 # Inference
 
 
-def tag_return(model):
+def tag_output(model):
     def wrapped():
         value = model()
-        tag(value, "_return")
+        if value is not None:
+            tag(value, "output")
         return value
 
     return wrapped
 
 
-def run(model, num_samples=5000, ignore_unnamed=True, rng_seed=0) -> pd.DataFrame:
+def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFrame:
     """
     Run model forward, record samples for variables. Return dataframe
     with one row for each execution.
     """
-    model = numpyro.handlers.trace(autoname(model))
+    model = numpyro.handlers.trace(tag_output(autoname(model)))
     with numpyro.handlers.seed(rng_seed=rng_seed):
         samples: List[Dict[str, float]] = []
         for _ in tqdm(range(num_samples)):
@@ -166,7 +166,7 @@ def run(model, num_samples=5000, ignore_unnamed=True, rng_seed=0) -> pd.DataFram
             trace = model.get_trace()
             for name in trace.keys():
                 if trace[name]["type"] in ("sample", "deterministic"):
-                    if ignore_unnamed and name.startswith("_"):
+                    if ignore_untagged and name.startswith("_"):
                         continue
                     sample[name] = trace[name]["value"].item()
             samples.append(sample)

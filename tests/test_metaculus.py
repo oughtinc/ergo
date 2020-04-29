@@ -4,6 +4,7 @@ import os
 import pprint
 from typing import cast
 
+from dotenv import load_dotenv
 import jax.numpy as np
 import pandas as pd
 import pytest
@@ -16,7 +17,6 @@ from tests.utils import random_seed
 pp = pprint.PrettyPrinter(indent=4)
 
 
-from dotenv import load_dotenv
 load_dotenv()
 
 
