@@ -2,6 +2,11 @@ from numpyro.primitives import Messenger
 
 
 class autoname(Messenger):
+    """
+    If multiple sampling sites have the same name, automatically append a number and
+    increment it by 1 for each repeated occurence.
+    """
+    
     def __enter__(self):
         self._names = set()
         super(autoname, self).__enter__()
