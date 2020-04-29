@@ -3,6 +3,7 @@ This module provides a few lightweight wrappers around probabilistic
 programming primitives from Numpyro.
 """
 
+import functools
 import math
 from typing import Dict, List
 
@@ -140,6 +141,22 @@ def random_integer(min: int, max: int, **kwargs) -> int:
 flip = bernoulli
 
 
+# Memoization
+
+memoized_functions = []  # FIXME: global state
+
+
+def mem(func):
+    func = functools.lru_cache(None)(func)
+    memoized_functions.append(func)
+    return func
+
+
+def clear_mem():
+    for func in memoized_functions:
+        func.cache_clear()
+
+
 # Inference
 
 
@@ -162,6 +179,7 @@ def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFra
     with numpyro.handlers.seed(rng_seed=rng_seed):
         samples: List[Dict[str, float]] = []
         for _ in tqdm(range(num_samples)):
+            clear_mem()
             sample: Dict[str, float] = {}
             trace = model.get_trace()
             for name in trace.keys():

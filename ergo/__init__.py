@@ -19,6 +19,7 @@ from .ppl import (
     halfnormal_from_interval,
     lognormal,
     lognormal_from_interval,
+    mem,
     normal,
     normal_from_interval,
     random_choice,
