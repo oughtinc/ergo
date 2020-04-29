@@ -52,6 +52,7 @@ from plotnine import (  # type: ignore
     geom_density,
     geom_histogram,
     ggplot,
+    ggtitle,
     guides,
     labs,
     scale_fill_brewer,
@@ -678,6 +679,7 @@ class ContinuousQuestion(MetaculusQuestion):
     def show_prediction(
         self,
         samples,
+        plot: str = "samples",
         percent_kept: float = 0.95,
         side_cut_from: str = "both",
         show_community: bool = False,
@@ -690,6 +692,9 @@ class ContinuousQuestion(MetaculusQuestion):
 
         :param samples: samples from a distribution answering the prediction question
             (true scale) or a prediction object
+        :param prediction: a fitted prediction in the form of a SubmissionMixtureParams
+        :param plot: either the string "samples", "fitted", "both" fitted prediction in
+            the form of a SubmissionMixtureParams
         :param percent_kept: percentage of sample distrubtion to keep
         :param side_cut_from: which side to cut tails from,
             either 'both','lower', or 'upper'
@@ -698,67 +703,54 @@ class ContinuousQuestion(MetaculusQuestion):
         :param num_samples: number of samples from the community
         :param **kwargs: additional plotting parameters
         """
+        if plot not in ("samples", "fitted", "both"):
+            raise ValueError("side keyword must be either 'samples', 'fitted', 'both'")
 
-        if isinstance(samples, SubmissionMixtureParams):
-            prediction = samples
-            prediction_normed_samples = pd.Series(
-                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
-            )
+        df = pd.DataFrame()
 
-        else:
+        if plot in ("samples", "both"):
             if isinstance(samples, list):
                 samples = pd.Series(samples)
-            if not type(samples) in [pd.Series, np.ndarray]:
+            if not type(samples) in [pd.DataFrame, pd.Series, np.ndarray]:
                 raise ValueError(
                     "Samples should be a list, numpy arrray or pandas series"
                 )
             num_samples = samples.shape[0]
-            prediction_normed_samples = self.normalize_samples(
-                samples
-            )  # need to do go to normalizes space for dates values samples
+            df["samples"] = self.normalize_samples(samples)
+
+        if plot in ("fitted", "both"):
+            prediction = self.get_submission_from_samples(samples)
+            df["fitted"] = pd.Series(
+                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+            )
 
         if show_community:
-            df = pd.DataFrame(
-                data={
-                    "community": [  # type: ignore
-                        self.sample_normalized_community()
-                        for _ in range(0, num_samples)
-                    ],
-                    "prediction": prediction_normed_samples,  # type: ignore
-                }
+            df["community"] = [  # type: ignore
+                self.sample_normalized_community() for _ in range(0, num_samples)
+            ]
+
+        # get domain for graph given the percentage of distribution kept
+        xmin, xmax = self.denormalize_samples(
+            self.get_central_quantiles(
+                df, percent_kept=percent_kept, side_cut_from=side_cut_from,
             )
-            # get domain for graph given the percentage of distribution kept
-            _xmin, _xmax = self.denormalize_samples(
-                self.get_central_quantiles(
-                    prediction_normed_samples,
-                    percent_kept=percent_kept,
-                    side_cut_from=side_cut_from,
-                )
-            )
+        )
 
-            df["prediction"] = self.denormalize_samples(df["prediction"])
-            df["community"] = self.denormalize_samples(df["community"])
+        for col in df:
+            df[col] = self.denormalize_samples(df[col])
+        # import ipdb; ipdb.set_trace()
+        df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
 
-            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
+        plot = self.comparison_plot(df, xmin, xmax, **kwargs) + labs(
+            x="Prediction",
+            y="Density",
+            title=self.plot_title + "\n\nPrediction vs Community"
+            if show_community
+            else self.plot_title,
+        )
+        return (plot, xmin, xmax)
 
-            plot = self.comparison_plot(df, _xmin, _xmax, **kwargs)
-            plot.draw()
-
-        else:
-            df = pd.DataFrame(data={"prediction": prediction_normed_samples})  # type: ignore
-            # get domain for graph given the percentage of distribution kept
-            _xmin, _xmax = self.denormalize_samples(
-                self.get_central_quantiles(
-                    df, percent_kept=percent_kept, side_cut_from=side_cut_from
-                )
-            )
-
-            df["prediction"] = self.denormalize_samples(df["prediction"])
-
-            plot = self.density_plot(df, _xmin, _xmax, fill="#b3cde3", **kwargs) + labs(
-                x="Prediction", y="Density", title=self.plot_title
-            )
-            plot.draw()
+        plot.draw()
 
     def show_community_prediction(
         self,
@@ -798,18 +790,15 @@ class ContinuousQuestion(MetaculusQuestion):
         plot.draw()
 
     def comparison_plot(self, df: pd.DataFrame, xmin=None, xmax=None, **kwargs):
+        print(xmin, xmax)
         return (
             ggplot(df, aes(df.columns[1], fill=df.columns[0]))
             + scale_fill_brewer(type="qual", palette="Pastel1")
             + geom_density(alpha=0.8)
-            + xlim(xmin, xmax)
+            + ggtitle(self.plot_title)
             + self._scale_x
-            + labs(
-                x="Prediction",
-                y="Density",
-                title=self.plot_title + "\n\nPrediction vs Community",
-            )
             + ergo_theme
+            + xlim(xmin, xmax)
         )
 
     def change_since(self, since: datetime):
@@ -835,6 +824,7 @@ class ContinuousQuestion(MetaculusQuestion):
             ggplot(df, aes(df.columns[0]))
             + geom_density(fill=fill, alpha=0.8)
             + xlim(xmin, xmax)
+            + ggtitle(self.plot_title)
             + self._scale_x
             + ergo_theme
         )
