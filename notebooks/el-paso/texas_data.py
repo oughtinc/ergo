@@ -1,10 +1,12 @@
-import pandas as pd
 from datetime import date
+
+import pandas as pd
 
 
 def get_el_paso_data():
     """
-    Get El Paso COVID data from the Texas government's data at https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx
+    Get El Paso COVID data from the Texas government's data at
+    https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx
     """
     texas_cases = pd.read_excel(
         "https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx"
