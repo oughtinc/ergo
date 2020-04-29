@@ -45,6 +45,15 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+import pyro.distributions as dist
+import requests
+from scipy import stats
+import torch
+from typing_extensions import Literal
+
+import ergo.logistic as logistic
+import ergo.ppl as ppl
+from ergo.theme import ergo_theme  # type: ignore
 from plotnine import (  # type: ignore
     aes,
     element_text,
@@ -61,15 +70,6 @@ from plotnine import (  # type: ignore
     theme,
     xlim,
 )
-import pyro.distributions as dist
-import requests
-from scipy import stats
-import torch
-from typing_extensions import Literal
-
-import ergo.logistic as logistic
-import ergo.ppl as ppl
-from ergo.theme import ergo_theme  # type: ignore
 
 
 @dataclass

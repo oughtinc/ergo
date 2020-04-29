@@ -22,6 +22,7 @@ jaxlib = "0.1.44"
 pandas = "1.0.3"
 sphinx-autodoc-typehints = "^1.10.3"
 plotnine = "^0.6.0"
+sklearn = "0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
