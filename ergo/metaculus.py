@@ -684,7 +684,8 @@ class ContinuousQuestion(MetaculusQuestion):
         num_samples: int = 1000,
         **kwargs,
     ):
-        """Plot prediction on the true question scale from samples or a submission
+        """
+        Plot prediction on the true question scale from samples or a submission
         object. Optionally compare prediction against a sample from the distribution
         of community predictions
 
