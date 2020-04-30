@@ -1398,7 +1398,7 @@ version = "1.4.0+cpu"
 [package.source]
 reference = ""
 type = "url"
-url = "http://download.pytorch.org/whl/cpu/torch-1.4.0%2Bcpu-cp37-cp37m-linux_x86_64.whl"
+url = "http://download.pytorch.org/whl/cpu/torch-1.4.0%2Bcpu-cp36-cp36m-linux_x86_64.whl"
 [[package]]
 category = "dev"
 description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
@@ -1503,7 +1503,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "af9a9aa6ebbc6fae8006969fb6f20465e47aa47a74fd639c9ec50dca7575d1b3"
+content-hash = "425da26fe34c31a1b0ef8c03dd51dd0785cc5330d84ddea1b9f3e4343e445647"
 python-versions = "~3.6.8"
 
 [metadata.files]
