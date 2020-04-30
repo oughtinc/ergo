@@ -1,6 +1,6 @@
 %%capture
 %pip install poetry
-%pip install git+https://github.com/oughtinc/ergo.git@plot-feature
+%pip install git+https://github.com/oughtinc/ergo.git@69422ca496ffb703c063578241c5222ce8df949a
 %pip install xlrd
 
 %load_ext google.colab.data_table
