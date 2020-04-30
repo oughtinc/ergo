@@ -679,7 +679,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def show_prediction(
         self,
         samples,
-        plot: str = "samples",
+        plot_samples: bool = True,
+        plot_fitted: bool = False,
         percent_kept: float = 0.95,
         side_cut_from: str = "both",
         show_community: bool = False,
@@ -691,10 +692,13 @@ class ContinuousQuestion(MetaculusQuestion):
         of community predictions
 
         :param samples: samples from a distribution answering the prediction question
-            (true scale) or a prediction object
-        :param prediction: a fitted prediction in the form of a SubmissionMixtureParams
-        :param plot: either the string "samples", "fitted", "both" fitted prediction in
-            the form of a SubmissionMixtureParams
+            (true scale). Can either be a 1-d array corresponding to one model's
+            predictions, or a pandas DataFrame with each column corresponding to
+            a distinct model's predictions
+        :param plot_samples: boolean indicating whether to plot the raw samples
+        :param plot_fitted: boolean indicating whether to compute Logistic Mixture
+            Params from samples and plot the resulting fitted distribution. Note
+            this is currently only supported for 1-d samples
         :param percent_kept: percentage of sample distrubtion to keep
         :param side_cut_from: which side to cut tails from,
             either 'both','lower', or 'upper'
@@ -703,12 +707,15 @@ class ContinuousQuestion(MetaculusQuestion):
         :param num_samples: number of samples from the community
         :param **kwargs: additional plotting parameters
         """
-        if plot not in ("samples", "fitted", "both"):
-            raise ValueError("side keyword must be either 'samples', 'fitted', 'both'")
 
         df = pd.DataFrame()
 
-        if plot in ("samples", "both"):
+        if not plot_fitted and not plot_samples:
+            raise ValueError(
+                "Nothing to plot. Niether plot_fitted nor plot_samples was True"
+            )
+
+        if plot_samples:
             if isinstance(samples, list):
                 samples = pd.Series(samples)
             if not type(samples) in [pd.DataFrame, pd.Series, np.ndarray]:
@@ -718,16 +725,16 @@ class ContinuousQuestion(MetaculusQuestion):
             num_samples = samples.shape[0]
 
             if type(samples) == pd.DataFrame:
-                if plot != "samples" and samples.shape[1] > 1:
+                if plot_fitted and samples.shape[1] > 1:
                     raise ValueError(
-                        "For multiple predictions comparisons, only samples can be compared (The plot parameter can only be 'samples')"
+                        "For multiple predictions comparisons, only samples can be compared (plot_fitted must be False)"
                     )
                 for col in samples:
                     df[col] = self.normalize_samples(samples[col])
             else:
                 df["samples"] = self.normalize_samples(samples)
 
-        if plot in ("fitted", "both"):
+        if plot_fitted:
             prediction = self.get_submission_from_samples(samples)
             df["fitted"] = pd.Series(
                 [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
