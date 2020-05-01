@@ -801,18 +801,26 @@ class ContinuousQuestion(MetaculusQuestion):
         )
         plot.draw()
 
-    def comparison_plot(self, df: pd.DataFrame, xmin=None, xmax=None, **kwargs):
+    def comparison_plot(
+        self, df: pd.DataFrame, xmin=None, xmax=None, bw="normal_reference", **kwargs
+    ):
         return (
             ggplot(df, aes(df.columns[1], fill=df.columns[0]))
             + scale_fill_brewer(type="qual", palette="Pastel1")
-            + geom_density(alpha=0.8)
+            + geom_density(bw=bw, alpha=0.8)
             + ggtitle(self.plot_title)
             + self._scale_x(xmin, xmax)
             + ergo_theme
         )
 
     def density_plot(
-        self, df: pd.DataFrame, xmin=None, xmax=None, fill: str = "#fbb4ae", **kwargs
+        self,
+        df: pd.DataFrame,
+        xmin=None,
+        xmax=None,
+        fill: str = "#fbb4ae",
+        bw="normal_reference",
+        **kwargs,
     ):
         return (
             ggplot(df, aes(df.columns[0]))
