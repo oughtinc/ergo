@@ -11,7 +11,9 @@ def get_el_paso_data():
     texas_cases = pd.read_excel(
         "https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx"
     )
-    texas_cases.columns = texas_cases.iloc[1]
+    column_names = texas_cases.iloc[1]
+    column_names[0] = "County Name"
+    texas_cases.columns = column_names
 
     el_paso_cases = (
         texas_cases.loc[texas_cases["County Name"] == "El Paso"]
@@ -22,7 +24,7 @@ def get_el_paso_data():
     el_paso_cases.columns = ["Cases so far"]
 
     def get_date(column_name):
-        date_str = column_name.split("\n")[1]
+        date_str = column_name.split("\n")[-1]
         month_str, day_str = date_str.split("-")
         return date(2020, int(month_str), int(day_str))
 
