@@ -60,7 +60,6 @@ from plotnine import (  # type: ignore
     scale_x_datetime,
     scale_x_log10,
     theme,
-    xlim,
 )
 import pyro.distributions as dist
 import requests
@@ -432,9 +431,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def question_range_width(self):
         return self.question_range["max"] - self.question_range["min"]
 
-    @property
-    def _scale_x(self):
-        return scale_x_continuous()
+    def _scale_x(self, xmin: float = None, xmax: float = None):
+        return scale_x_continuous(limits=(xmin, xmax))
 
     @property
     def plot_title(self):
@@ -809,9 +807,19 @@ class ContinuousQuestion(MetaculusQuestion):
             + scale_fill_brewer(type="qual", palette="Pastel1")
             + geom_density(alpha=0.8)
             + ggtitle(self.plot_title)
-            + self._scale_x
+            + self._scale_x(xmin, xmax)
             + ergo_theme
-            + xlim(xmin, xmax)
+        )
+
+    def density_plot(
+        self, df: pd.DataFrame, xmin=None, xmax=None, fill: str = "#fbb4ae", **kwargs
+    ):
+        return (
+            ggplot(df, aes(df.columns[0]))
+            + geom_density(fill=fill, alpha=0.8)
+            + ggtitle(self.plot_title)
+            + self._scale_x(xmin, xmax)
+            + ergo_theme
         )
 
     def change_since(self, since: datetime):
@@ -829,18 +837,6 @@ class ContinuousQuestion(MetaculusQuestion):
             return 0
 
         return new["q2"] - old["q2"]
-
-    def density_plot(
-        self, df: pd.DataFrame, xmin=None, xmax=None, fill: str = "#fbb4ae", **kwargs
-    ):
-        return (
-            ggplot(df, aes(df.columns[0]))
-            + geom_density(fill=fill, alpha=0.8)
-            + xlim(xmin, xmax)
-            + ggtitle(self.plot_title)
-            + self._scale_x
-            + ergo_theme
-        )
 
 
 class LinearQuestion(ContinuousQuestion):
@@ -918,9 +914,8 @@ class LogQuestion(ContinuousQuestion):
     def deriv_ratio(self) -> float:
         return self.possibilities["scale"]["deriv_ratio"]
 
-    @property
-    def _scale_x(self):
-        return scale_x_log10()
+    def _scale_x(self, xmin: float = None, xmax: float = None):
+        return scale_x_log10(limits=(xmin, xmax))
 
     def normalized_from_true_value(self, true_value) -> float:
         """
@@ -970,6 +965,9 @@ class LogQuestion(ContinuousQuestion):
 
 class LinearDateQuestion(LinearQuestion):
     # TODO: add log functionality (if some psychopath makes a log scaled date question)
+
+    def _scale_x(self, xmin: float = None, xmax: float = None):
+        return scale_x_datetime(limits=(xmin, xmax))
 
     @property
     def question_range(self):
@@ -1057,7 +1055,7 @@ class LinearDateQuestion(LinearQuestion):
             ggplot(df, aes(df.columns[1], fill=df.columns[0]))
             + scale_fill_brewer(type="qual", palette="Pastel1")
             + geom_histogram(position="identity", alpha=0.9, bins=bins)
-            + scale_x_datetime(limits=(xmin, xmax))
+            + self._scale_x(xmin, xmax)
             + facet_wrap(df.columns[0], ncol=1)
             + guides(fill=False)
             + ergo_theme
@@ -1076,7 +1074,7 @@ class LinearDateQuestion(LinearQuestion):
         return (
             ggplot(df, aes(df.columns[0]))
             + geom_histogram(fill=fill, bins=bins)
-            + scale_x_datetime(limits=(xmin, xmax))
+            + self._scale_x(xmin, xmax)
             + ergo_theme
             + theme(axis_text_x=element_text(rotation=45, hjust=1))
         )
