@@ -1,6 +1,6 @@
 %%capture
 %pip install poetry
-%pip install git+https://github.com/oughtinc/ergo.git@3c5bb292533ad4106830f173bb739e3e8c32e499
+%pip install git+https://github.com/oughtinc/ergo.git@d88e02c163b7c1b14eea50346ec6b5d00c0f98ae
 %pip install xlrd
 
 %load_ext google.colab.data_table
@@ -28,6 +28,18 @@ metaculus = ergo.Metaculus(
     password="123456",
     api_domain = "pandemic"
 )
+
+%%capture
+!git clone -b munging-to-files https://github.com/oughtinc/ergo
+
+import sys
+
+sys.path.append('ergo/notebooks/el-paso/scripts')
+
+import texas_data
+import onlyasith
+import krismoore
+import brachbach
 
 START_DATE = date(2020, 4, 1)
 
@@ -106,93 +118,19 @@ def plot_question(sampler, num_samples=200):
 
   q.show_prediction(samples=q_samples, show_community=True, percent_kept=0.9)
 
-texas_cases = pd.read_excel("https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx")
-texas_cases.columns = texas_cases.iloc[1]
+el_paso_cases = texas_data.get_el_paso_data()
 
-el_paso_cases = (texas_cases.loc[texas_cases["County\nName"] == "El Paso"]
-                 .drop(columns=["County\nName", "Population"])
-                 .transpose())
+el_paso_cases
 
-el_paso_cases.columns = ["Cases so far"]
-
-def get_date(column_name):
-  date_str = column_name.split("\n")[-1]
-  month_str, day_str = date_str.split("-")
-  return date(2020, int(month_str), int(day_str))
-
-el_paso_cases.index = [get_date(id) for id in el_paso_cases.index]
-
-el_paso_cases["New cases"] = el_paso_cases["Cases so far"].diff()
-
-el_paso_cases.tail()
-
-projected_cases = pd.read_csv(
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSurcOWEsa7DBCRfONFA2Gxf802Rj1FebYSyVzvACysenRcD79Fs0ykXWJakIhGcW48_ymgw35TKga-/pub?gid=1213113172&single=true&output=csv",
-    index_col="Date",
-    parse_dates=True,
-)
-
-projected_cases = projected_cases.dropna()
-projected_cases["Cases so far"] = projected_cases["Cases so far"].apply(lambda str: int(str.replace(",", "")))
-projected_cases["New cases"] = projected_cases["Cases so far"].diff()
+projected_cases = onlyasith.get_onlyasith_results()
 
 projected_cases
 
-compiled_data = pd.read_csv(
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQEZk_8wZMF5MEm_f66wpev4nkWP7edQ8l6SwcbUd68zFZw6EVizh-jplw2_9gZBGyhNaJk5R_CG25k/pub?gid=0&single=true&output=csv",
-    index_col="date",
-    parse_dates=True,
-)
-compiled_data = compiled_data.rename(columns={"in_hospital": "In hospital confirmed"})
+compiled_data = krismoore.get_krismoore_data()
 
 compiled_data
 
-@mem
-def hospital_stay_days():
-    hospital_stay_days_point_estimate = 7
-
-    hospital_stay_days_fuzzed = round(
-        float(ergo.normal_from_interval(
-            hospital_stay_days_point_estimate * 0.5,
-            hospital_stay_days_point_estimate * 1.5
-        ))
-    )
-
-    return max(1, hospital_stay_days_fuzzed)
-
-
-@mem
-def get_hospital_confirmed_from_daily_infected_model(daily_infections):    
-    # from https://penn-chime.phl.io/
-
-    has_hospital_confirmed = compiled_data[compiled_data["In hospital confirmed"].notna()]
-
-    data_dates = has_hospital_confirmed.index
-
-    # for each date for which we have data for how many lab-confirmed COVID patients were in the hospital,
-    # how many new confirmed cases were there over the past hospital_stay_days days?
-    def get_recent_infected_data(date):
-      return sum([daily_infections(date - timedelta(n))
-        for n in range(0, hospital_stay_days())])
-
-    recent_infected_data = [[get_recent_infected_data(date)]
-      for date in data_dates]
-
-    reg = sklearn.linear_model.LinearRegression(fit_intercept=False).fit(
-        recent_infected_data,
-        has_hospital_confirmed["In hospital confirmed"])
-
-    # TODO: consider adding uncertainty to the fit here
-
-    # now that we've related current hospitalized cases and recent confirmed cases,
-    # return a function that allows us to predict hospitalized cases given estimates
-    # of future confirmed cases
-    def hospital_confirmed_from_daily_infected_model(date: date):
-      recent_infected = sum([daily_infections(date - timedelta(n))
-        for n in range(0, hospital_stay_days())])
-      return round(reg.predict([[recent_infected]])[0])
-  
-    return hospital_confirmed_from_daily_infected_model
+get_daily_hospital_confirmed = brachbach.get_daily_hospital_confirmed
 
 @mem
 def daily_infections(date: date) -> int:
@@ -230,8 +168,8 @@ def mean_infections(start_date: date, end_date: date):
     days = daterange(start_date, end_date)
     return np.mean([daily_infections(day) for day in days])
 
-# Build @brachbach regression model
-hospital_confirmed_from_daily_infected_model = get_hospital_confirmed_from_daily_infected_model(daily_infections)
+# Build @brachbach model
+hospital_confirmed_from_daily_infected_model = get_daily_hospital_confirmed(compiled_data, daily_infections)
 
 @mem
 def hospital_confirmed_for_date(date: date) -> int:
