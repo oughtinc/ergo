@@ -762,7 +762,13 @@ class ContinuousQuestion(MetaculusQuestion):
             if show_community
             else self.plot_title,
         )
-        plot.draw()  # type: ignore
+        try:
+            plot.draw()  # type: ignore
+        except RuntimeError as err:
+            print(err)
+            print(
+                "The plot was unable to automatically determine a bandwidth. You can manually specify one with the keyword 'bw', e.g., show_prediction(..., bw=.1)"
+            )
 
     def show_community_prediction(
         self,
@@ -799,7 +805,13 @@ class ContinuousQuestion(MetaculusQuestion):
             y="Density",
             title=self.plot_title + "\n\nCommunity Predictions",
         )
-        plot.draw()
+        try:
+            plot.draw()  # type: ignore
+        except RuntimeError as err:
+            print(err)
+            print(
+                "The plot was unable to automatically determine a bandwidth. You can manually specify one with the keyword 'bw', e.g., show_prediction(..., bw=.1)"
+            )
 
     def comparison_plot(
         self, df: pd.DataFrame, xmin=None, xmax=None, bw="normal_reference", **kwargs
