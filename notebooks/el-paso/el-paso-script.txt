@@ -1,6 +1,6 @@
 %%capture
 %pip install poetry
-%pip install git+https://github.com/oughtinc/ergo.git@69422ca496ffb703c063578241c5222ce8df949a
+%pip install git+https://github.com/oughtinc/ergo.git@3c5bb292533ad4106830f173bb739e3e8c32e499
 %pip install xlrd
 
 %load_ext google.colab.data_table
@@ -52,6 +52,9 @@ def clear_mem():
 
 # Associate models with questions
 
+# We'll add a sampler here for each question we predict on. 
+# Each sampler is a function that returns a single sample
+# from our model predicting on that question.
 samplers = {}
 
 def question(question_id, community_weight=0):
@@ -106,14 +109,14 @@ def plot_question(sampler, num_samples=200):
 texas_cases = pd.read_excel("https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx")
 texas_cases.columns = texas_cases.iloc[1]
 
-el_paso_cases = (texas_cases.loc[texas_cases["County Name"] == "El Paso"]
-                 .drop(columns=["County Name", "Population"])
+el_paso_cases = (texas_cases.loc[texas_cases["County\nName"] == "El Paso"]
+                 .drop(columns=["County\nName", "Population"])
                  .transpose())
 
 el_paso_cases.columns = ["Cases so far"]
 
 def get_date(column_name):
-  date_str = column_name.split("\n")[1]
+  date_str = column_name.split("\n")[-1]
   month_str, day_str = date_str.split("-")
   return date(2020, int(month_str), int(day_str))
 
@@ -385,7 +388,7 @@ def peak_icu_admissions():
     """
     max_patients = max_30d_hospital_confirmed_for_peak()
     return max_patients * frac_patients_icu()
-plot_question(max_30d_hospital_confirmed_for_peak)
+plot_question(peak_icu_admissions)
 
 @question(4201)
 def peak_invasive_ventilation():
@@ -428,11 +431,12 @@ for sampler in samplers.values():
 
     submission = q.get_submission_from_samples(q_samples)
     submissions[q] = submission
-    if q.id == 4128:
-        # showing the fitted distribution doesn't work for this date question
-        q.show_prediction(q_samples, plot="samples", show_community=True, percent_kept=0.9)
+
+    # the graph for this question will be too zoomed out unless we cut off more of the graph
+    if q.id == 4153:
+      q.show_prediction(q_samples, plot_samples=False, plot_fitted=True, show_community=True, percent_kept=0.7)
     else:
-        q.show_prediction(q_samples, prediction=submission, plot="fitted", show_community=True, percent_kept=0.9)
+      q.show_prediction(q_samples, plot_samples=False, plot_fitted=True, show_community=True, percent_kept=0.9)
 
 # Should we submit this to Metaculus? If so, uncomment the following lines:
 # for q, submission in submissions.items():  
