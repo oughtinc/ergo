@@ -91,10 +91,11 @@ def fit_mixture(
     for i in tqdm(range(num_samples)):
         components = get_params(opt_state)
         grads = -grad_mixture_logpdf(data_as_np_array, components)
-        if np.any(np.isnan(grads)) and verbose:
-            print("Encoutered nan gradient, stopping early")
-            print(grads)
-            print(components)
+        if np.any(np.isnan(grads)):
+            if verbose:
+                print("Encoutered nan gradient, stopping early")
+                print(grads)
+                print(components)
             break
         grads = clip_grads(grads, 1.0)
         opt_state = update_fun(i, grads, opt_state)
