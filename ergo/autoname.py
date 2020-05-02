@@ -13,12 +13,12 @@ class autoname(Messenger):
 
     def _increment_name(self, name, label):
         while (name, label) in self._names:
-            split_name = name.split("__")
-            if "__" in name and split_name[-1].isdigit():
-                counter = int(split_name[-1]) + 1
-                name = "__".join(split_name[:-1] + [str(counter)])
-            else:
-                name = name + "__1"
+            try:
+                base, count_str = name.rsplit("__", maxsplit=1)
+                count = int(count_str) + 1
+            except ValueError:
+                base, count = name, 1
+            name = f"{base}__{count}"
         return name
 
     def process_message(self, msg):
