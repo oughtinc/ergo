@@ -39,6 +39,7 @@ Before submitting a PR
 
 5. Generate docs using ``make docs``, review
    ``docs/build/html/index.html``
-
+6.  (if necessary) Run ``make scrub`` to remove outputs from notebooks in src/
+   
 .. _Poetry: https://github.com/python-poetry/poetry
 .. _official instructions for connecting to a local runtime: https://research.google.com/colaboratory/local-runtimes.html

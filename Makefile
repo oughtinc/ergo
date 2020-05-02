@@ -15,6 +15,8 @@ format: FORCE  ## Run isort and black (rewriting files)
 docs: FORCE  ## Build docs
 	poetry run $(MAKE) -C docs html
 
+scrub: FORCE  # Scrub src/.ipynb of output
+	poetry run python src/strip_output.py
 .PHONY: help
 
 .DEFAULT_GOAL := help
