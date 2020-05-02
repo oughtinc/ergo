@@ -3,6 +3,10 @@ name = "ergo"
 version = "0.8.3"
 description = ""
 authors = ["Ought <team@ought.org>"]
+packages = [
+    { include = "ergo" },
+    { include = "notebook_utilities" },
+]
 
 [tool.poetry.dependencies]
 python = "~3.6.8"
