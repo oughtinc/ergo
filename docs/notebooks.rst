@@ -25,12 +25,16 @@ How to clean up a notebook for us to feature in the README:
       ones just have to be there for setup or whatnot. Collapse the
       latter.
    3. use the latest version of ``ergo``
-   4. make sure that the notebook can run as a Colab on a hosted runtime
+   4. pull out any code that's not central to the main point of the model
+      into separate .py files. See the "Import data nad models" section of
+      `El Paso COVID predictions notebook`_ for an example of how to do this.
+   5. make sure that the notebook can run as a Colab on a hosted runtime
       (don’t rely on running it on a local runtime)
-   5. make sure that any secrets like passwords are removed from the
+   6. make sure that any secrets like passwords are removed from the
       notebook
 
 All of the featured notebooks in our README should be exemplars of the
 above, so refer to those to see what this looks like in practice.
 
 .. _random style guide: https://github.com/spacetelescope/style-guides/blob/master/guides/jupyter-notebooks.md
+.. _El Paso COVID predictions notebook: https://github.com/oughtinc/ergo/blob/master/notebooks/el-paso.ipynb
