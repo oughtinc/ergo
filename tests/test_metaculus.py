@@ -189,7 +189,7 @@ class TestMetaculus:
             < (datetime.datetime.now() + datetime.timedelta(days=1))
         ).all()
 
-    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet")
+    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
     @random_seed
     def test_submission_from_samples_linear(self):
         mixture_params = self.continuous_linear_open_question.get_submission_from_samples(
@@ -208,7 +208,7 @@ class TestMetaculus:
             float(np.var(mixture_samples)), rel=0.2
         )
 
-    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet")
+    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
     @random_seed
     def test_submitted_equals_predicted_linear(self):
         self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
@@ -226,7 +226,7 @@ class TestMetaculus:
             float(np.mean(prediction_samples)), rel=0.1
         )
 
-    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet")
+    @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
     @random_seed
     def test_submitted_equals_predicted_log(self):
         self.continuous_log_open_question.submit_from_samples(self.mock_samples)

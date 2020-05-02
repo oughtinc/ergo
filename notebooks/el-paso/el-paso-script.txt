@@ -1,6 +1,6 @@
 %%capture
 %pip install poetry
-%pip install git+https://github.com/oughtinc/ergo.git@9e7bff1258896368a48bfdc72a01c05f0974f68f
+%pip install git+https://github.com/oughtinc/ergo.git@3c5bb292533ad4106830f173bb739e3e8c32e499
 %pip install xlrd
 
 %load_ext google.colab.data_table
@@ -29,15 +29,6 @@ metaculus = ergo.Metaculus(
     api_domain = "pandemic"
 )
 
-questions = metaculus.get_questions(cat="internal--el-paso")
-
-# the most logical order for the questions
-order = [4128, 4137, 4152, 4170, 4155, 4154, 4153, 4204, 4201, 4185]
-
-questions.sort(key = lambda q: order.index(q.id))
-
-ergo.MetaculusQuestion.to_dataframe(questions)
-
 START_DATE = date(2020, 4, 1)
 
 
@@ -59,17 +50,19 @@ def clear_mem():
     for func in memoized_functions:
         func.cache_clear()
 
+# Associate models with questions
 
-# Associating functions with Metaculus questions
-
-question_samplers = {}
-question_function_names = {}
-id_to_question = dict((q.id, q) for q in questions)
+# We'll add a sampler here for each question we predict on. 
+# Each sampler is a function that returns a single sample
+# from our model predicting on that question.
+samplers = {}
 
 def question(question_id, community_weight=0):
-    q = id_to_question[question_id]
-    q.refresh_question()
+    q = metaculus.get_question(question_id)
+
     def decorator(func):
+        tag = func.__name__
+
         @functools.wraps(func)
         @mem
         def sampler():
@@ -77,64 +70,53 @@ def question(question_id, community_weight=0):
                 value = q.sample_community()
             else:
                 value = func()
-            tagged_value = value
             if isinstance(value, date):
                 # FIXME: Ergo needs to handle dates
-                tagged_value = int((value - START_DATE).days)
-            ergo.tag(tagged_value, str(question_id))
+                ergo.tag(int((value - START_DATE).days), tag)
+            else:
+                ergo.tag(value, tag)
             return value
-        question_samplers[question_id] = sampler
-        question_function_names[question_id] = func.__name__
-        sampler.question_id = question_id
+        sampler.question = q
+        samplers[q.id] = sampler
         return sampler
     return decorator
 
 def summarize_question_samples(samples):
-    summary = samples.describe().transpose().round(2)
-    summary.index = question_names = [question_function_names[int(i)] for i in summary.index]
+    sampler_tags = [sampler.__name__ for sampler in samplers.values()]
+    tags_to_show = [tag for tag in sampler_tags if tag in samples.columns]
+    samples_to_show = samples[tags_to_show]
+    summary = samples_to_show.describe().transpose().round(2)
     display(summary)
 
-# Plotting distributions on return values
-
-def quick_plot(model, num_samples=5000, transform=lambda x: x):
-    import seaborn
-    def wrapper():
-        value = transform(model())
-        ergo.tag(value, "value")
-    samples = ergo.run(wrapper, num_samples=num_samples)
-    return seaborn.distplot(samples["value"])
-
-def plot_question(question_fn, num_samples=200):
+def plot_question(sampler, num_samples=200):
   def model():
       clear_mem()
-      question_fn()
+      sampler()
 
   samples = ergo.run(model, num_samples=num_samples)
 
   summarize_question_samples(samples)
-  question_id = question_fn.question_id
 
-  q = id_to_question[question_id]
-  key = str(q.id)
-  q_samples = samples[str(q.id)]
+  q = sampler.question
 
-  if key == "4128": # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
+  q_samples = samples[sampler.__name__]
+
+  if q.id == 4128: # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
       q_samples = np.array([START_DATE + timedelta(s) for s in q_samples])
 
-  q.refresh_question() 
-  print(q.show_prediction(samples=q_samples, show_community=True, percent_kept=0.9))
+  q.show_prediction(samples=q_samples, show_community=True, percent_kept=0.9)
 
 texas_cases = pd.read_excel("https://dshs.texas.gov/coronavirus/TexasCOVID19DailyCountyCaseCountData.xlsx")
 texas_cases.columns = texas_cases.iloc[1]
 
-el_paso_cases = (texas_cases.loc[texas_cases["County Name"] == "El Paso"]
-                 .drop(columns=["County Name", "Population"])
+el_paso_cases = (texas_cases.loc[texas_cases["County\nName"] == "El Paso"]
+                 .drop(columns=["County\nName", "Population"])
                  .transpose())
 
 el_paso_cases.columns = ["Cases so far"]
 
 def get_date(column_name):
-  date_str = column_name.split("\n")[1]
+  date_str = column_name.split("\n")[-1]
   month_str, day_str = date_str.split("-")
   return date(2020, int(month_str), int(day_str))
 
@@ -406,7 +388,7 @@ def peak_icu_admissions():
     """
     max_patients = max_30d_hospital_confirmed_for_peak()
     return max_patients * frac_patients_icu()
-plot_question(max_30d_hospital_confirmed_for_peak)
+plot_question(peak_icu_admissions)
 
 @question(4201)
 def peak_invasive_ventilation():
@@ -426,26 +408,21 @@ plot_question(peak_invasive_ventilation)
 
 def model():
     clear_mem()
-    for question_sampler in question_samplers.values():
-        question_sampler()
+    for sampler in samplers.values():
+        sampler()
 
 samples = ergo.run(model, num_samples=2000)
 
 summarize_question_samples(samples)
 
 submissions = {}
-for q in questions:
-    print(q.id)
-    if q.id == 4185: # We didn't predict the unemployment question
-        continue
+for sampler in samplers.values():
+    q = sampler.question
 
-    key = str(q.id)
-    q_samples = samples[str(q.id)]
+    q_samples = samples[sampler.__name__]
 
-    if key == "4128": # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
+    if q.id == 4128: # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
         q_samples = np.array([START_DATE + timedelta(s) for s in q_samples])
-    
-    q.refresh_question()
 
     if q.id in [4201, 4204, 4137, 4152, 4170, 4153]:
       # Clip extreme values for questions that we had issues fitting
@@ -454,8 +431,13 @@ for q in questions:
 
     submission = q.get_submission_from_samples(q_samples)
     submissions[q] = submission
-    print(q.show_prediction(samples=submission, show_community=True, percent_kept=0.9))
 
-# Should we submit this to Metaculus? If so, uncomment the following line:
+    # the graph for this question will be too zoomed out unless we cut off more of the graph
+    if q.id == 4153:
+      q.show_prediction(q_samples, plot_samples=False, plot_fitted=True, show_community=True, percent_kept=0.7)
+    else:
+      q.show_prediction(q_samples, plot_samples=False, plot_fitted=True, show_community=True, percent_kept=0.9)
+
+# Should we submit this to Metaculus? If so, uncomment the following lines:
 # for q, submission in submissions.items():  
-#     q.submit(submission)
+#     print(q.submit(submission))
