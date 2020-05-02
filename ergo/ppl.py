@@ -126,7 +126,7 @@ def beta_from_hits(hits, total, **kwargs):
 
 def random_choice(options, ps=None):
     if ps is None:
-        ps = np.array([1 / len(options)] * len(options))
+        ps = np.full(len(options), 1 / len(options))
     else:
         ps = np.array(ps)
 
