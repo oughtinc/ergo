@@ -614,6 +614,21 @@ requests = "*"
 test = ["pytest", "requests"]
 
 [[package]]
+category = "dev"
+description = "Jupyter notebooks as Markdown documents, Julia, Python or R scripts"
+name = "jupytext"
+optional = false
+python-versions = "*"
+version = "1.4.2"
+
+[package.dependencies]
+nbformat = ">=4.0.0"
+pyyaml = "*"
+
+[package.extras]
+myst = ["myst-parser (>=0.8,<1.0)"]
+
+[[package]]
 category = "main"
 description = "A fast implementation of the Cassowary constraint solver"
 name = "kiwisolver"
@@ -992,7 +1007,7 @@ wcwidth = "*"
 [[package]]
 category = "dev"
 description = "Run a subprocess in a pseudo terminal"
-marker = "sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\""
+marker = "python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\" and (python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\")"
 name = "ptyprocess"
 optional = false
 python-versions = "*"
@@ -1189,6 +1204,14 @@ name = "pywinpty"
 optional = false
 python-versions = "*"
 version = "0.5.7"
+
+[[package]]
+category = "dev"
+description = "YAML parser and emitter for Python"
+name = "pyyaml"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "5.3.1"
 
 [[package]]
 category = "dev"
@@ -1630,7 +1653,7 @@ testing = ["jaraco.itertools", "func-timeout"]
 notebooks = ["pendulum", "scikit-learn"]
 
 [metadata]
-content-hash = "29fec58b05674c3e2a02c3f3017ae6027fa28e38c954af924257574c64b600bb"
+content-hash = "8725d1edf6b881fb63d4eff0b5b4465aa05fe9d16a5a9692a5678f6a0b51bc19"
 python-versions = "~3.6.8"
 
 [metadata.files]
@@ -1864,6 +1887,9 @@ jupyterlab = [
 jupyterlab-server = [
     {file = "jupyterlab_server-1.1.1-py3-none-any.whl", hash = "sha256:f678a77fa74eeec80c15d6c9884f6ff050f5473267bd342944164115768ec759"},
     {file = "jupyterlab_server-1.1.1.tar.gz", hash = "sha256:b5921872746b1ca109d1852196ed11e537f8aad67a1933c1d4a8ac63f8e61cca"},
+]
+jupytext = [
+    {file = "jupytext-1.4.2.tar.gz", hash = "sha256:58b4c6bf48ba2e18bfc2d8358e852b6e3538ff664843398be09157c184ee1a27"},
 ]
 kiwisolver = [
     {file = "kiwisolver-1.2.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:443c2320520eda0a5b930b2725b26f6175ca4453c61f739fef7a5847bd262f74"},
@@ -2186,6 +2212,19 @@ pywinpty = [
     {file = "pywinpty-0.5.7-cp37-cp37m-win_amd64.whl", hash = "sha256:dd22c8efacf600730abe4a46c1388355ce0d4ab75dc79b15d23a7bd87bf05b48"},
     {file = "pywinpty-0.5.7-cp38-cp38-win_amd64.whl", hash = "sha256:8fc5019ff3efb4f13708bd3b5ad327589c1a554cb516d792527361525a7cb78c"},
     {file = "pywinpty-0.5.7.tar.gz", hash = "sha256:2d7e9c881638a72ffdca3f5417dd1563b60f603e1b43e5895674c2a1b01f95a0"},
+]
+pyyaml = [
+    {file = "PyYAML-5.3.1-cp27-cp27m-win32.whl", hash = "sha256:74809a57b329d6cc0fdccee6318f44b9b8649961fa73144a98735b0aaf029f1f"},
+    {file = "PyYAML-5.3.1-cp27-cp27m-win_amd64.whl", hash = "sha256:240097ff019d7c70a4922b6869d8a86407758333f02203e0fc6ff79c5dcede76"},
+    {file = "PyYAML-5.3.1-cp35-cp35m-win32.whl", hash = "sha256:4f4b913ca1a7319b33cfb1369e91e50354d6f07a135f3b901aca02aa95940bd2"},
+    {file = "PyYAML-5.3.1-cp35-cp35m-win_amd64.whl", hash = "sha256:cc8955cfbfc7a115fa81d85284ee61147059a753344bc51098f3ccd69b0d7e0c"},
+    {file = "PyYAML-5.3.1-cp36-cp36m-win32.whl", hash = "sha256:7739fc0fa8205b3ee8808aea45e968bc90082c10aef6ea95e855e10abf4a37b2"},
+    {file = "PyYAML-5.3.1-cp36-cp36m-win_amd64.whl", hash = "sha256:69f00dca373f240f842b2931fb2c7e14ddbacd1397d57157a9b005a6a9942648"},
+    {file = "PyYAML-5.3.1-cp37-cp37m-win32.whl", hash = "sha256:d13155f591e6fcc1ec3b30685d50bf0711574e2c0dfffd7644babf8b5102ca1a"},
+    {file = "PyYAML-5.3.1-cp37-cp37m-win_amd64.whl", hash = "sha256:73f099454b799e05e5ab51423c7bcf361c58d3206fa7b0d555426b1f4d9a3eaf"},
+    {file = "PyYAML-5.3.1-cp38-cp38-win32.whl", hash = "sha256:06a0d7ba600ce0b2d2fe2e78453a470b5a6e000a985dd4a4e54e436cc36b0e97"},
+    {file = "PyYAML-5.3.1-cp38-cp38-win_amd64.whl", hash = "sha256:95f71d2af0ff4227885f7a6605c37fd53d3a106fcab511b8860ecca9fcf400ee"},
+    {file = "PyYAML-5.3.1.tar.gz", hash = "sha256:b8eac752c5e14d3eca0e6dd9199cd627518cb5ec06add0de9d32baeee6fe645d"},
 ]
 pyzmq = [
     {file = "pyzmq-19.0.0-cp27-cp27m-macosx_10_9_intel.whl", hash = "sha256:3f12ce1e9cc9c31497bd82b207e8e86ccda9eebd8c9f95053aae46d15ccd2196"},
