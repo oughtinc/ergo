@@ -52,6 +52,7 @@ from plotnine import (  # type: ignore
     geom_density,
     geom_histogram,
     ggplot,
+    ggtitle,
     guides,
     labs,
     scale_fill_brewer,
@@ -59,7 +60,6 @@ from plotnine import (  # type: ignore
     scale_x_datetime,
     scale_x_log10,
     theme,
-    xlim,
 )
 import pyro.distributions as dist
 import requests
@@ -431,9 +431,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def question_range_width(self):
         return self.question_range["max"] - self.question_range["min"]
 
-    @property
-    def _scale_x(self):
-        return scale_x_continuous()
+    def _scale_x(self, xmin: float = None, xmax: float = None):
+        return scale_x_continuous(limits=(xmin, xmax))
 
     @property
     def plot_title(self):
@@ -678,6 +677,8 @@ class ContinuousQuestion(MetaculusQuestion):
     def show_prediction(
         self,
         samples,
+        plot_samples: bool = True,
+        plot_fitted: bool = False,
         percent_kept: float = 0.95,
         side_cut_from: str = "both",
         show_community: bool = False,
@@ -689,7 +690,13 @@ class ContinuousQuestion(MetaculusQuestion):
         of community predictions
 
         :param samples: samples from a distribution answering the prediction question
-            (true scale) or a prediction object
+            (true scale). Can either be a 1-d array corresponding to one model's
+            predictions, or a pandas DataFrame with each column corresponding to
+            a distinct model's predictions
+        :param plot_samples: boolean indicating whether to plot the raw samples
+        :param plot_fitted: boolean indicating whether to compute Logistic Mixture
+            Params from samples and plot the resulting fitted distribution. Note
+            this is currently only supported for 1-d samples
         :param percent_kept: percentage of sample distrubtion to keep
         :param side_cut_from: which side to cut tails from,
             either 'both','lower', or 'upper'
@@ -699,66 +706,69 @@ class ContinuousQuestion(MetaculusQuestion):
         :param **kwargs: additional plotting parameters
         """
 
-        if isinstance(samples, SubmissionMixtureParams):
-            prediction = samples
-            prediction_normed_samples = pd.Series(
-                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+        df = pd.DataFrame()
+
+        if not plot_fitted and not plot_samples:
+            raise ValueError(
+                "Nothing to plot. Niether plot_fitted nor plot_samples was True"
             )
 
-        else:
+        if plot_samples:
             if isinstance(samples, list):
                 samples = pd.Series(samples)
-            if not type(samples) in [pd.Series, np.ndarray]:
+            if not type(samples) in [pd.DataFrame, pd.Series, np.ndarray]:
                 raise ValueError(
                     "Samples should be a list, numpy arrray or pandas series"
                 )
             num_samples = samples.shape[0]
-            prediction_normed_samples = self.normalize_samples(
-                samples
-            )  # need to do go to normalizes space for dates values samples
+
+            if type(samples) == pd.DataFrame:
+                if plot_fitted and samples.shape[1] > 1:
+                    raise ValueError(
+                        "For multiple predictions comparisons, only samples can be compared (plot_fitted must be False)"
+                    )
+                for col in samples:
+                    df[col] = self.normalize_samples(samples[col])
+            else:
+                df["samples"] = self.normalize_samples(samples)
+
+        if plot_fitted:
+            prediction = self.get_submission_from_samples(samples)
+            df["fitted"] = pd.Series(
+                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+            )
 
         if show_community:
-            df = pd.DataFrame(
-                data={
-                    "community": [  # type: ignore
-                        self.sample_normalized_community()
-                        for _ in range(0, num_samples)
-                    ],
-                    "prediction": prediction_normed_samples,  # type: ignore
-                }
+            df["community"] = [  # type: ignore
+                self.sample_normalized_community() for _ in range(0, num_samples)
+            ]
+
+        # get domain for graph given the percentage of distribution kept
+        xmin, xmax = self.denormalize_samples(
+            self.get_central_quantiles(
+                df, percent_kept=percent_kept, side_cut_from=side_cut_from,
             )
-            # get domain for graph given the percentage of distribution kept
-            _xmin, _xmax = self.denormalize_samples(
-                self.get_central_quantiles(
-                    prediction_normed_samples,
-                    percent_kept=percent_kept,
-                    side_cut_from=side_cut_from,
-                )
+        )
+
+        for col in df:
+            df[col] = self.denormalize_samples(df[col])
+
+        df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
+
+        plot = self.comparison_plot(df, xmin, xmax, **kwargs) + labs(
+            x="Prediction",
+            y="Density",
+            title=self.plot_title + "\n\nPrediction vs Community"
+            if show_community
+            else self.plot_title,
+        )
+        try:
+            plot.draw()  # type: ignore
+        except RuntimeError as err:
+            print(err)
+            print(
+                "The plot was unable to automatically determine a bandwidth. You can manually specify one with the keyword 'bw', e.g., show_prediction(..., bw=.1)"
             )
-
-            df["prediction"] = self.denormalize_samples(df["prediction"])
-            df["community"] = self.denormalize_samples(df["community"])
-
-            df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
-
-            plot = self.comparison_plot(df, _xmin, _xmax, **kwargs)
-            plot.draw()
-
-        else:
-            df = pd.DataFrame(data={"prediction": prediction_normed_samples})  # type: ignore
-            # get domain for graph given the percentage of distribution kept
-            _xmin, _xmax = self.denormalize_samples(
-                self.get_central_quantiles(
-                    df, percent_kept=percent_kept, side_cut_from=side_cut_from
-                )
-            )
-
-            df["prediction"] = self.denormalize_samples(df["prediction"])
-
-            plot = self.density_plot(df, _xmin, _xmax, fill="#b3cde3", **kwargs) + labs(
-                x="Prediction", y="Density", title=self.plot_title
-            )
-            plot.draw()
 
     def show_community_prediction(
         self,
@@ -795,20 +805,40 @@ class ContinuousQuestion(MetaculusQuestion):
             y="Density",
             title=self.plot_title + "\n\nCommunity Predictions",
         )
-        plot.draw()
+        try:
+            plot.draw()  # type: ignore
+        except RuntimeError as err:
+            print(err)
+            print(
+                "The plot was unable to automatically determine a bandwidth. You can manually specify one with the keyword 'bw', e.g., show_prediction(..., bw=.1)"
+            )
 
-    def comparison_plot(self, df: pd.DataFrame, xmin=None, xmax=None, **kwargs):
+    def comparison_plot(
+        self, df: pd.DataFrame, xmin=None, xmax=None, bw="normal_reference", **kwargs
+    ):
         return (
             ggplot(df, aes(df.columns[1], fill=df.columns[0]))
             + scale_fill_brewer(type="qual", palette="Pastel1")
-            + geom_density(alpha=0.8)
-            + xlim(xmin, xmax)
-            + self._scale_x
-            + labs(
-                x="Prediction",
-                y="Density",
-                title=self.plot_title + "\n\nPrediction vs Community",
-            )
+            + geom_density(bw=bw, alpha=0.8)
+            + ggtitle(self.plot_title)
+            + self._scale_x(xmin, xmax)
+            + ergo_theme
+        )
+
+    def density_plot(
+        self,
+        df: pd.DataFrame,
+        xmin=None,
+        xmax=None,
+        fill: str = "#fbb4ae",
+        bw="normal_reference",
+        **kwargs,
+    ):
+        return (
+            ggplot(df, aes(df.columns[0]))
+            + geom_density(fill=fill, alpha=0.8)
+            + ggtitle(self.plot_title)
+            + self._scale_x(xmin, xmax)
             + ergo_theme
         )
 
@@ -827,17 +857,6 @@ class ContinuousQuestion(MetaculusQuestion):
             return 0
 
         return new["q2"] - old["q2"]
-
-    def density_plot(
-        self, df: pd.DataFrame, xmin=None, xmax=None, fill: str = "#fbb4ae", **kwargs
-    ):
-        return (
-            ggplot(df, aes(df.columns[0]))
-            + geom_density(fill=fill, alpha=0.8)
-            + xlim(xmin, xmax)
-            + self._scale_x
-            + ergo_theme
-        )
 
 
 class LinearQuestion(ContinuousQuestion):
@@ -915,9 +934,8 @@ class LogQuestion(ContinuousQuestion):
     def deriv_ratio(self) -> float:
         return self.possibilities["scale"]["deriv_ratio"]
 
-    @property
-    def _scale_x(self):
-        return scale_x_log10()
+    def _scale_x(self, xmin: float = None, xmax: float = None):
+        return scale_x_log10(limits=(xmin, xmax))
 
     def normalized_from_true_value(self, true_value) -> float:
         """
@@ -967,6 +985,9 @@ class LogQuestion(ContinuousQuestion):
 
 class LinearDateQuestion(LinearQuestion):
     # TODO: add log functionality (if some psychopath makes a log scaled date question)
+
+    def _scale_x(self, xmin: float = None, xmax: float = None):
+        return scale_x_datetime(limits=(xmin, xmax))
 
     @property
     def question_range(self):
@@ -1054,7 +1075,7 @@ class LinearDateQuestion(LinearQuestion):
             ggplot(df, aes(df.columns[1], fill=df.columns[0]))
             + scale_fill_brewer(type="qual", palette="Pastel1")
             + geom_histogram(position="identity", alpha=0.9, bins=bins)
-            + scale_x_datetime(limits=(xmin, xmax))
+            + self._scale_x(xmin, xmax)
             + facet_wrap(df.columns[0], ncol=1)
             + guides(fill=False)
             + ergo_theme
@@ -1073,7 +1094,7 @@ class LinearDateQuestion(LinearQuestion):
         return (
             ggplot(df, aes(df.columns[0]))
             + geom_histogram(fill=fill, bins=bins)
-            + scale_x_datetime(limits=(xmin, xmax))
+            + self._scale_x(xmin, xmax)
             + ergo_theme
             + theme(axis_text_x=element_text(rotation=45, hjust=1))
         )
