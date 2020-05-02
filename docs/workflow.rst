@@ -42,3 +42,15 @@ Before submitting a PR
 
 .. _Poetry: https://github.com/python-poetry/poetry
 .. _official instructions for connecting to a local runtime: https://research.google.com/colaboratory/local-runtimes.html
+
+Conventions
+~~~~~~~~~~~
+
+Import ``numpy`` as follows:
+
+
+.. code-block:: python
+
+    import jax.numpy as np
+    import numpy as onp 
+
