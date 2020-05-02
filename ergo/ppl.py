@@ -157,6 +157,14 @@ def clear_mem():
         func.cache_clear()
 
 
+def handle_mem(model):
+    def wrapped():
+        clear_mem()
+        return model()
+
+    return model
+
+
 # Inference
 
 
@@ -175,11 +183,10 @@ def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFra
     Run model forward, record samples for variables. Return dataframe
     with one row for each execution.
     """
-    model = numpyro.handlers.trace(tag_output(autoname(model)))
+    model = numpyro.handlers.trace(handle_mem(tag_output(autoname(model))))
     with numpyro.handlers.seed(rng_seed=rng_seed):
         samples: List[Dict[str, float]] = []
         for _ in tqdm(range(num_samples)):
-            clear_mem()
             sample: Dict[str, float] = {}
             trace = model.get_trace()
             for name in trace.keys():
