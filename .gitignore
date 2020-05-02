@@ -8,3 +8,5 @@ conda/
 .coverage
 docs/build
 .env
+**.ipynb_checkpoints/
+notebooks/ergo/
