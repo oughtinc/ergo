@@ -8,7 +8,7 @@ from jax.interpreters.xla import DeviceArray
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
-from tqdm.autonotebook import tqdm  # type: ignore
+from tqdm.autonotebook import tqdm
 
 from ergo.ppl import categorical
 

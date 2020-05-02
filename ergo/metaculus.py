@@ -48,7 +48,7 @@ from typing import Any, Dict, List, Optional, Union
 import jax.numpy as np
 import numpyro.distributions as dist
 import pandas as pd
-from plotnine import (  # type: ignore
+from plotnine import (
     aes,
     element_text,
     facet_wrap,
@@ -70,7 +70,7 @@ from typing_extensions import Literal
 
 import ergo.logistic as logistic
 import ergo.ppl as ppl
-from ergo.theme import ergo_theme  # type: ignore
+from ergo.theme import ergo_theme
 
 
 @dataclass

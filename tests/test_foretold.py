@@ -4,7 +4,7 @@ import jax.numpy as np
 import numpy as onp
 import pandas as pd
 import pytest
-import scipy.stats  # type: ignore
+import scipy.stats
 
 import ergo
 
