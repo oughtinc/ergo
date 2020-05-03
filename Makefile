@@ -21,7 +21,7 @@ docs: FORCE  ## Build docs
 serve: FORCE  ## Run Jupyter notebook server
 	poetry run python -m jupyter lab
 
-scrub: FORCE  # Scrub notebooks/src/.ipynb of output
+scrub: FORCE  ## Scrub notebooks/src/.ipynb of output
 	poetry run python scripts/scrub_notebooks.py notebooks/build notebooks/src
 
 .PHONY: help
