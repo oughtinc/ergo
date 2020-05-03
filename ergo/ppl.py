@@ -36,8 +36,9 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
     :param name: Name to assign to this sampling site in the execution trace
     :return: A sample from the distribution
     """
+    # If a value isn't explicitly named, generate an automatic name,
+    # relying on autoname handler for uniqueness.
     if not name:
-        # Values that aren't explicitly named
         name = "_v"
     # The rng key provided below is only used when no Numpyro seed handler
     # is provided. This happens when we sample from distributions outside
