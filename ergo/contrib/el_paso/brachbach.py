@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from typing import Callable
 
 import pandas as pd
-import sklearn  # type: ignore
+import sklearn
 
 
 def get_hospital_stay_days():
