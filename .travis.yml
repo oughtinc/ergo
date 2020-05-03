@@ -5,7 +5,7 @@ python:
 before_install:
 - pip install poetry
 install:
-- poetry install -E notebooks
+- poetry install
 script:
 - make lint
 - make docs
