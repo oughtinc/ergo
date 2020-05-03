@@ -21,6 +21,8 @@ pandas = "1.0.3"
 sphinx-autodoc-typehints = "^1.10.3"
 plotnine = "^0.6.0"
 numpyro = {git = "https://github.com/pyro-ppl/numpyro.git", rev = "84bcbce2830c72af6292e2752cc338952b16cbf1"}
+scikit-learn = "0.22.2"
+xlrd = "1.2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -39,6 +41,7 @@ sphinx_rtd_theme = "^0.4.3"
 pytest-dotenv = "^0.4.0"
 pytest-xdist = "^1.31.0"
 jupyterlab = "^2.1.1"
+nbdime = "^2.0.0"
 
 [build-system]
 requires = ["poetry>=0.12"]

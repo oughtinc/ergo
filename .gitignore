@@ -9,3 +9,5 @@ docs/build
 .env
 .coverage*
 .ipynb_checkpoints
+**.ipynb_checkpoints/
+

@@ -1069,7 +1069,7 @@ class LinearDateQuestion(LinearQuestion):
         return self.denormalize_samples(normalized_sample)
 
     def comparison_plot(  # type: ignore
-        self, df: pd.DataFrame, xmin=None, xmax=None, bins: int = 50
+        self, df: pd.DataFrame, xmin=None, xmax=None, bins: int = 50, **kwargs
     ):
 
         return (
