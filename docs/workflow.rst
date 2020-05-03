@@ -33,12 +33,13 @@ Before submitting a PR
 3. Run linting using ``make lint`` (flake8, mypy, black check)
 4. Run tests using ``make test``
 
-    * to run the tests in ``test_metaculus.py``, you'll need the password to
+    * To run the tests in ``test_metaculus.py``, you'll need the password to
       our ``oughttest`` account. If you don't have it, you can ask us for it, 
-      or rely on Travis CI to run those tests for you
+      or rely on Travis CI to run those tests for you.
 
 5. Generate docs using ``make docs``, review
    ``docs/build/html/index.html``
-
+6. Run ``make scrub`` to remove outputs from notebooks in src/
+   
 .. _Poetry: https://github.com/python-poetry/poetry
 .. _official instructions for connecting to a local runtime: https://research.google.com/colaboratory/local-runtimes.html

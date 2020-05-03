@@ -5,8 +5,8 @@ ergo.egg-info/
 *__pycache__*
 dist/
 conda/
-.coverage
+.coverage*
 docs/build
 .env
 **.ipynb_checkpoints/
-notebooks/ergo/
+*.ob-jupyter*
