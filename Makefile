@@ -15,7 +15,7 @@ format: FORCE  ## Run isort and black (rewriting files)
 docs: FORCE  ## Build docs
 	poetry run $(MAKE) -C docs html
 
-scrub: FORCE  # Scrub notebooks/src/.ipynb of output
+scrub: FORCE  ## Scrub notebooks/src/.ipynb of output
 	poetry run python scripts/scrub_notebooks.py notebooks/build notebooks/src
 
 .PHONY: help
