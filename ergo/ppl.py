@@ -7,6 +7,7 @@ import functools
 import math
 from typing import Dict, List
 
+import jax
 import jax.numpy as np
 import numpyro
 import numpyro.distributions as dist
@@ -23,6 +24,13 @@ def to_float(value):
 
 # Core functionality
 
+_RNG_KEY = jax.random.PRNGKey(0)
+
+def onetime_rng_key():
+    global _RNG_KEY
+    current_key, _RNG_KEY = jax.random.split(_RNG_KEY, 2)
+    return current_key
+
 
 def sample(dist: dist.Distribution, name: str = None, **kwargs):
     """
@@ -35,7 +43,10 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
     if not name:
         # Values that aren't explicitly named
         name = "_v"
-    return numpyro.sample(name, dist, **kwargs)
+    # The rng key provided below is only used when no Numpyro seed handler
+    # is provided. This happens when we sample from distributions outside
+    # an inference context.
+    return numpyro.sample(name, dist, rng_key=onetime_rng_key(), **kwargs)
 
 
 def tag(value, name: str):
