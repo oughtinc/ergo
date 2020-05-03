@@ -107,6 +107,6 @@ def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFra
                 if trace[name]["type"] in ("sample", "deterministic"):
                     if ignore_untagged and name.startswith("_"):
                         continue
-                    sample[name] = trace[name]["value"]
+                    sample[name] = trace[name]["value"].item() ## FIXME
             samples.append(sample)
     return pd.DataFrame(samples)  # type: ignore
