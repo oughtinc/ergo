@@ -15,7 +15,7 @@ How to clean up a notebook for us to feature in the README:
 
 2. Do the following specific things to clean up:
    
-   1. Make sure the notebook is saved without output in the ``src/``
+   1. Make sure the notebook is saved without output in the ``notebooks/src/``
       repo. This can be accomplished by running ``make scrub``
    2. as much as possible, avoid showing extraneous output from cells
       
@@ -39,7 +39,7 @@ How to clean up a notebook for us to feature in the README:
    
     1. Run the notebook start to finish in a public runtime
        environment like Colab. Do not rely on running it on a local
-       runtime. Save the notebook with output in ``/build``
+       runtime. Save the notebook with output in ``notebooks/build/``
    
 
 All of the featured notebooks in our README should be exemplars of the
