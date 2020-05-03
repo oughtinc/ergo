@@ -36,6 +36,7 @@ Ergo documentation
 
    workflow
    notebooks
+   contrib
 
 .. toctree::
    :glob:
