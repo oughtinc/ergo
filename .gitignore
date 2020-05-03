@@ -9,3 +9,4 @@ conda/
 docs/build
 .env
 **.ipynb_checkpoints/
+*.ob-jupyter*
