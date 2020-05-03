@@ -1,7 +1,8 @@
-import os
 import argparse
+import os
 from pathlib import Path
 import subprocess
+
 
 def scrub(notebooks_path, scrubbed_path):
     for notebook_file in notebooks_path.glob("*.ipynb"):
@@ -24,6 +25,7 @@ def scrub(notebooks_path, scrubbed_path):
             f"rm '{scrubbed_file}.md'", shell=True, check=True, stdout=subprocess.PIPE
         )
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("notebooks_path", type=Path)
@@ -32,4 +34,3 @@ if __name__ == "__main__":
     assert os.path.exists(p.notebooks_path)
     assert os.path.exists(p.scrubbed_path)
     scrub(p.notebooks_path, p.scrubbed_path)
-    
