@@ -9,4 +9,3 @@ conda/
 docs/build
 .env
 **.ipynb_checkpoints/
-notebooks/ergo
