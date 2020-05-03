@@ -11,7 +11,6 @@ dataclasses = "0.7"
 country_converter = "0.6.7"
 tqdm = "4.45.0"
 scipy = "1.4.1"
-pendulum = "2.1.0"
 matplotlib = "3.2.1"
 seaborn = "0.10.0"
 typing_extensions = "3.7.4.2"
@@ -21,8 +20,12 @@ pandas = "1.0.3"
 sphinx-autodoc-typehints = "^1.10.3"
 plotnine = "^0.6.0"
 numpyro = {git = "https://github.com/pyro-ppl/numpyro.git", rev = "84bcbce2830c72af6292e2752cc338952b16cbf1"}
-scikit-learn = "0.22.2"
-xlrd = "1.2.0"
+
+# A list of all of the optional dependencies, some of which are included in the
+# below `extras`. They can be opted into by apps.
+pendulum = { version = "2.1.0", optional = true }
+scikit-learn = { version = "0.22.2", optional = true }
+
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -42,6 +45,13 @@ pytest-dotenv = "^0.4.0"
 pytest-xdist = "^1.31.0"
 jupyterlab = "^2.1.1"
 nbdime = "^2.0.0"
+jupytext = "^1.4.2"
+
+[tool.poetry.extras]
+notebooks = [
+  "pendulum",
+  "scikit-learn"
+]
 
 [build-system]
 requires = ["poetry>=0.12"]

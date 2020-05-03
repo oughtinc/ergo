@@ -1090,6 +1090,7 @@ class LinearDateQuestion(LinearQuestion):
         xmax=None,
         fill: str = "#fbb4ae",
         bins: int = 50,
+        **kwargs,
     ):
 
         return (
