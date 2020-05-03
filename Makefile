@@ -1,4 +1,4 @@
-all: format lint docs test
+all: format scrub lint docs test
 
 lint: FORCE  ## Run flake8, mypy and black (in check mode)
 	poetry run flake8
@@ -16,7 +16,7 @@ docs: FORCE  ## Build docs
 	poetry run $(MAKE) -C docs html
 
 scrub: FORCE  # Scrub notebooks/src/.ipynb of output
-	poetry run python scripts/scrub_notebooks.py
+	poetry run python scripts/scrub_notebooks.py notebooks/build notebooks/src
 
 .PHONY: help
 
