@@ -1,29 +1,35 @@
 Contrib
 =======
 
-Adding new package
-------------------
+Adding new packages
+-------------------
 
 For modules providing functionality specific to the questions
 addressed in a notebook, create a new package in contrib
 ``/ergo/contrib/{your_package}`` and include an ``__init__.py``
 file. You can then access it in your notebook with:
 
-``from ergo.contrib.{your_package} import {module_you_want}``
+.. code-block:: python
+
+   from ergo.contrib.{your_package} import {module_you_want}
 
 For modules providing more general functionality of use across
 notebooks (and perhaps a candidate for inclusion in core ergo), you
 can use ``/ergo/contrib/utils``. You can either add a new module or
 extend an existing one. You can then access it with:
 
-``from ergo.contrib.utils import {module_you_want}``
+.. code-block:: python
+
+   from ergo.contrib.utils import {module_you_want}
 
 Adding dependencies
 -------------------
 
 1. Usual poetry way with --optional flag
-   
-``poetry add {pendulum} --optional``
+
+.. code-block:: bash
+
+   poetry add {pendulum} --optional
 
 2. You can then (manually in the ``pyproject.toml``) add it to the
    'notebook' group
@@ -45,4 +51,6 @@ with the CLI.
 
 This allows people to then install the additional
 notebook dependencies with:  
-``poetry install -E notebooks``
+.. code-block:: bash
+
+   poetry install -E notebooks
