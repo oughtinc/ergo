@@ -45,11 +45,24 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
     return numpyro.sample(name, dist, rng_key=onetime_rng_key(), **kwargs)
 
 
-# Marking deterministic values
+# Record deterministic values in trace
 
 
 def tag(value, name: str):
     return numpyro.deterministic(name, value)
+
+
+# Automatically record model return value in trace
+
+
+def tag_output(model):
+    def wrapped():
+        value = model()
+        if value is not None:
+            tag(value, "output")
+        return value
+
+    return wrapped
 
 
 # Memoization
@@ -76,19 +89,6 @@ def handle_mem(model):
     return model
 
 
-# Marking function output as a particular deterministic value
-
-
-def tag_output(model):
-    def wrapped():
-        value = model()
-        if value is not None:
-            tag(value, "output")
-        return value
-
-    return wrapped
-
-
 # Main inference function
 
 
@@ -107,6 +107,6 @@ def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFra
                 if trace[name]["type"] in ("sample", "deterministic"):
                     if ignore_untagged and name.startswith("_"):
                         continue
-                    sample[name] = trace[name]["value"].item() ## FIXME
+                    sample[name] = trace[name]["value"].item()  # FIXME
             samples.append(sample)
     return pd.DataFrame(samples)  # type: ignore
