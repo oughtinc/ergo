@@ -10,7 +10,7 @@ import numpy as onp
 import scipy as oscipy
 from tqdm.autonotebook import tqdm
 
-from ergo.ppl import categorical
+from ergo.distributions import categorical
 
 
 @dataclass

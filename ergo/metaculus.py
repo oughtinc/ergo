@@ -67,8 +67,9 @@ import requests
 from scipy import stats
 from typing_extensions import Literal
 
+from ergo import ppl
+from ergo.distributions import flip, lognormal, random_choice
 import ergo.logistic as logistic
-import ergo.ppl as ppl
 from ergo.theme import ergo_theme
 
 
@@ -367,7 +368,7 @@ class BinaryQuestion(MetaculusQuestion):
         Sample from the Metaculus community distribution (Bernoulli).
         """
         community_prediction = self.get_community_prediction()
-        return ppl.flip(community_prediction)
+        return flip(community_prediction)
 
 
 @dataclass
@@ -534,8 +535,8 @@ class ContinuousQuestion(MetaculusQuestion):
 
         # FIXME: Samples below/above range are pretty arbitrary
         outside_range_scale = 1
-        sample_below_range = -ppl.lognormal(0, 1 / outside_range_scale)
-        sample_above_range = 1 + ppl.lognormal(1, 1 / outside_range_scale)
+        sample_below_range = -lognormal(0, 1 / outside_range_scale)
+        sample_above_range = 1 + lognormal(1, 1 / outside_range_scale)
 
         sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
             len(self.prediction_histogram)
@@ -545,7 +546,7 @@ class ContinuousQuestion(MetaculusQuestion):
         p_above = 1 - self.latest_community_percentiles["high"]
         p_in_range = 1 - p_below - p_above
         return float(
-            ppl.random_choice(
+            random_choice(
                 [sample_below_range, sample_in_range, sample_above_range],
                 ps=[p_below, p_in_range, p_above],
             )

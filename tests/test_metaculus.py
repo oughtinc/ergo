@@ -271,7 +271,7 @@ class TestMetaculus:
 #         self.sf_question.show_prediction(
 #             self.mock_samples, show_community=False)
 #         self.sf_question.show_prediction(
-#             self.mock_samples, show_community=True)        
+#             self.mock_samples, show_community=True)
 
 #     @random_seed
 #     def test_show_prediction_log(self):
@@ -279,7 +279,7 @@ class TestMetaculus:
 #             self.mock_samples, show_community=False)
 #         self.deaths_question.show_prediction(
 #             self.mock_samples, show_community=True)
-    
+
 #     @random_seed
 #     def test_show_community_prediction(self):
 #         self.sf_question.show_community_prediction()
