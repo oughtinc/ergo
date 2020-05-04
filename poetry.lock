@@ -868,6 +868,7 @@ test = ["flake8", "pytest (>=4.1)", "pyro-api (>=0.1.1)"]
 reference = "84bcbce2830c72af6292e2752cc338952b16cbf1"
 type = "git"
 url = "https://github.com/pyro-ppl/numpyro.git"
+
 [[package]]
 category = "main"
 description = "Optimizing numpys einsum function"
@@ -1052,7 +1053,7 @@ wcwidth = "*"
 [[package]]
 category = "dev"
 description = "Run a subprocess in a pseudo terminal"
-marker = "sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\""
+marker = "python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\" and (python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\")"
 name = "ptyprocess"
 optional = false
 python-versions = "*"
@@ -1678,7 +1679,7 @@ testing = ["jaraco.itertools", "func-timeout"]
 notebooks = ["pendulum", "scikit-learn"]
 
 [metadata]
-content-hash = "c49553e06df66cdd84292ad3b0ae28d9e8ddaf8e3d111a6f4f275f03b653e714"
+content-hash = "1378dc76861f40b0a13a979be3b6641265c1d7400b917388182ce5186dd7b5b2"
 python-versions = "~3.6.8"
 
 [metadata.files]
