@@ -7,6 +7,7 @@ import functools
 from typing import Dict, List
 
 import jax
+import jax.numpy as np
 import numpyro
 import numpyro.distributions as dist
 import pandas as pd
@@ -44,6 +45,15 @@ def sample(dist: dist.Distribution, name: str = None, **kwargs):
     # is provided. This happens when we sample from distributions outside
     # an inference context.
     return numpyro.sample(name, dist, rng_key=onetime_rng_key(), **kwargs)
+
+
+# Conditioning
+
+
+def condition(cond: bool, name: str = None):
+    if not name:
+        name = "_c"
+    return numpyro.factor(name, 0 if cond else np.NINF)
 
 
 # Record deterministic values in trace
@@ -93,6 +103,18 @@ def handle_mem(model):
 # Main inference function
 
 
+def is_singleton_array(value):
+    return isinstance(value, np.DeviceArray) and value.size in ((1,), 1)
+
+
+def is_factor(entry):
+    return entry["is_observed"] and isinstance(entry["fn"], numpyro.distributions.Unit)
+
+
+def factor_score(entry):
+    return entry["fn"].log_factor
+
+
 def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFrame:
     """
     Run model forward, record samples for variables. Return dataframe
@@ -101,13 +123,38 @@ def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFra
     model = numpyro.handlers.trace(handle_mem(tag_output(autoname(model))))
     with numpyro.handlers.seed(rng_seed=rng_seed):
         samples: List[Dict[str, float]] = []
-        for _ in tqdm(range(num_samples)):
+        progress_bar = tqdm(total=num_samples)
+        i = 0
+        while i < num_samples:
             sample: Dict[str, float] = {}
             trace = model.get_trace()
+            reject = False
             for name in trace.keys():
-                if trace[name]["type"] in ("sample", "deterministic"):
-                    if ignore_untagged and name.startswith("_"):
-                        continue
-                    sample[name] = trace[name]["value"].item()  # FIXME
+                entry = trace[name]
+                if entry["type"] in ("sample", "deterministic"):
+                    if is_factor(entry):
+                        score = factor_score(entry)
+                        if score == np.NINF:
+                            reject = True
+                            break
+                        elif score == 0:
+                            pass
+                        else:
+                            raise NotImplementedError(
+                                f"Weighted factors - got score {score}"
+                            )
+                    else:
+                        if ignore_untagged and name.startswith("_"):
+                            continue
+                        value = entry["value"]
+                        if is_singleton_array(value):
+                            value = value.item()  # FIXME
+                        sample[name] = value
+            if reject:
+                continue
             samples.append(sample)
+            i += 1
+            progress_bar.update(i)
+        progress_bar.close()
+
     return pd.DataFrame(samples)  # type: ignore

@@ -27,5 +27,5 @@ from .distributions import (
 )
 from .foretold import Foretold, ForetoldQuestion
 from .metaculus import Metaculus, MetaculusQuestion
-from .ppl import mem, run, sample, tag
+from .ppl import condition, mem, run, sample, tag
 from .utils import to_float
