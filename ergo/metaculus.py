@@ -45,6 +45,7 @@ import textwrap
 from typing import Any, Dict, List, Optional, Union
 
 import jax.numpy as np
+import numpy as onp
 import numpyro.distributions as dist
 import pandas as pd
 from plotnine import (
@@ -71,6 +72,10 @@ from ergo import ppl
 from ergo.distributions import flip, lognormal, random_choice
 import ergo.logistic as logistic
 from ergo.theme import ergo_theme
+
+ArrayLikes = [pd.DataFrame, pd.Series, np.ndarray, np.DeviceArray, onp.ndarray]
+
+ArrayLikeType = Union[pd.DataFrame, pd.Series, np.ndarray, np.DeviceArray, onp.ndarray]
 
 
 @dataclass
@@ -251,9 +256,7 @@ class MetaculusQuestion:
 
     @staticmethod
     def get_central_quantiles(
-        df: Union[pd.DataFrame, pd.Series, np.ndarray],
-        percent_kept: float = 0.95,
-        side_cut_from: str = "both",
+        df: ArrayLikeType, percent_kept: float = 0.95, side_cut_from: str = "both",
     ):
         """
         Get the values that bound the central (percent_kept) of the sample distribution,
@@ -717,9 +720,9 @@ class ContinuousQuestion(MetaculusQuestion):
         if plot_samples:
             if isinstance(samples, list):
                 samples = pd.Series(samples)
-            if not type(samples) in [pd.DataFrame, pd.Series, np.ndarray]:
+            if not type(samples) in ArrayLikes:
                 raise ValueError(
-                    "Samples should be a list, numpy arrray or pandas series"
+                    "Samples should be a list, numpy array or pandas series"
                 )
             num_samples = samples.shape[0]
 
