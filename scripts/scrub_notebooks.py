@@ -1,17 +1,15 @@
 import argparse
-import os
 import json
+import os
 from pathlib import Path
 import subprocess
 
-
 strip_metadata = {
-    "jupytext": {"notebook_metadata_filter":"-all",
-                 "cell_metadata_filter":"-all"
-                 }
+    "jupytext": {"notebook_metadata_filter": "-all", "cell_metadata_filter": "-all"}
 }
 
-strip_metadata_string = json.dumps(strip_metadata).replace('"', '\"')
+strip_metadata_string = json.dumps(strip_metadata).replace('"', '"')
+
 
 def scrub(notebooks_path, scrubbed_path):
     for notebook_file in notebooks_path.glob("*.ipynb"):
