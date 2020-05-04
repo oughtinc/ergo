@@ -128,6 +128,7 @@ def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFra
     with numpyro.handlers.seed(rng_seed=rng_seed):
         samples: List[Dict[str, float]] = []
         progress_bar = tqdm(total=num_samples)
+        progress_bar.update(0)
         i = 0
         while i < num_samples:
             sample: Dict[str, float] = {}
@@ -158,7 +159,7 @@ def run(model, num_samples=5000, ignore_untagged=True, rng_seed=0) -> pd.DataFra
                 continue
             samples.append(sample)
             i += 1
-            progress_bar.update(i)
+            progress_bar.update(1)
         progress_bar.close()
 
     return pd.DataFrame(samples)  # type: ignore
