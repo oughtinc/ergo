@@ -108,7 +108,11 @@ def is_singleton_array(value):
 
 
 def is_factor(entry):
-    return entry["is_observed"] and isinstance(entry["fn"], numpyro.distributions.Unit)
+    return (
+        entry.get("is_observed")
+        and entry.get("fn")
+        and isinstance(entry["fn"], numpyro.distributions.Unit)
+    )
 
 
 def factor_score(entry):
