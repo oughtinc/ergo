@@ -35,10 +35,15 @@ def beta(a=1, b=1, **kwargs):
 
 
 def categorical(ps, **kwargs):
-    return sample(dist.Categorical(ps), **kwargs)
+    return sample(Categorical(ps), **kwargs)
 
 
 # Provide alternative parameterizations for primitive distributions
+
+
+def Categorical(scores):
+    probs = scores / sum(scores)
+    return dist.Categorical(probs=probs)
 
 
 def NormalFromInterval(low, high):

@@ -68,7 +68,7 @@ from scipy import stats
 from typing_extensions import Literal
 
 from ergo import ppl
-from ergo.distributions import flip, lognormal, random_choice
+from ergo.distributions import Categorical, flip, lognormal, random_choice
 import ergo.logistic as logistic
 from ergo.theme import ergo_theme
 from ergo.utils import memoized_method
@@ -524,7 +524,7 @@ class ContinuousQuestion(MetaculusQuestion):
         referencing 0...(len(self.prediction_histogram)-1)
         """
         y2 = [p[2] for p in self.prediction_histogram]
-        return dist.Categorical(probs=np.array(y2))
+        return Categorical(np.array(y2))
 
     def sample_normalized_community(self) -> float:
         """
@@ -544,7 +544,6 @@ class ContinuousQuestion(MetaculusQuestion):
         sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
             len(self.prediction_histogram)
         )
-
         p_below = self.latest_community_percentiles["low"]
         p_above = 1 - self.latest_community_percentiles["high"]
         p_in_range = 1 - p_below - p_above
