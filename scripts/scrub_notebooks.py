@@ -1,14 +1,21 @@
 import argparse
+import json
 import os
 from pathlib import Path
 import subprocess
+
+strip_metadata = {
+    "jupytext": {"notebook_metadata_filter": "-all", "cell_metadata_filter": "-all"}
+}
+
+strip_metadata_string = json.dumps(strip_metadata).replace('"', '"')
 
 
 def scrub(notebooks_path, scrubbed_path):
     for notebook_file in notebooks_path.glob("*.ipynb"):
         scrubbed_file = Path(scrubbed_path) / notebook_file.name
         subprocess.run(
-            f"jupytext --output '{scrubbed_file}.md' --to md '{notebook_file}'",
+            f"jupytext --output '{scrubbed_file}.md' --to md '{notebook_file}' --update-metadata '{strip_metadata_string}' ",
             shell=True,
             check=True,
             stdout=subprocess.PIPE,
