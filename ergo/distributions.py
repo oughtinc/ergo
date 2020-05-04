@@ -22,7 +22,7 @@ def lognormal(mean=0, stdev=1, **kwargs):
     return sample(dist.LogNormal(mean, stdev), **kwargs)
 
 
-def halfnormal(stdev, **kwargs):
+def halfnormal(stdev=1, **kwargs):
     return sample(dist.HalfNormal(stdev), **kwargs)
 
 
