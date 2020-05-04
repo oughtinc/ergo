@@ -38,7 +38,6 @@ We predict that the admit rate will be 20% higher than the current community pre
 import bisect
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-import functools
 import json
 import math
 import textwrap
@@ -72,6 +71,7 @@ from ergo import ppl
 from ergo.distributions import flip, lognormal, random_choice
 import ergo.logistic as logistic
 from ergo.theme import ergo_theme
+from ergo.utils import memoized_method
 
 ArrayLikes = [pd.DataFrame, pd.Series, np.ndarray, np.DeviceArray, onp.ndarray]
 
@@ -514,7 +514,7 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    @functools.lru_cache(None)
+    @memoized_method(None)
     def community_dist_in_range(self) -> dist.Categorical:
         """
         A distribution for the portion of the current normalized community prediction
