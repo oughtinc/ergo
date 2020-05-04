@@ -68,7 +68,7 @@ from scipy import stats
 from typing_extensions import Literal
 
 from ergo import ppl
-from ergo.distributions import Categorical, flip, lognormal, random_choice
+from ergo.distributions import Categorical, flip, halfnormal, random_choice
 import ergo.logistic as logistic
 from ergo.theme import ergo_theme
 from ergo.utils import memoized_method
@@ -531,16 +531,14 @@ class ContinuousQuestion(MetaculusQuestion):
         Sample an approximation of the entire current community prediction,
         on the normalized scale. The main reason that it's just an approximation
         is that we don't know exactly where probability mass outside of the question
-        range should be, so we place it arbitrarily (see comment for more)
+        range should be, so we place it arbitrarily.
 
         :return: One sample on the normalized scale
         """
 
         # FIXME: Samples below/above range are pretty arbitrary
-        outside_range_scale = 1
-        sample_below_range = -lognormal(0, 1 / outside_range_scale)
-        sample_above_range = 1 + lognormal(1, 1 / outside_range_scale)
-
+        sample_below_range = -halfnormal(0.1)
+        sample_above_range = 1 + halfnormal(0.1)
         sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
             len(self.prediction_histogram)
         )
