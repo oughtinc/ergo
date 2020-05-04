@@ -593,7 +593,7 @@ class ContinuousQuestion(MetaculusQuestion):
     def get_submission_from_samples(
         self, samples: Union[pd.Series, np.ndarray], samples_for_fit=5000, verbose=False
     ) -> SubmissionMixtureParams:
-        if not type(samples) in [pd.Series, np.ndarray, np.DeviceArray]:
+        if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
         mixture_params = logistic.fit_mixture(
