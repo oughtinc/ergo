@@ -10,7 +10,7 @@ import numpyro.distributions as dist
 from ergo.ppl import sample
 
 
-def bernoulli(p, **kwargs):
+def bernoulli(p=0.5, **kwargs):
     return sample(dist.Bernoulli(probs=p), **kwargs)
 
 
