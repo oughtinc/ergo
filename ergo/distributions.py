@@ -11,7 +11,7 @@ from ergo.ppl import sample
 
 
 def bernoulli(p=0.5, **kwargs):
-    return sample(dist.Bernoulli(probs=p), **kwargs)
+    return sample(dist.Bernoulli(probs=float(p)), **kwargs)
 
 
 def normal(mean=0, stdev=1, **kwargs):
