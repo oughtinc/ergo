@@ -97,7 +97,7 @@ def handle_mem(model):
         clear_mem()
         return model()
 
-    return model
+    return wrapped
 
 
 # Main inference function
