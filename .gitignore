@@ -5,8 +5,9 @@ ergo.egg-info/
 *__pycache__*
 dist/
 conda/
-.coverage*
 docs/build
 .env
-**.ipynb_checkpoints/
-*.ob-jupyter*
+.coverage*
+.ipynb_checkpoints
+**.ipynb_checkpoints
+**.ob-jupyter*

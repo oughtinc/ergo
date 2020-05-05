@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import List, Union
 
-import numpy as np
+import jax.numpy as np
+import numpy as onp
 import pandas as pd
 import requests
 import seaborn
-import torch
 
-from ergo.ppl import uniform
+from ergo.distributions import uniform
 
 
 class Foretold:
@@ -193,12 +193,12 @@ class ForetoldQuestion:
     def quantile(self, q):
         """Quantile of distribution"""
         floatCdf = self.get_float_cdf_or_error()
-        return np.interp(q, floatCdf["ys"], floatCdf["xs"])
+        return onp.interp(q, floatCdf["ys"], floatCdf["xs"])
 
     def sample_community(self):
         """Sample from CDF"""
         y = uniform()
-        return torch.tensor(self.quantile(y))
+        return np.array(self.quantile(y))
 
     def plotCdf(self):
         """Plot the CDF"""
@@ -237,12 +237,12 @@ class ForetoldCdf:
         """
         if length < 2:
             raise ValueError("`length` must be at least 2")
-        hist, bin_edges = np.histogram(samples, bins=length - 1, density=True)  # type: ignore
+        hist, bin_edges = onp.histogram(samples, bins=length - 1, density=True)  # type: ignore
         bin_width = bin_edges[1] - bin_edges[0]
         # Foretold expects `0 <= ys <= 1`, so we clip to that . This
         # is defensive -- at the time of implementation it isn't known
         # how the API handles violations of this.
-        ys = np.clip(np.hstack([np.array([0.0]), np.cumsum(hist) * bin_width]), 0, 1)  # type: ignore
+        ys = np.clip(np.hstack([onp.array([0.0]), onp.cumsum(hist) * bin_width]), 0, 1)  # type: ignore
         return ForetoldCdf(bin_edges.tolist(), ys.tolist())  # type: ignore
 
     def __len__(self):
