@@ -28,7 +28,10 @@ def scrub(notebooks_path, scrubbed_path):
         )
         print(res.stdout.split("\n")[1])
         subprocess.run(
-            f"rm '{scrubbed_file_stem}.md'", shell=True, check=True, stdout=subprocess.PIPE,
+            f"rm '{scrubbed_file_stem}.md'",
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
         )
 
 
