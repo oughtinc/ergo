@@ -1,3 +1,8 @@
+"""
+Invoke with `make scrub_src_only`. Will remove metadata and results from notebooks in
+`notebooks/src/`.
+"""
+
 import argparse
 import json
 from pathlib import Path

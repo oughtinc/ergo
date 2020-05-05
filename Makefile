@@ -15,11 +15,14 @@ format: FORCE  ## Run isort and black (rewriting files)
 docs: FORCE  ## Build docs
 	poetry run $(MAKE) -C docs html
 
-scrub: FORCE  ## Create scrubbed files in notebooks/src/ from notebooks/build/ notebooks
+scrub: FORCE  ## Create scrubbed notebooks in notebooks/src/ from notebooks/build/
 	poetry run python scripts/scrub_notebooks.py notebooks/build notebooks/src
 
-scrub_src: FORCE  ## Scrub notebooks/src/*.ipynb of output
+scrub_src_only: FORCE  ## Scrub notebooks in notebooks/src/ (without updating from notebooks/build/)
 	poetry run python scripts/scrub_src.py notebooks/build notebooks/src
+
+run_nb: FORCE  ## scrub and run passed notebook
+	poetry run python scripts/run_nb.py notebooks/build notebooks/src $(XFILE)
 
 .PHONY: help
 
