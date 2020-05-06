@@ -21,8 +21,14 @@ docs: FORCE  ## Build docs
 serve: FORCE  ## Run Jupyter notebook server
 	poetry run python -m jupyter lab
 
-scrub: FORCE  ## Scrub notebooks/src/.ipynb of output
+scrub: FORCE  ## Create scrubbed notebooks in notebooks/src/ from notebooks/build/
 	poetry run python scripts/scrub_notebooks.py notebooks/build notebooks/src
+
+scrub_src_only: FORCE  ## Scrub notebooks in notebooks/src/ (without updating from notebooks/build/)
+	poetry run python scripts/scrub_src.py notebooks/build notebooks/src
+
+run_nb: FORCE  ## scrub and run passed notebook
+	poetry run python scripts/run_nb.py notebooks/build notebooks/src $(XFILE)
 
 .PHONY: help
 

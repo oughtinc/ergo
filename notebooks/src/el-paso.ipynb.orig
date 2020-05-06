@@ -42,8 +42,8 @@
     "import ssl\n",
     "import warnings\n",
     "from datetime import timedelta, date\n",
-    "from ergo.contrib.el_paso import texas_data, onlyasith, krismoore, brachbach\n",
-    "from ergo.contrib.utils import plot_question, question, rejection_sample, sample_from_ensemble, samplers, summarize_question_samples, daterange"
+    "from ergo.contrib.el_paso import *\n",
+    "from ergo.contrib.utils import *"
    ]
   },
   {
@@ -75,7 +75,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Retrieve external data and models\n",
+    "# External data (cases, estimates, models)\n",
     "\n"
    ]
   },
@@ -96,34 +96,6 @@
     "el_paso_cases = texas_data.get_el_paso_data()\n",
     "\n",
     "el_paso_cases"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## @KrisMoore's compiled data\n",
-    "\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "Pulled from\n",
-    "[here](https://docs.google.com/spreadsheets/d/1eGF9xYmDmvAkr-dCmd-N4efHzPyYEfVl0YmL9zBvH9Q/edit#gid=1694267458)\n",
-    "\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "compiled_data = krismoore.get_krismoore_data()\n",
-    "\n",
-    "compiled_data"
    ]
   },
   {
@@ -158,7 +130,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Shaman et al. cases model\n",
+    "## Shaman et al. model of confirmed cases\n",
     "\n"
    ]
   },
@@ -166,7 +138,10 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Pulled from [here](https://github.com/shaman-lab/COVID-19Projection) ([paper](https://www.medrxiv.org/content/10.1101/2020.03.21.20040303v2))\n",
+    "[research\n",
+    "article](https://www.medrxiv.org/content/10.1101/2020.03.21.20040303v2)\n",
+    "\n",
+    "Pulled from [here](https://github.com/shaman-lab/COVID-19Projection)\n",
     "\n"
    ]
   },
@@ -201,7 +176,35 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## @brachbach model: cases -> hospitalized\n",
+    "## @KrisMoore's compiled data\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Pulled from\n",
+    "[here](https://docs.google.com/spreadsheets/d/1eGF9xYmDmvAkr-dCmd-N4efHzPyYEfVl0YmL9zBvH9Q/edit#gid=1694267458)\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "compiled_data = krismoore.get_krismoore_data()\n",
+    "\n",
+    "compiled_data"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## @brachbach model (cases -> hospitalized)\n",
     "\n"
    ]
   },
@@ -218,39 +221,6 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Access historical data"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "def get_historical_data(date: date, column_name):\n",
-    "    \"\"\"\n",
-    "    Look up the value of a parameter on a given date\n",
-    "    in the historical data we've loaded.\n",
-    "    \n",
-    "    Return the value or raise a KeyError if we don't have it.\n",
-    "    \"\"\"\n",
-    "    \n",
-    "    # prefer Texas government data over @KrisMoore compiled data\n",
-    "    try: \n",
-    "        value = el_paso_cases.loc[date, column_name]\n",
-    "        if np.isnan(value):\n",
-    "            raise KeyError(f\"value for {column_name} in el_paso_cases is NaN\")\n",
-    "    except KeyError:\n",
-    "        value = compiled_data.loc[date, column_name]\n",
-    "        if np.isnan(value):\n",
-    "            raise KeyError(f\"value for {column_name} in compiled_data is NaN\")\n",
-    "    return value"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
     "# Model components\n",
     "\n"
    ]
@@ -259,32 +229,37 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "In this notebook, we model some aspects of how the COVID-19 pandemic will play out in El Paso. Our goal is to answer the questions in the [El Paso Metaculus series](https://pandemic.metaculus.com/questions/?search=cat:internal--el-paso).\n",
-    "\n",
-    "In this section, we model some key variables that we'll use to answer the Metaculus questions in the next section. We sometimes ensemble multiple models to try to get a better estimate of a variable."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "START_DATE = date(2020, 4, 1)"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "## Daily COVID Infections"
+    "Many of the Metaculus questions are asking to quantify the result of\n",
+    "complex causal processes. To answer 'How many total patients are in\n",
+    "the ICU on [date]?' requires a specification of which factors lead to\n",
+    "an ICU patient&#x2014;from the societal processes that are adopted ->\n",
+    "exposure risk -> disease development trajectory -> number of icu\n",
+    "patients. We adopt the approach of trying to explicitly specify the\n",
+    "causal process underlying each question. In this section we model some\n",
+    "of the relevant variables we will make use of in the next section's\n",
+    "models. We will take an ensemble of models approach. We will therefore\n",
+    "sometimes specify multiple models for each variable we are interested\n",
+    "in. These models can be mixed together to (hopefully) result in more\n",
+    "robust predictions.  Ultimately the mixture parameter would be a\n",
+    "random variable conditioned on the model's success. At the moment it\n",
+    "is a parameter for the modeler to explicitly tune.\n",
+    "\n"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### Shaman Model"
+    "## Daily Infections\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Shaman Model\n",
+    "\n"
    ]
   },
   {
@@ -307,6 +282,8 @@
     "        cu_model_data[scenario][s][date] for s in [\"report_2.5\", \"report_25\", \"report_50\", \"report_75\", \"report_97.5\"]\n",
     "    ])\n",
     "\n",
+    "\n",
+    "    #ys = cu_model_data[scenario].loc[date, [\"report_2.5\", \"report_25\", \"report_50\", \"report_75\", \"report_97.5\"]].tolist()\n",
     "    # Linearly interpolate\n",
     "    return int(round(np.interp(quantile, xs, ys)))\n",
     "\n",
@@ -318,7 +295,8 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### @onlyasith model+"
+    "onlyasith model+\n",
+    "\n"
    ]
   },
   {
@@ -352,7 +330,8 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### Sample from ensemble"
+    "Sample from ensemble\n",
+    "\n"
    ]
   },
   {
@@ -366,9 +345,13 @@
     "    \"\"\"\n",
     "    What is the number of reported (new) Covid-19 infections on [date]?\n",
     "    \"\"\"\n",
-    "    try:\n",
-    "        return get_historical_data(date, \"New cases\")\n",
-    "    except KeyError:  # if we don't have historical data, use our ensemble of models\n",
+    "\n",
+    "    try:  # try to use existing data\n",
+    "        new_cases = el_paso_cases.loc[date, \"New cases\"]\n",
+    "        if np.isnan(new_cases):\n",
+    "            raise KeyError\n",
+    "        return new_cases\n",
+    "    except KeyError:  # if there isn't existing data, use our ensemble of models\n",
     "        return sample_from_ensemble([daily_infections_cu_model, daily_infections_base_model], {\"date\": date}, [.8, .2], fallback=True, default=0)"
    ]
   },
@@ -376,7 +359,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Daily COVID infections: mean, sma, peak\n",
+    "### Case-based variables (mean, sma, peak)\n",
     "\n"
    ]
   },
@@ -416,11 +399,7 @@
     "\n",
     "@ergo.mem\n",
     "def peak_compatible_with_historical_data(peak_date):\n",
-    "    \"\"\"\n",
-    "    Check whether it's possible that some date in the past\n",
-    "    was the peak date of new COVID infections in El Paso,\n",
-    "    given the historical data we have about COVID infections\n",
-    "    \"\"\"\n",
+    "    START_DATE = date(2020, 4, 1)\n",
     "    if not peak_date in el_paso_cases.index:\n",
     "        return True\n",
     "    for comparison_date in daterange(START_DATE, peak_date + timedelta(11)):\n",
@@ -452,7 +431,98 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Patients with COVID in the hospital\n",
+    "## Confirmed Hospital Patients\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Model from Shaman et al.\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "@ergo.mem\n",
+    "def get_hospital_confirmed_from_daily_infected_model():\n",
+    "\n",
+    "    # from https://penn-chime.phl.io/\n",
+    "    hospital_stay_days_point_estimate = 7\n",
+    "\n",
+    "    hospital_stay_days_fuzzed = round(\n",
+    "        float(ergo.normal_from_interval(\n",
+    "            hospital_stay_days_point_estimate * 0.5,\n",
+    "            hospital_stay_days_point_estimate * 1.5\n",
+    "        ))\n",
+    "    )\n",
+    "\n",
+    "    hospital_stay_days = max(1, hospital_stay_days_fuzzed)\n",
+    "\n",
+    "    has_hospital_confirmed = compiled_data[compiled_data[\"In hospital confirmed\"].notna()]\n",
+    "\n",
+    "    data_dates = has_hospital_confirmed.index\n",
+    "\n",
+    "    # for each date for which we have data for how many lab-confirmed COVID patients were in the hospital,\n",
+    "    # how many new confirmed cases were there over the past hospital_stay_days days?\n",
+    "    def get_recent_infected_data(date):\n",
+    "      return sum([daily_infections(date - timedelta(n))\n",
+    "        for n in range(0, hospital_stay_days)])\n",
+    "\n",
+    "    recent_infected_data = [[get_recent_infected_data(date)]\n",
+    "      for date in data_dates]\n",
+    "\n",
+    "    reg = LinearRegression(fit_intercept=False).fit(\n",
+    "        recent_infected_data,\n",
+    "        has_hospital_confirmed[\"In hospital confirmed\"])\n",
+    "\n",
+    "    # TODO: consider adding uncertainty to the fit here\n",
+    "\n",
+    "    # now that we've related current hospitalized cases and recent confirmed cases,\n",
+    "    # return a function that allows us to predict hospitalized cases given estimates\n",
+    "    # of future confirmed cases\n",
+    "    def hospital_confirmed_from_daily_infected_model(date: date):\n",
+    "      recent_infected = sum([daily_infections(date - timedelta(n))\n",
+    "        for n in range(0, hospital_stay_days)])\n",
+    "      return int(round(reg.predict([[recent_infected]])[0]))\n",
+    "\n",
+    "    return hospital_confirmed_from_daily_infected_model\n",
+    "\n",
+    "@ergo.mem\n",
+    "def hospital_confirmed_for_date(date: date) -> int:\n",
+    "    \"\"\"\n",
+    "    The total number of lab-confirmed COVID-19 \n",
+    "    patients in El Paso County in the hospital on this date\n",
+    "    \"\"\"\n",
+    "\n",
+    "    # We predict the number of lab-confirmed COVID patients\n",
+    "    # in the hospital on some date\n",
+    "    # as some multiple of the number of new confirmed COVID cases\n",
+    "    # over the past 7 or so days\n",
+    "    # (since someone who gets admitted to the hospital for COVID\n",
+    "    # will probably stay there for 7 or so days)\n",
+    "\n",
+    "    hospital_confirmed_from_daily_infected_model = get_hospital_confirmed_from_daily_infected_model()\n",
+    "\n",
+    "    try:\n",
+    "      new_hospital_confirmed = compiled_data.loc[date, \"In hospital confirmed\"]\n",
+    "      if np.isnan(new_hospital_confirmed):\n",
+    "        raise KeyError\n",
+    "      return new_hospital_confirmed\n",
+    "    except KeyError:\n",
+    "      return hospital_confirmed_from_daily_infected_model(date)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "@brachbach model\n",
     "\n"
    ]
   },
@@ -472,7 +542,11 @@
     "    the hospital on this date\n",
     "    \"\"\"\n",
     "    try:\n",
-    "        return get_historical_data(date, \"In hospital confirmed\")\n",
+    "        # Look up in-hospital confirmed cases from @KrisMoore's compiled data\n",
+    "        new_hospital_confirmed = compiled_data.loc[date, \"In hospital confirmed\"]\n",
+    "        if np.isnan(new_hospital_confirmed):\n",
+    "            raise KeyError\n",
+    "        return new_hospital_confirmed\n",
     "    except KeyError:\n",
     "        try:\n",
     "            # Get point estimate from @brachbach's regression model\n",
@@ -519,6 +593,138 @@
    ]
   },
   {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "<<<<<<< LOCAL CELL DELETED >>>>>>>\n",
+    "def get_historical_data(date: date, column_name):\n",
+    "    \"\"\"\n",
+    "    Look up the value of a parameter on a given date\n",
+    "    in the historical data we've loaded.\n",
+    "    \n",
+    "    Return the value or raise a KeyError if we don't have it.\n",
+    "    \"\"\"\n",
+    "    \n",
+    "    # prefer Texas government data over @KrisMoore compiled data\n",
+    "    try: \n",
+    "        value = el_paso_cases.loc[date, column_name]\n",
+    "        if np.isnan(value):\n",
+    "            raise KeyError(f\"value for {column_name} in el_paso_cases is NaN\")\n",
+    "    except KeyError:\n",
+    "        value = compiled_data.loc[date, column_name]\n",
+    "        if np.isnan(value):\n",
+    "            raise KeyError(f\"value for {column_name} in compiled_data is NaN\")\n",
+    "    return value\n",
+    "\n",
+    "@ergo.mem\n",
+    "def daily_infections(date: date) -> int:\n",
+    "    \"\"\"\n",
+    "    What is the number of reported (new) Covid-19 infections on [date]?\n",
+    "    \"\"\"\n",
+    "    try:\n",
+    "        # Look up Texas Government data\n",
+    "        new_cases = el_paso_cases.loc[date, \"New cases\"]\n",
+    "        if np.isnan(new_cases):\n",
+    "            raise KeyError\n",
+    "        return new_cases\n",
+    "    except KeyError:\n",
+    "        try:\n",
+    "            # Look up projections from @onlyasith's model\n",
+    "            cases = projected_cases.loc[date, \"New cases\"]\n",
+    "            if np.isnan(cases):\n",
+    "                raise KeyError\n",
+    "            \n",
+    "            # Add some (fairly arbitrary) uncertainty around this point estimate\n",
+    "            if cases == 0:\n",
+    "              return cases\n",
+    "            cases_estimate = ergo.lognormal_from_interval(cases * 0.8, cases * 1.2)\n",
+    "            return np.clip(cases_estimate, cases * 0.5, cases * 2)\n",
+    "        except KeyError:\n",
+    "            # We're beyond the time range for data and model\n",
+    "            return 0\n",
+    "\n",
+    "@ergo.mem\n",
+    "def mean_infections(start_date: date, end_date: date):\n",
+    "    \"\"\"\n",
+    "    What is the average number of reported new infections for this range of \n",
+    "    dates? (Including start date, excluding end date)\n",
+    "    \"\"\"\n",
+    "    days = daterange(start_date, end_date)\n",
+    "    return np.mean([daily_infections(day) for day in days])\n",
+    "\n",
+    "@ergo.mem\n",
+    "def sma_infections(date: date):\n",
+    "    \"\"\"\n",
+    "    The simple moving average of infections for a date.\n",
+    "    \n",
+    "    Defined in https://pandemic.metaculus.com/questions/4128:\n",
+    "    \n",
+    "    'The 2-day SMA is defined as the unweighted average (arithmetic mean)\n",
+    "    over the current day and the previous day.'\n",
+    "    \"\"\"\n",
+    "    return mean_infections(date - timedelta(1), date + timedelta(1))\n",
+    "\n",
+    "# Build @brachbach model\n",
+    "hospital_confirmed_from_daily_infected_model = get_daily_hospital_confirmed(compiled_data, daily_infections)\n",
+    "\n",
+    "@ergo.mem\n",
+    "def hospital_confirmed_for_date(date: date) -> int:\n",
+    "    \"\"\"\n",
+    "    The total number of lab-confirmed COVID-19 patients in El Paso County in\n",
+    "    the hospital on this date\n",
+    "    \"\"\"\n",
+    "    try:\n",
+    "        # Look up in-hospital confirmed cases from @KrisMoore's compiled data\n",
+    "        new_hospital_confirmed = compiled_data.loc[date, \"In hospital confirmed\"]\n",
+    "        if np.isnan(new_hospital_confirmed):\n",
+    "            raise KeyError\n",
+    "        return new_hospital_confirmed\n",
+    "    except KeyError:\n",
+    "        try:\n",
+    "            # Get point estimate from @brachbach's regression model\n",
+    "            cases = hospital_confirmed_from_daily_infected_model(date)\n",
+    "            \n",
+    "            # Add some (fairly arbitrary) uncertainty around this point estimate\n",
+    "            if cases == 0:\n",
+    "              return cases\n",
+    "            cases_estimate = ergo.lognormal_from_interval(cases * 0.8, cases * 1.2)\n",
+    "            return np.clip(cases_estimate, cases * 0.5, cases * 2)\n",
+    "        except KeyError:\n",
+    "            return 0\n",
+    "\n",
+    "@ergo.mem\n",
+    "def frac_icu_ventilation():\n",
+    "    \"\"\"\n",
+    "    Proportion of ICU admissions requiring ventilation\n",
+    "\n",
+    "    Approach (PabloStafforini et al): \n",
+    "    https://pandemic.metaculus.com/questions/4154/#comment-28155\n",
+    "\n",
+    "    TODO: \n",
+    "    - Improve how we use case data\n",
+    "    - Add qualitative adjustments\n",
+    "    \"\"\"\n",
+    "    ventilation_pseudocounts = 25 + 17 + 0.05 * 1150 + 0.1 * 132\n",
+    "    icu_pseudocounts = 100 + 36 + 0.05 * 1300 + 0.1 * 196\n",
+    "    return ergo.beta_from_hits(ventilation_pseudocounts, icu_pseudocounts)\n",
+    "\n",
+    "@ergo.mem\n",
+    "def peak_compatible_with_historical_data(peak_date):\n",
+    "    if not peak_date in el_paso_cases.index:\n",
+    "        return True\n",
+    "    for comparison_date in daterange(START_DATE, peak_date + timedelta(11)):\n",
+    "        if comparison_date not in el_paso_cases.index:\n",
+    "            continue\n",
+    "        if sma_infections(comparison_date) > sma_infections(peak_date):\n",
+    "            return False\n",
+    "        if sma_infections(comparison_date) == sma_infections(peak_date) and comparison_date > peak_date:\n",
+    "            return False\n",
+    "    return True"
+   ]
+  },
+  {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
@@ -532,6 +738,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "START_DATE = date(2020, 4, 1) # first date we are willing to predict\n",
+    "\n",
     "@question(metaculus, 4128, community_weight=0.95, community_fn=peak_infection_date_community, start_date=START_DATE)\n",
     "def peak_infection_date() -> date:\n",
     "    \"\"\"\n",
@@ -684,7 +892,7 @@
     "    \n",
     "    return hospitalization_peak_date\n",
     "\n",
-    "@question(metaculus, 4153, community_weight=0.3)\n",
+    "@question(4153, community_weight=0.3)\n",
     "def max_30d_hospital_confirmed_for_peak():\n",
     "    \"\"\"\n",
     "    What will the maximum number of in-hospital lab-confirmed COVID-19 \n",
@@ -702,7 +910,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "@question(metaculus, 4204)\n",
+    "@question(4204)\n",
     "def peak_icu_patients():\n",
     "    \"\"\"\n",
     "    How many patients with Covid-19 in El Paso County will be in the\n",
@@ -729,7 +937,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "@question(metaculus, 4201)\n",
+    "@question(4201)\n",
     "def peak_invasive_ventilation():\n",
     "    \"\"\"\n",
     "    How many patients with Covid-19 in El Paso County will be on invasive \n",
@@ -750,6 +958,80 @@
     "        \n",
     "\n",
     "plot_question(peak_invasive_ventilation, bw=0.1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "<<<<<<< REMOTE CELL DELETED >>>>>>>\n",
+    "@question(metaculus, 4153, community_weight=0.3)\n",
+    "def max_30d_hospital_confirmed_for_peak():\n",
+    "    \"\"\"\n",
+    "    What will the maximum number of in-hospital lab-confirmed COVID-19 \n",
+    "    patients in El Paso County, in the 30-day period during which the \"peak\"\n",
+    "    occurs?\n",
+    "    \"\"\"\n",
+    "    peak = peak_infection_date()\n",
+    "    days = daterange(peak - timedelta(15), peak + timedelta(15))\n",
+    "    return max(hospital_confirmed_for_date(day) for day in days)\n",
+    "\n",
+    "plot_question(max_30d_hospital_confirmed_for_peak, bw=0.01, num_samples=1000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "<<<<<<< REMOTE CELL DELETED >>>>>>>\n",
+    "@question(metaculus, 4204)\n",
+    "def peak_icu_admissions():\n",
+    "    \"\"\"\n",
+    "    How many patients with Covid-19 in El Paso County will be admitted to the\n",
+    "    ICU on the day when the number of hospital admissions of cases peak?\n",
+    "\n",
+    "    Following @Tamay's approach:\n",
+    "    https://pandemic.metaculus.com/questions/4204/\n",
+    "\n",
+    "    Alternative:    \n",
+    "    - peak = peak_hospitalizations_date()\n",
+    "    - return daily_icu_admissions(peak)\n",
+    "\n",
+    "    FIXME: Admissions vs in-hospital patients unclear\n",
+    "\n",
+    "    Not mixing in community since this is just the product of two other questions.    \n",
+    "    \"\"\"\n",
+    "    max_patients = max_30d_hospital_confirmed_for_peak()\n",
+    "    return max_patients * frac_patients_icu()\n",
+    "plot_question(peak_icu_admissions)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "<<<<<<< REMOTE CELL DELETED >>>>>>>\n",
+    "@question(metaculus, 4201)\n",
+    "def peak_invasive_ventilation():\n",
+    "    \"\"\"\n",
+    "    How many patients with Covid-19 in El Paso County will require invasive \n",
+    "    ventilation on the day when the number of hospital admissions of cases \n",
+    "    peak?\n",
+    "\n",
+    "    Following @Tamay's approach:\n",
+    "    https://pandemic.metaculus.com/questions/4201/#comment-28004\n",
+    "\n",
+    "    Not mixing in community since this is just the product of two other questions.\n",
+    "    \"\"\"\n",
+    "    return frac_icu_ventilation() * peak_icu_admissions()\n",
+    "\n",
+    "plot_question(peak_invasive_ventilation)"
    ]
   },
   {
