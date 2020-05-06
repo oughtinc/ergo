@@ -1,34 +1,33 @@
-import ergo
-import numpy as np
+from datetime import date, timedelta
 import functools
-from datetime import timedelta, date
 
+import numpy as np
 
+import ergo
 
-##TODO consider turning this into a Class or factoring into Ergo proper
+# TODO consider turning this into a Class or factoring into Ergo proper
 
 # Rejection sampling
+
 
 def rejection_sample(fn, condition):
     """
     Sample from fn until we get a value that satisfies
     condition, then return it.
     """
-    while True:        
+    while True:
         value = fn()
         if condition(value):
             return value
 
 
-# Memoization
-
 memoized_functions = []
+
 
 def mem(func):
     func = functools.lru_cache(None)(func)
     memoized_functions.append(func)
     return func
-
 
 
 def clear_mem():
@@ -38,13 +37,21 @@ def clear_mem():
 
 # Associate models with questions
 
-# We'll add a sampler here for each question we predict on. 
+# We'll add a sampler here for each question we predict on.
 # Each sampler is a function that returns a single sample
 # from our model predicting on that question.
 samplers = {}
 
-#TODO probably curry this with the notbooks metaculus instance so we don't need to pass it in on every question
-def question(metaculus, question_id, community_weight=0, community_fn=None, start_date=date.today()):
+
+# TODO probably curry this with the notbooks metaculus instance so we don't need to pass
+# it in on every question
+def question(
+    metaculus,
+    question_id,
+    community_weight=0,
+    community_fn=None,
+    start_date=date.today(),
+):
     q = metaculus.get_question(question_id)
 
     def decorator(func):
@@ -66,38 +73,46 @@ def question(metaculus, question_id, community_weight=0, community_fn=None, star
             else:
                 ergo.tag(value, tag)
             return value
+
         sampler.question = q
         samplers[q.id] = sampler
         return sampler
+
     return decorator
+
 
 def summarize_question_samples(samples):
     sampler_tags = [sampler.__name__ for sampler in samplers.values()]
     tags_to_show = [tag for tag in sampler_tags if tag in samples.columns]
     samples_to_show = samples[tags_to_show]
     summary = samples_to_show.describe().transpose().round(2)
-    display(summary)
+    display(summary)  # noqa: F821   #TODO see if we need this display command
+
 
 def plot_question(sampler, num_samples=200, bw=None, start_date=date.today()):
-  def model():
-      clear_mem()
-      sampler()
+    def model():
+        clear_mem()
+        sampler()
 
-  samples = ergo.run(model, num_samples=num_samples)
+    samples = ergo.run(model, num_samples=num_samples)
 
-  summarize_question_samples(samples)
+    summarize_question_samples(samples)
 
-  q = sampler.question
+    q = sampler.question
 
-  q_samples = samples[sampler.__name__]
+    q_samples = samples[sampler.__name__]
 
-  if q.id == 4128: # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
-      q_samples = np.array([start_date + timedelta(s) for s in q_samples])
+    if (
+        q.id == 4128
+    ):  # Date question: Need to convert back to date from days (https://github.com/oughtinc/ergo/issues/144)
+        q_samples = np.array([start_date + timedelta(s) for s in q_samples])
 
-  if bw is not None:
-      q.show_prediction(samples=q_samples, show_community=True, percent_kept=0.9, bw=bw)
-  else:
-      q.show_prediction(samples=q_samples, show_community=True, percent_kept=0.9)
+    if bw is not None:
+        q.show_prediction(
+            samples=q_samples, show_community=True, percent_kept=0.9, bw=bw
+        )
+    else:
+        q.show_prediction(samples=q_samples, show_community=True, percent_kept=0.9)
 
 
 def sample_from_ensemble(models, params, weights=None, fallback=False, default=None):
@@ -120,7 +135,4 @@ def sample_from_ensemble(models, params, weights=None, fallback=False, default=N
             del models[i]
             del weights[i]
             return sample_from_ensemble(models, params, weights, fallback, default)
-        return default    
-
-
-
+        return default
