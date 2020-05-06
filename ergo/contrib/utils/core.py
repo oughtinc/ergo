@@ -21,20 +21,6 @@ def rejection_sample(fn, condition):
             return value
 
 
-memoized_functions = []
-
-
-def mem(func):
-    func = functools.lru_cache(None)(func)
-    memoized_functions.append(func)
-    return func
-
-
-def clear_mem():
-    for func in memoized_functions:
-        func.cache_clear()
-
-
 # Associate models with questions
 
 # We'll add a sampler here for each question we predict on.
@@ -58,7 +44,7 @@ def question(
         tag = func.__name__
 
         @functools.wraps(func)
-        @mem
+        @ergo.mem
         def sampler():
             if ergo.flip(community_weight):
                 if community_fn:
@@ -90,11 +76,7 @@ def summarize_question_samples(samples):
 
 
 def plot_question(sampler, num_samples=200, bw=None, start_date=date.today()):
-    def model():
-        clear_mem()
-        sampler()
-
-    samples = ergo.run(model, num_samples=num_samples)
+    samples = ergo.run(sampler, num_samples=num_samples)
 
     summarize_question_samples(samples)
 
@@ -122,8 +104,10 @@ def sample_from_ensemble(models, params, weights=None, fallback=False, default=N
     None then return default if all models fail
 
     """
-
-    model = ergo.random_choice(models, weights)
+    if len(models) > 1:
+        model = ergo.random_choice(models, weights)
+    else:
+        model = models[0]
     try:
         result = model(**params)
         if np.isnan(result):
@@ -131,8 +115,12 @@ def sample_from_ensemble(models, params, weights=None, fallback=False, default=N
         return result
     except KeyError:
         if fallback and len(models) > 1:
+            models_copy = models.copy()
+            weights_copy = weights.copy()
             i = models.index(model)
-            del models[i]
-            del weights[i]
-            return sample_from_ensemble(models, params, weights, fallback, default)
+            del models_copy[i]
+            del weights_copy[i]
+            return sample_from_ensemble(
+                models_copy, params, weights_copy, fallback, default
+            )
         return default

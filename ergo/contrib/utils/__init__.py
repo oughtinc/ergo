@@ -1,6 +1,4 @@
 from .core import (
-    clear_mem,
-    mem,
     plot_question,
     question,
     rejection_sample,
