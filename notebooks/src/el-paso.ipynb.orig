@@ -5,8 +5,7 @@
    "metadata": {},
    "source": [
     "# Setup\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -77,8 +76,7 @@
    "metadata": {},
    "source": [
     "# External data (cases, estimates, models)\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -86,8 +84,7 @@
    "metadata": {},
    "source": [
     "## Texas government cases data\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -115,8 +112,7 @@
    "source": [
     "Pulled from\n",
     "[here](https://docs.google.com/spreadsheets/d/1L6pzFAEJ6MfnUwt-ea6tetKyvdi0YubnK_70SGm436c/edit#gid=1807978187)\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -190,8 +186,7 @@
    "source": [
     "Pulled from\n",
     "[here](https://docs.google.com/spreadsheets/d/1eGF9xYmDmvAkr-dCmd-N4efHzPyYEfVl0YmL9zBvH9Q/edit#gid=1694267458)\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -210,8 +205,7 @@
    "metadata": {},
    "source": [
     "## @brachbach model (cases -> hospitalized)\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -228,8 +222,7 @@
    "metadata": {},
    "source": [
     "# Model components\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -605,6 +598,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "<<<<<<< LOCAL CELL DELETED >>>>>>>\n",
     "def get_historical_data(date: date, column_name):\n",
     "    \"\"\"\n",
     "    Look up the value of a parameter on a given date\n",
@@ -735,8 +729,7 @@
    "metadata": {},
    "source": [
     "# El Paso questions\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -973,6 +966,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "<<<<<<< REMOTE CELL DELETED >>>>>>>\n",
     "@question(metaculus, 4153, community_weight=0.3)\n",
     "def max_30d_hospital_confirmed_for_peak():\n",
     "    \"\"\"\n",
@@ -993,6 +987,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "<<<<<<< REMOTE CELL DELETED >>>>>>>\n",
     "@question(metaculus, 4204)\n",
     "def peak_icu_admissions():\n",
     "    \"\"\"\n",
@@ -1021,6 +1016,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "<<<<<<< REMOTE CELL DELETED >>>>>>>\n",
     "@question(metaculus, 4201)\n",
     "def peak_invasive_ventilation():\n",
     "    \"\"\"\n",
@@ -1043,8 +1039,7 @@
    "metadata": {},
    "source": [
     "# Generate predictions for all questions\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -1067,8 +1062,7 @@
    "metadata": {},
    "source": [
     "# Compare predictions to community\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
@@ -1080,8 +1074,7 @@
     "  These may look a little different from the plots for the  questions shown\n",
     "  above, because we've taken more samples from the distribution and we're\n",
     "  fitting logistic distributions so we can submit them to metaculus\n",
-    "\n",
-    ""
+    "\n"
    ]
   },
   {
