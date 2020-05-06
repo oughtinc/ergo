@@ -1,4 +1,3 @@
-from plotnine import themes  # type: ignore
+from plotnine import themes
 
-# minimal for now
 ergo_theme = themes.theme_bw()

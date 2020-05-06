@@ -4,23 +4,53 @@ import os
 import pprint
 from typing import cast
 
-import numpy as np
+from dotenv import load_dotenv
+import jax.numpy as np
 import pandas as pd
 import pytest
 import requests
 
 import ergo
 import tests.mocks
+from tests.utils import random_seed
 
 pp = pprint.PrettyPrinter(indent=4)
 
+
+load_dotenv()
+
+
 uname = cast(str, os.getenv("METACULUS_USERNAME"))
 pwd = cast(str, os.getenv("METACULUS_PASSWORD"))
-user_id = int(cast(str, os.getenv("METACULUS_USER_ID")))
+user_id_str = cast(str, os.getenv("METACULUS_USER_ID"))
 
-if None in [uname, pwd, user_id]:
+if None in [uname, pwd, user_id_str]:
     raise ValueError(
         ".env is missing METACULUS_USERNAME, METACULUS_PASSWORD, or METACULUS_USER_ID"
+    )
+
+user_id = int(user_id_str)
+
+
+@random_seed
+def get_mock_samples(n=1000):
+    return np.array(
+        [
+            ergo.logistic.sample_mixture(tests.mocks.mock_true_params)
+            for _ in range(0, n)
+        ]
+    )
+
+
+@random_seed
+def get_mock_date_samples(date_question):
+    return date_question.denormalize_samples(
+        pd.Series(
+            [
+                ergo.logistic.sample_mixture(tests.mocks.mock_normalized_params)
+                for _ in range(0, 1000)
+            ]
+        )
     )
 
 
@@ -32,23 +62,8 @@ class TestMetaculus:
     continuous_log_open_question = metaculus.get_question(3961)
     closed_question = metaculus.get_question(3965)
     binary_question = metaculus.get_question(3966)
-
-    mock_samples = np.array(
-        [
-            ergo.logistic.sample_mixture(tests.mocks.mock_true_params)
-            for _ in range(0, 1000)
-        ]
-    )
-
-    mock_date_samples = continuous_linear_date_open_question.denormalize_samples(
-        pd.Series(
-            [
-                ergo.logistic.sample_mixture(tests.mocks.mock_normalized_params)
-                for _ in range(0, 1000)
-            ]
-        )
-    )
-
+    mock_samples = get_mock_samples()
+    mock_date_samples = get_mock_date_samples(continuous_linear_date_open_question)
     mock_log_question = metaculus.make_question_from_data(
         tests.mocks.mock_log_question_data
     )
@@ -57,7 +72,7 @@ class TestMetaculus:
         assert self.metaculus.user_id == user_id
 
     def test_get_question(self):
-        """make sure we're getting the user-specific data"""
+        """Make sure we're getting the user-specific data."""
         assert "my_predictions" in self.continuous_linear_open_question.data
 
     def test_question_name_default(self):
@@ -175,6 +190,7 @@ class TestMetaculus:
         ).all()
 
     @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
+    @random_seed
     def test_submission_from_samples_linear(self):
         mixture_params = self.continuous_linear_open_question.get_submission_from_samples(
             self.mock_samples
@@ -193,6 +209,7 @@ class TestMetaculus:
         )
 
     @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
+    @random_seed
     def test_submitted_equals_predicted_linear(self):
         self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
         self.continuous_linear_open_question.refresh_question()
@@ -205,14 +222,15 @@ class TestMetaculus:
         prediction_samples = np.array(
             [ergo.logistic.sample_mixture(scaled_params) for _ in range(0, 1000)]
         )
-
-        assert np.mean(self.mock_samples) == pytest.approx(
-            np.mean(prediction_samples), rel=0.1
+        assert float(np.mean(self.mock_samples)) == pytest.approx(
+            float(np.mean(prediction_samples)), rel=0.1
         )
 
     @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
+    @random_seed
     def test_submitted_equals_predicted_log(self):
         self.continuous_log_open_question.submit_from_samples(self.mock_samples)
+        self.continuous_log_open_question.refresh_question()
         latest_prediction = (
             self.continuous_log_open_question.get_latest_normalized_prediction()
         )
@@ -224,51 +242,45 @@ class TestMetaculus:
                 for _ in range(0, 5000)
             ]
         )
-
-        assert np.mean(self.mock_samples) == pytest.approx(
-            np.mean(prediction_samples), rel=0.1
+        assert float(np.mean(self.mock_samples)) == pytest.approx(
+            float(np.mean(prediction_samples)), rel=0.1
         )
 
-    # smoke tests
+    @random_seed
     def test_get_community_prediction_linear(self):
         assert self.continuous_linear_closed_question.sample_community() > 0
 
+    @random_seed
     def test_get_community_prediction_log(self):
         assert self.continuous_log_open_question.sample_community() > 0
 
+    @random_seed
     def test_sample_community_binary(self):
         value = self.binary_question.sample_community()
         assert bool(value) in (True, False)
-
-
-# Visual tests -- eyeball the results from these to see if they seem reasonable
-# leave these commented out usually, just use them if they seem useful
 
 
 # class TestVisualPandemic:
 #     metaculus = ergo.Metaculus(uname, pwd, api_domain="pandemic")
 #     sf_question = metaculus.get_question(3931, name="sf_question")
 #     deaths_question = metaculus.get_question(3996)
-#     show_performance_question = metaculus.get_question(4112)
-#     show_performance_log_question = metaculus.get_question(4113)
-#     mock_samples = np.array([ergo.logistic.sample_mixture(
-#         tests.mocks.mock_true_params) for _ in range(0, 5000)])
+#     mock_samples = get_mock_samples(5000)
 
-#     def test_show_submission(self):
-#         self.sf_question.show_submission(
-#             self.mock_samples)
+#     @random_seed
+#     def test_show_prediction(self):
+#         self.sf_question.show_prediction(
+#             self.mock_samples, show_community=False)
+#         self.sf_question.show_prediction(
+#             self.mock_samples, show_community=True)
 
-#     def test_show_submission_log(self):
-#         self.deaths_question.show_submission(
-#             self.mock_samples)
+#     @random_seed
+#     def test_show_prediction_log(self):
+#         self.deaths_question.show_prediction(
+#             self.mock_samples, show_community=False)
+#         self.deaths_question.show_prediction(
+#             self.mock_samples, show_community=True)
 
-#     def test_show_performance(self):
-#         # should have two humps, one on the left and one on the right
-#         self.show_performance_question.show_performance()
-
-#     def test_show_performance_log(self):
-#         # should have a low, flat hump on the left and a skinny hump on the right
-#         self.show_performance_log_question.show_performance()
-
+#     @random_seed
 #     def test_show_community_prediction(self):
 #         self.sf_question.show_community_prediction()
+#         self.deaths_question.show_community_prediction()

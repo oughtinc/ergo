@@ -13,7 +13,8 @@ We predict that the admit rate will be 20% higher than the current community pre
 .. doctest::
     >>> import os
     >>> import ergo
-    >>> import numpy as np
+    >>> import jax.numpy as np
+    >>> from numpyro.handlers import seed
 
     >>> metaculus = ergo.Metaculus(
     ...     username=os.getenv("METACULUS_USERNAME"),
@@ -25,7 +26,7 @@ We predict that the admit rate will be 20% higher than the current community pre
     >>> # harvard_question.show_community_prediction()
 
     >>> community_prediction_samples = np.array(
-    ... [harvard_question.sample_community() for _ in range (0,5000)]
+    ...     [harvard_question.sample_community() for _ in range(0, 5000)]
     ... )
     >>> my_prediction_samples = community_prediction_samples * 1.2
 
@@ -37,15 +38,16 @@ We predict that the admit rate will be 20% higher than the current community pre
 import bisect
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-import functools
 import json
 import math
 import textwrap
 from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
+import jax.numpy as np
+import numpy as onp
+import numpyro.distributions as dist
 import pandas as pd
-from plotnine import (  # type: ignore
+from plotnine import (
     aes,
     element_text,
     facet_wrap,
@@ -61,15 +63,19 @@ from plotnine import (  # type: ignore
     scale_x_log10,
     theme,
 )
-import pyro.distributions as dist
 import requests
 from scipy import stats
-import torch
 from typing_extensions import Literal
 
+from ergo import ppl
+from ergo.distributions import Categorical, flip, halfnormal, random_choice
 import ergo.logistic as logistic
-import ergo.ppl as ppl
-from ergo.theme import ergo_theme  # type: ignore
+from ergo.theme import ergo_theme
+from ergo.utils import memoized_method
+
+ArrayLikes = [pd.DataFrame, pd.Series, np.ndarray, np.DeviceArray, onp.ndarray]
+
+ArrayLikeType = Union[pd.DataFrame, pd.Series, np.ndarray, np.DeviceArray, onp.ndarray]
 
 
 @dataclass
@@ -250,9 +256,7 @@ class MetaculusQuestion:
 
     @staticmethod
     def get_central_quantiles(
-        df: Union[pd.DataFrame, pd.Series, np.ndarray],
-        percent_kept: float = 0.95,
-        side_cut_from: str = "both",
+        df: ArrayLikeType, percent_kept: float = 0.95, side_cut_from: str = "both",
     ):
         """
         Get the values that bound the central (percent_kept) of the sample distribution,
@@ -367,7 +371,7 @@ class BinaryQuestion(MetaculusQuestion):
         Sample from the Metaculus community distribution (Bernoulli).
         """
         community_prediction = self.get_community_prediction()
-        return ppl.flip(community_prediction)
+        return flip(community_prediction)
 
 
 @dataclass
@@ -510,7 +514,7 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    @functools.lru_cache(None)
+    @memoized_method(None)
     def community_dist_in_range(self) -> dist.Categorical:
         """
         A distribution for the portion of the current normalized community prediction
@@ -520,37 +524,29 @@ class ContinuousQuestion(MetaculusQuestion):
         referencing 0...(len(self.prediction_histogram)-1)
         """
         y2 = [p[2] for p in self.prediction_histogram]
-        return dist.Categorical(probs=torch.tensor(y2))
+        return Categorical(np.array(y2))
 
     def sample_normalized_community(self) -> float:
         """
         Sample an approximation of the entire current community prediction,
         on the normalized scale. The main reason that it's just an approximation
         is that we don't know exactly where probability mass outside of the question
-        range should be, so we place it arbitrarily (see comment for more)
+        range should be, so we place it arbitrarily.
 
         :return: One sample on the normalized scale
         """
 
-        # 0.02 is chosen pretty arbitrarily based on what I think will work best
-        # from playing around with the Metaculus API previously.
-        # Feel free to tweak if something else seems better.
-        # Ideally this wouldn't be a fixed number and would depend on
-        # how spread out we actually expect the probability mass to be
-        outside_range_scale = 0.02
-
-        sample_below_range = -abs(np.random.logistic(0, outside_range_scale))  # type: ignore
-        sample_above_range = abs(np.random.logistic(1, outside_range_scale))  # type: ignore
+        # FIXME: Samples below/above range are pretty arbitrary
+        sample_below_range = -halfnormal(0.1)
+        sample_above_range = 1 + halfnormal(0.1)
         sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
             len(self.prediction_histogram)
         )
-
         p_below = self.latest_community_percentiles["low"]
         p_above = 1 - self.latest_community_percentiles["high"]
         p_in_range = 1 - p_below - p_above
-
         return float(
-            ppl.random_choice(
+            random_choice(
                 [sample_below_range, sample_in_range, sample_above_range],
                 ps=[p_below, p_in_range, p_above],
             )
@@ -570,7 +566,7 @@ class ContinuousQuestion(MetaculusQuestion):
         if not self.has_predictions:
             raise ValueError("There are currently no predictions for this question")
         normalized_sample = self.sample_normalized_community()
-        sample = torch.tensor(self.denormalize_samples([normalized_sample]))
+        sample = np.array(self.denormalize_samples([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
         return float(sample)
@@ -593,13 +589,13 @@ class ContinuousQuestion(MetaculusQuestion):
         return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
 
     def get_submission_from_samples(
-        self, samples: Union[pd.Series, np.ndarray], samples_for_fit=5000
+        self, samples: Union[pd.Series, np.ndarray], samples_for_fit=5000, verbose=False
     ) -> SubmissionMixtureParams:
-        if not type(samples) in [pd.Series, np.ndarray]:
+        if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
         mixture_params = logistic.fit_mixture(
-            normalized_samples, num_samples=samples_for_fit
+            normalized_samples, num_samples=samples_for_fit, verbose=verbose
         )
         return self.get_submission(mixture_params)
 
@@ -640,7 +636,9 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return r
 
-    def submit_from_samples(self, samples, samples_for_fit=5000) -> requests.Response:
+    def submit_from_samples(
+        self, samples, samples_for_fit=5000, verbose=False
+    ) -> requests.Response:
         """
         Submit prediction to Metaculus based on samples from a prediction distribution
 
@@ -649,7 +647,9 @@ class ContinuousQuestion(MetaculusQuestion):
             More will be slower but will give a better fit
         :return: logistic mixture params clipped and formatted to submit to Metaculus
         """
-        submission = self.get_submission_from_samples(samples, samples_for_fit)
+        submission = self.get_submission_from_samples(
+            samples, samples_for_fit, verbose=verbose
+        )
         return self.submit(submission)
 
     @staticmethod
@@ -685,7 +685,8 @@ class ContinuousQuestion(MetaculusQuestion):
         num_samples: int = 1000,
         **kwargs,
     ):
-        """Plot prediction on the true question scale from samples or a submission
+        """
+        Plot prediction on the true question scale from samples or a submission
         object. Optionally compare prediction against a sample from the distribution
         of community predictions
 
@@ -716,9 +717,9 @@ class ContinuousQuestion(MetaculusQuestion):
         if plot_samples:
             if isinstance(samples, list):
                 samples = pd.Series(samples)
-            if not type(samples) in [pd.DataFrame, pd.Series, np.ndarray]:
+            if not type(samples) in ArrayLikes:
                 raise ValueError(
-                    "Samples should be a list, numpy arrray or pandas series"
+                    "Samples should be a list, numpy array or pandas series"
                 )
             num_samples = samples.shape[0]
 
