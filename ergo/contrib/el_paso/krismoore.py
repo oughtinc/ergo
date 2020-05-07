@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn
 
 
 def get_krismoore_data():
@@ -17,3 +19,21 @@ def get_krismoore_data():
     )
 
     return compiled_data
+
+
+def graph_compiled_data(compiled_data):
+    compiled_data_to_graph = compiled_data[
+        ["new_cases", "In hospital confirmed", "in_icu", "on_ventilator"]
+    ].dropna()
+
+    compiled_data_to_graph["date"] = compiled_data_to_graph.index
+
+    melted_compiled = pd.melt(
+        compiled_data_to_graph, id_vars=["date"], value_name="patients"
+    )
+
+    ax = seaborn.lineplot(x="date", y="patients", hue="variable", data=melted_compiled)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles[1:], labels=labels[1:])
+
+    plt.xticks(rotation=90)

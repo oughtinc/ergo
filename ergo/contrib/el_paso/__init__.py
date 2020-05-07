@@ -1,1 +1,1 @@
-__all__ = ["brachbach", "krismoore", "onlyasith", "texas_data"]
+__all__ = ["brachbach", "krismoore", "onlyasith", "texas_data", "shaman"]

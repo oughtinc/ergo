@@ -113,7 +113,7 @@ def sample_from_ensemble(models, params, weights=None, fallback=False, default=N
         if np.isnan(result):
             raise KeyError
         return result
-    except KeyError:
+    except (KeyError, IndexError):
         if fallback and len(models) > 1:
             models_copy = models.copy()
             weights_copy = weights.copy()
