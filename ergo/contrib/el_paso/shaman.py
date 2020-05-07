@@ -70,6 +70,5 @@ def load_cu_projections(county: str):
         all_projections_df["Date"] = all_projections_df["Date"].apply(
             lambda x: x.date()
         )
-        # df.set_index("Date", inplace = True)
         cu_model_data[scenario] = all_projections_df
     return cu_model_data
