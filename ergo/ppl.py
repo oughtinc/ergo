@@ -93,9 +93,9 @@ def clear_mem():
 
 
 def handle_mem(model):
-    def wrapped():
+    def wrapped(*args, **kwargs):
         clear_mem()
-        return model()
+        return model(*args, **kwargs)
 
     return wrapped
 
