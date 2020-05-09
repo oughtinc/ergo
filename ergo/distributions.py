@@ -18,8 +18,8 @@ def normal(mean=0, stdev=1, **kwargs):
     return sample(dist.Normal(mean, stdev), **kwargs)
 
 
-def lognormal(mean=0, stdev=1, **kwargs):
-    return sample(dist.LogNormal(mean, stdev), **kwargs)
+def lognormal(loc=0, scale=1, **kwargs):
+    return sample(dist.LogNormal(loc, scale), **kwargs)
 
 
 def halfnormal(stdev=1, **kwargs):
