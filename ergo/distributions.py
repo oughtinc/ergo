@@ -72,7 +72,7 @@ def LogNormalFromInterval(low, high):
 
 
 def BetaFromHits(hits, total):
-    return dist.Beta(hits, (total - hits))
+    return dist.Beta(1 + hits, 1 + (total - hits))
 
 
 # Alternative names and parameterizations for primitive distribution samplers
