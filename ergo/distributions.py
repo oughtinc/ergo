@@ -18,8 +18,8 @@ def normal(mean=0, stdev=1, **kwargs):
     return sample(dist.Normal(mean, stdev), **kwargs)
 
 
-def lognormal(mean=0, stdev=1, **kwargs):
-    return sample(dist.LogNormal(mean, stdev), **kwargs)
+def lognormal(loc=0, scale=1, **kwargs):
+    return sample(dist.LogNormal(loc, scale), **kwargs)
 
 
 def halfnormal(stdev=1, **kwargs):
@@ -72,7 +72,7 @@ def LogNormalFromInterval(low, high):
 
 
 def BetaFromHits(hits, total):
-    return dist.Beta(hits, (total - hits))
+    return dist.Beta(1 + hits, 1 + (total - hits))
 
 
 # Alternative names and parameterizations for primitive distribution samplers
