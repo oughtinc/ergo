@@ -156,7 +156,7 @@ class MetaculusQuestion:
 
     def __str__(self):
         return repr(self)
-    
+
     @property
     def latest_community_percentiles(self):
         """
@@ -446,7 +446,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @property
     def plot_title(self):
-        return "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
+        return "\n".join(textwrap.wrap(self.name or self.data["title"], 60))  # type: ignore
 
     # TODO: maybe it's better to fit the logistic first then normalize,
     # rather than the other way around?
