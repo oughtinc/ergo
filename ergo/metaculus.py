@@ -725,7 +725,7 @@ class ContinuousQuestion(MetaculusQuestion):
                 samples = pd.Series(samples)
             if not type(samples) in ArrayLikes:
                 raise ValueError(
-                    "Samples should be a list, numpy array or pandas series"
+                    "Samples should be a list, numpy array or pandas series/dataframe"
                 )
             num_samples = samples.shape[0]
 
