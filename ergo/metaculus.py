@@ -146,6 +146,17 @@ class MetaculusQuestion:
         self.metaculus = metaculus
         self.name = name
 
+    def __repr__(self):
+        if self.name:
+            return f'<MetaculusQuestion name="{self.name}">'
+        elif self.data:
+            return f'<MetaculusQuestion title="{self.title}">'
+        else:
+            return f"<MetaculusQuestion>"
+
+    def __str__(self):
+        return repr(self)
+
     @property
     def latest_community_percentiles(self):
         """
@@ -186,11 +197,6 @@ class MetaculusQuestion:
             raise AttributeError(
                 f"Attribute {name} is neither directly on this class nor in the raw question data"
             )
-
-    def __str__(self):
-        if self.data:
-            return self.data["title"]
-        return "<MetaculusQuestion>"
 
     def set_data(self, key: str, value: Any):
         """
@@ -440,7 +446,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @property
     def plot_title(self):
-        return "\n".join(textwrap.wrap(self.data["title"], 60))  # type: ignore
+        return "\n".join(textwrap.wrap(self.name or self.data["title"], 60))  # type: ignore
 
     # TODO: maybe it's better to fit the logistic first then normalize,
     # rather than the other way around?

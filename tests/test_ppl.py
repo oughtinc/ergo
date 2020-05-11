@@ -5,7 +5,7 @@ class TestPPL:
     def test_sampling(self):
         def model():
             x = ergo.lognormal_from_interval(1, 10, name="x")
-            y = ergo.beta_from_hits(2, 10, name="y")
+            y = ergo.beta_from_hits(1, 9, name="y")
             z = x * y
             ergo.tag(z, "z")
 
