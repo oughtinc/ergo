@@ -1,13 +1,29 @@
 from datetime import date, timedelta
 import functools
+from typing import Union
 
 import numpy as np
+import pandas as pd
+from plotnine import (
+    aes,
+    element_text,
+    geom_density,
+    geom_histogram,
+    ggplot,
+    labs,
+    scale_x_continuous,
+    scale_x_datetime,
+    scale_x_log10,
+    theme,
+)
 
 import ergo
 
-# TODO consider turning this into a Class or factoring into Ergo proper
+# ArrayLikes = [pd.DataFrame, pd.Series, np.ndarray]
+ArrayLikeType = Union[pd.DataFrame, pd.Series, np.ndarray]
 
-# Rejection sampling
+
+# TODO consider turning this into a Class or factoring into Ergo proper
 
 
 def rejection_sample(fn, condition):
@@ -124,3 +140,123 @@ def sample_from_ensemble(models, params, weights=None, fallback=False, default=N
                 models_copy, params, weights_copy, fallback, default
             )
         return default
+
+
+def get_central_quantiles(
+    df: ArrayLikeType, percent_kept: float = 0.95, side_cut_from: str = "both",
+):
+    """
+    Get the values that bound the central (percent_kept) of the sample distribution,
+        i.e.,  cutting the tails from these values will give you the central.
+        If passed a dataframe with multiple variables, the bounds that encompass
+        all variables will be returned.
+
+        :param df: pandas dataframe of one or more column of samples
+        :param percent_kept: percentage of sample distrubtion to keep
+        :param side_cut_from: which side to cut tails from,
+            either 'both','lower', or 'upper'
+        :return: lower and upper values of the central (percent_kept) of
+            the sample distribution.
+        """
+
+    if side_cut_from not in ("both", "lower", "upper"):
+        raise ValueError("side keyword must be either 'both','lower', or 'upper'")
+
+    percent_cut = 1 - percent_kept
+    if side_cut_from == "lower":
+        _lb = percent_cut
+        _ub = 1.0
+    elif side_cut_from == "upper":
+        _lb = 0.0
+        _ub = 1 - percent_cut
+    else:
+        _lb = percent_cut / 2
+        _ub = 1 - percent_cut / 2
+
+    if isinstance(df, (pd.Series, np.ndarray)):
+        _lq, _uq = df.quantile([_lb, _ub])  # type: ignore
+        return (_lq, _uq)
+
+    _lqs = []
+    _uqs = []
+    for col in df:
+        _lq, _uq = df[col].quantile([_lb, _ub])
+        _lqs.append(_lq)
+        _uqs.append(_uq)
+    return (min(_lqs), max(_uqs))
+
+
+def plot_distribution(sampler, variable_name, num_samples=200, **kwargs):
+    samples = ergo.run(sampler, num_samples=num_samples)
+    show_distribution(
+        samples=samples.iloc[:, 0],
+        variable_name=variable_name,
+        percent_kept=0.9,
+        **kwargs,
+    )
+
+
+def show_distribution(
+    samples,
+    percent_kept: float = 0.95,
+    side_cut_from: str = "both",
+    num_samples: int = 1000,
+    variable_name: str = "Variable",
+    log=False,
+    fill: str = "#fbb4ae",
+    bw="normal_reference",
+    bins: int = 50,
+    **kwargs,
+):
+    """
+    Plot samples of a distribution
+    :param samples: 1-d array of samples from a distribution answering the prediction
+     question (true scale).
+    :param percent_kept: percentage of sample distrubtion to keep
+    :param side_cut_from: which side to cut tails from,
+        either 'both','lower', or 'upper'
+    :param num_samples: number of samples from the community
+    :param **kwargs: additional plotting parameters
+    """
+
+    if isinstance(samples, list):
+        samples = pd.Series(samples)
+    if not isinstance(samples, (np.ndarray, pd.Series)):
+        raise ValueError("Samples should be a list, numpy array or pandas series")
+
+    df = pd.DataFrame(data={"samples": samples})  # type:g ignore
+
+    if isinstance(df.iloc[0, 0], date):
+        plot = (
+            ggplot(df, aes(df.columns[0]))
+            + geom_histogram(fill=fill, bins=bins)
+            + scale_x_datetime()
+            + ergo.ergo_theme
+            + theme(axis_text_x=element_text(rotation=45, hjust=1))
+        )
+    else:
+        xmin, xmax = get_central_quantiles(
+            df, percent_kept=percent_kept, side_cut_from=side_cut_from,
+        )
+        if log:
+            scale_x = scale_x_log10
+        else:
+            scale_x = scale_x_continuous
+
+        plot = (
+            ggplot(df, aes(df.columns[0]))
+            + geom_density(bw=bw, fill=fill, alpha=0.8)
+            + scale_x(limits=(xmin, xmax))
+            + ergo.ergo_theme
+        )
+    plot = plot + labs(
+        x=variable_name, y="Density", title=f"Distribution of {variable_name}"
+    )
+
+    try:
+        plot.draw()  # type: ignore
+    except RuntimeError as err:
+        print(err)
+        print(
+            "The plot was unable to automatically determine a bandwidth. You can manually specify one with the keyword 'bw', e.g., show_prediction(..., bw=.1)"
+        )

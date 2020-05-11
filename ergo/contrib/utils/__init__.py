@@ -1,4 +1,5 @@
 from .core import (
+    plot_distribution,
     plot_question,
     question,
     rejection_sample,

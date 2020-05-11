@@ -28,4 +28,5 @@ from .distributions import (
 from .foretold import Foretold, ForetoldQuestion
 from .metaculus import Metaculus, MetaculusQuestion
 from .ppl import condition, mem, run, sample, tag
+from .theme import ergo_theme
 from .utils import to_float
