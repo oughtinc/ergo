@@ -770,7 +770,7 @@ class ContinuousQuestion(MetaculusQuestion):
             else self.plot_title,
         )
         try:
-            plot.draw()  # type: ignore
+            return plot.draw()  # type: ignore
         except RuntimeError as err:
             print(err)
             print(
@@ -813,7 +813,7 @@ class ContinuousQuestion(MetaculusQuestion):
             title=self.plot_title + "\n\nCommunity Predictions",
         )
         try:
-            plot.draw()  # type: ignore
+            return plot.draw()  # type: ignore
         except RuntimeError as err:
             print(err)
             print(
