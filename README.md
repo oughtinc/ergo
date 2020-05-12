@@ -82,16 +82,13 @@ Here's what Ergo provides right now:
 - Interact with the [Metaculus](https://www.metaculus.com/) and [Foretold](https://www.foretold.io/) prediction platforms
   - Load question data given question ids
   - Use community distributions as variables in generative models
-  - Submit model predictions to Metaculus
-    - We automatically fit a mixture of logistic distributions for continuous-valued questions
+  - Submit model predictions to these platforms
+    - For Metaculus, we automatically fit a mixture of logistic distributions for continuous-valued questions
   - Plot community distributions
-- Some Covid-19-related data utils
 
 [WIP](https://github.com/oughtinc/ergo/projects/1):
 
 - Documentation
-- More complete Metaculus and Foretold API
-  - Submitting data to Foretold
 - Clearer modeling API
 
 Planned:
@@ -115,6 +112,11 @@ If there's something you want Ergo to do, [let us know](https://github.com/ought
 
 
 ## Notebooks using Ergo
+
+This notebook is closest to a tutorial right now:
+
+- [El Paso workflow](notebooks/build/el-paso-workflow.ipynb)
+  - This notebook shows multi-level decomposition, Metaculus community distributions, ensembling, and beta-binomial and log-normal distributions using part of the [El Paso Covid-19 model](notebooks/build/el-paso.ipynb).
 
 The notebooks below have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
 
