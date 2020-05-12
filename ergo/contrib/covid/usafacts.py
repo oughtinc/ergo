@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 
 
@@ -13,7 +14,9 @@ def load_county_data(county, state):
             (us_cases["County Name"] == county) & (us_cases["State"] == state)
         ]
     else:
-        raise KeyError(f"value for county and state: {county} not in the projections")
+        raise KeyError(
+            f"value for county: {county} and state: {state} were not in the data"
+        )
     cases = pd.melt(
         cases,
         id_vars=["countyFIPS", "County Name", "State", "stateFIPS"],
@@ -24,3 +27,17 @@ def load_county_data(county, state):
         lambda x: datetime.strptime(x, "%m/%d/%y").date()
     )
     return cases.set_index("Date")
+
+
+def get_hospitalization_rate(state: str = None, date: str = None):
+    state_data = pd.read_csv(
+        "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports_us/05-10-2020.csv"
+    )
+    if state in state_data["Province_State"].values:
+        hosp = state_data.loc[
+            state_data["Province_State"] == "Washington", "Hospitalization_Rate"  # type: ignore
+        ].values[0]
+        if not np.isnan(hosp):
+            return hosp
+    else:
+        return state_data["Hospitalization_Rate"].mean()
