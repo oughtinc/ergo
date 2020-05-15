@@ -501,7 +501,8 @@ class ContinuousQuestion(MetaculusQuestion):
             # [or if you set the high lower], then the API will reject the prediction,
             # though we haven't tested that extensively)
             min_open_low = 0.01
-            low = max(distribution.cdf(0), min_open_low)
+            max_open_low = 0.98
+            low = min(max(distribution.cdf(0), min_open_low), max_open_low)
         else:
             low = 0
 
@@ -510,7 +511,6 @@ class ContinuousQuestion(MetaculusQuestion):
             # https://www.metaculus.com/api2/questions/3961/predict/ --
             # {'prediction': ['high minus low must be at least 0.01']}"
             min_open_high = low + 0.01
-
             max_open_high = 0.99
             high = max(min(distribution.cdf(1), max_open_high), min_open_high)
         else:
