@@ -594,7 +594,9 @@ class ContinuousQuestion(MetaculusQuestion):
             for logistic_params in mixture_params.components
         ]
 
-        return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
+        submission_probs = [min(max(0.01, p), 0.99) for p in mixture_params.probs]
+
+        return SubmissionMixtureParams(submission_logistic_params, submission_probs)
 
     def get_submission_from_samples(
         self, samples: Union[pd.Series, np.ndarray], verbose=False
