@@ -74,20 +74,18 @@ def mixture_cdf(x: float, logistic_mixture_params: LogisticMixtureParams) -> flo
 
 def mixture_ppf(
     p, logistic_mixture_params
-):  # TODO consider whetehr this should be part of abstract dist class
+):  # TODO consider whether this should be part of abstract dist class
     # Numerically determine the quantile for the mixture provided
 
-    lo = np.min(
-        [component.dist().ppf(p) for component in logistic_mixture_params.components]
-    )
-    hi = np.max(
-        [component.dist().ppf(p) for component in logistic_mixture_params.components]
-    )
+    ppfs = [c.dist().ppf(p) for c in logistic_mixture_params.components]
 
     # return the smallest quantile from mixture_cdf that
     # is larger than the one requested
     return oscipy.optimize.bisect(
-        lambda x: mixture_cdf(x, logistic_mixture_params) - p, lo, hi, maxiter=1000
+        lambda x: mixture_cdf(x, logistic_mixture_params) - p,
+        np.min(ppfs),
+        np.max(ppfs),
+        maxiter=1000,
     )
 
 
