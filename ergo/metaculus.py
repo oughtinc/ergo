@@ -470,7 +470,9 @@ class ContinuousQuestion(MetaculusQuestion):
         :param logistic_params: params for a logistic on the normalized scale
         :return: params to submit the logistic to Metaculus as part of a prediction
         """
-        assert logistic_params.scale > 0
+        if logistic_params.scale <= 0:
+            raise ValueError("logistic_params.scale must be greater than 0")
+
         distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
 
         # The loc and scale have to be within a certain range for the
