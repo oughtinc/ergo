@@ -8,8 +8,8 @@ from ergo.logistic import (
     fit_single_scipy,
     mixture_cdf,
     mixture_ppf,
-    structure_mixture_params,
     sample_mixture,
+    structure_mixture_params,
 )
 import tests.mocks
 
@@ -52,6 +52,7 @@ def test_fit_mixture_large():
     assert scales[0] == pytest.approx(0.1, abs=0.2)
     assert scales[1] == pytest.approx(0.2, abs=0.2)
 
+
 def test_mixture_cdf():
     # make a mock with known properties. The median should be 15 for this mixture
     mock_logistic_params = np.array([[10, 3.658268, 0.5], [20, 3.658268, 0.5]])
@@ -72,6 +73,10 @@ def ppf_cdf_round_trip():
     mock_mixture = fit_mixture(
         np.array([0.5, 0.4, 0.8, 0.8, 0.9, 0.95, 0.15, 0.1]), num_components=3
     )
+    x = 0.65
+    prob = mixture_cdf(x, mock_mixture)
+    assert mixture_ppf(prob, mock_mixture) == pytest.approx(x, rel=1e-3)
+
 
 def test_fit_samples():
     data = np.array(

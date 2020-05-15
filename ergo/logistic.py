@@ -29,9 +29,6 @@ class LogisticParams:
         return oscipy.stats.logistic(loc=self.loc, scale=self.scale)
 
 
-
-
-
 @dataclass
 class LogisticMixtureParams:
     components: List[LogisticParams]
