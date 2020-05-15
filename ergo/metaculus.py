@@ -470,7 +470,9 @@ class ContinuousQuestion(MetaculusQuestion):
         :param logistic_params: params for a logistic on the normalized scale
         :return: params to submit the logistic to Metaculus as part of a prediction
         """
+        assert logistic_params.scale > 0
         distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
+
         # The loc and scale have to be within a certain range for the
         # Metaculus API to accept the prediction.
 
@@ -493,7 +495,7 @@ class ContinuousQuestion(MetaculusQuestion):
             # But we're not actually trying to use them to "cut off" our distribution
             # in a smart way; we're just trying to include as much of our distribution
             # as we can without the API getting unhappy
-            # (we belive that if you set the low higher than the value below
+            # (we believe that if you set the low higher than the value below
             # [or if you set the high lower], then the API will reject the prediction,
             # though we haven't tested that extensively)
             min_open_low = 0.01
@@ -595,14 +597,12 @@ class ContinuousQuestion(MetaculusQuestion):
         return SubmissionMixtureParams(submission_logistic_params, mixture_params.probs)
 
     def get_submission_from_samples(
-        self, samples: Union[pd.Series, np.ndarray], samples_for_fit=5000, verbose=False
+        self, samples: Union[pd.Series, np.ndarray], verbose=False
     ) -> SubmissionMixtureParams:
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
-        mixture_params = logistic.fit_mixture(
-            normalized_samples, num_samples=samples_for_fit, verbose=verbose
-        )
+        mixture_params = logistic.fit_mixture(normalized_samples, verbose=verbose)
         return self.get_submission(mixture_params)
 
     @staticmethod
@@ -642,20 +642,14 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return r
 
-    def submit_from_samples(
-        self, samples, samples_for_fit=5000, verbose=False
-    ) -> requests.Response:
+    def submit_from_samples(self, samples, verbose=False) -> requests.Response:
         """
         Submit prediction to Metaculus based on samples from a prediction distribution
 
         :param samples: Samples from a distribution answering the prediction question
-        :param samples_for_fit: How many samples to take to fit the logistic mixture.
-            More will be slower but will give a better fit
         :return: logistic mixture params clipped and formatted to submit to Metaculus
         """
-        submission = self.get_submission_from_samples(
-            samples, samples_for_fit, verbose=verbose
-        )
+        submission = self.get_submission_from_samples(samples, verbose=verbose)
         return self.submit(submission)
 
     @staticmethod

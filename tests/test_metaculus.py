@@ -126,9 +126,7 @@ class TestMetaculus:
         assert r.status_code == 202
 
     def test_submit_from_samples(self):
-        r = self.continuous_linear_open_question.submit_from_samples(
-            self.mock_samples, samples_for_fit=1000
-        )
+        r = self.continuous_linear_open_question.submit_from_samples(self.mock_samples)
         assert r.status_code == 202
 
     def test_submit_binary(self):
