@@ -18,6 +18,11 @@ class LogisticParams:
     loc: float
     scale: float
 
+    def dist(
+        self,
+    ):  # could be just another field, but then maybe we should write our own repr as we probably don't want it printing
+        return oscipy.stats.logistic(loc=self.loc, scale=self.scale)
+
 
 @dataclass
 class LogisticMixtureParams:
@@ -54,6 +59,36 @@ def mixture_logpdf_single(datum, components):
 def mixture_logpdf(data, components):
     scores = vmap(lambda datum: mixture_logpdf_single(datum, components))(data)
     return np.sum(scores)
+
+
+def mixture_cdf(x: float, logistic_mixture_params: LogisticMixtureParams) -> float:
+    return np.sum(
+        [
+            component.dist().cdf(x) * p
+            for component, p in zip(
+                logistic_mixture_params.components, logistic_mixture_params.probs
+            )
+        ]
+    )
+
+
+def mixture_ppf(
+    p, logistic_mixture_params
+):  # TODO consider whetehr this should be part of abstract dist class
+    # Numerically determine the quantile for the mixture provided
+
+    lo = np.min(
+        [component.dist().ppf(p) for component in logistic_mixture_params.components]
+    )
+    hi = np.max(
+        [component.dist().ppf(p) for component in logistic_mixture_params.components]
+    )
+
+    # return the smallest quantile from mixture_cdf that
+    # is larger than the one requested
+    return oscipy.optimize.bisect(
+        lambda x: mixture_cdf(x, logistic_mixture_params) - p, lo, hi, maxiter=1000
+    )
 
 
 grad_mixture_logpdf = jit(grad(mixture_logpdf, argnums=1))
