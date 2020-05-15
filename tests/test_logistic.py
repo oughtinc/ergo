@@ -2,7 +2,15 @@ import jax.numpy as np
 import numpy as onp
 import pytest
 
-from ergo.logistic import fit_mixture, fit_single, fit_single_scipy, sample_mixture
+from ergo.logistic import (
+    fit_mixture,
+    fit_single,
+    fit_single_scipy,
+    mixture_cdf,
+    mixture_ppf,
+    sample_mixture,
+    structure_mixture_params,
+)
 import tests.mocks
 
 
@@ -43,6 +51,31 @@ def test_fit_mixture_large():
     assert locs[1] == pytest.approx(0.7, abs=0.2)
     assert scales[0] == pytest.approx(0.1, abs=0.2)
     assert scales[1] == pytest.approx(0.2, abs=0.2)
+
+
+def test_mixture_cdf():
+    # make a mock with known properties. The median should be 15 for this mixture
+    mock_logistic_params = np.array([[10, 3.658268, 0.5], [20, 3.658268, 0.5]])
+    mock_mixture = structure_mixture_params(mock_logistic_params)
+    cdf50 = mixture_cdf(15, mock_mixture)
+    assert cdf50 == pytest.approx(0.5, rel=1e-3)
+
+
+def test_mixture_ppf():
+    # make a mock with known properties. The median should be 10 for this mixture
+    mock_logistic_params = np.array([[15, 2.3658268, 0.5], [5, 2.3658268, 0.5]])
+    mock_mixture = structure_mixture_params(mock_logistic_params)
+    ppf5 = mixture_ppf(0.5, mock_mixture)
+    assert ppf5 == pytest.approx(10, rel=1e-3)
+
+
+def ppf_cdf_round_trip():
+    mock_mixture = fit_mixture(
+        np.array([0.5, 0.4, 0.8, 0.8, 0.9, 0.95, 0.15, 0.1]), num_components=3
+    )
+    x = 0.65
+    prob = mixture_cdf(x, mock_mixture)
+    assert mixture_ppf(prob, mock_mixture) == pytest.approx(x, rel=1e-3)
 
 
 def test_fit_samples():
