@@ -39,7 +39,8 @@ class Logistic:
         return onp.random.logistic(loc=self.loc, scale=self.scale)
 
     def cdf(self, x):
-        return self.rv().cdf(x)
+        y = (x - self.loc) / self.scale
+        return scipy.stats.logistic.cdf(y)
 
     def ppf(self, q):
         """

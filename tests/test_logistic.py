@@ -6,6 +6,13 @@ from ergo import Logistic, LogisticMixture
 import tests.mocks
 
 
+def test_cdf():
+    jax_dist = Logistic(loc=10, scale=1)
+    original_dist = jax_dist.rv()
+    for x in range(5, 15):
+        assert jax_dist.cdf(x) == pytest.approx(original_dist.cdf(x), rel=0.1)
+
+
 def test_fit_single_scipy():
     dist = Logistic.from_samples_scipy(onp.array([0.1, 0.2]))
     assert dist.loc == pytest.approx(0.15, abs=0.02)
