@@ -77,6 +77,34 @@ ArrayLikes = [pd.DataFrame, pd.Series, np.ndarray, np.DeviceArray, onp.ndarray]
 ArrayLikeType = Union[pd.DataFrame, pd.Series, np.ndarray, np.DeviceArray, onp.ndarray]
 
 
+# Max loc of 3 set based on API response to prediction on
+# https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+MAX_LOC = 3
+
+# Max scale of 10 set based on API response to prediction on
+# https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
+MIN_SCALE = 0.01
+MAX_SCALE = 10
+
+# We're not really sure what the deal with the low and high is.
+# Presumably they're supposed to be the points at which Metaculus "cuts off"
+# your distribution and ignores porbability mass assigned below/above.
+# But we're not actually trying to use them to "cut off" our distribution
+# in a smart way; we're just trying to include as much of our distribution
+# as we can without the API getting unhappy
+# (we believe that if you set the low higher than the value below
+# [or if you set the high lower], then the API will reject the prediction,
+# though we haven't tested that extensively)
+MIN_OPEN_LOW = 0.01
+MAX_OPEN_LOW = 0.98
+
+# Min high of (low + 0.01) set based on API response for
+# https://www.metaculus.com/api2/questions/3961/predict/ --
+# {'prediction': ['high minus low must be at least 0.01']}"
+MIN_OPEN_HIGH = 0.01
+MAX_OPEN_HIGH = 0.99
+
+
 @dataclass
 class ScoredPrediction:
     """
@@ -439,8 +467,8 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         Transform a single logistic distribution by clipping the
         parameters and adding metadata as needed for submission to
-        Metaculus. See comments for more explanation of how the params
-        need to be transformed for Metaculus to accept them.
+        Metaculus. The loc and scale have to be within a certain range
+        for the Metaculus API to accept the prediction.
 
         :param dist: a (normalized) logistic distribution
         :return: a transformed logistic distribution
@@ -448,44 +476,18 @@ class ContinuousQuestion(MetaculusQuestion):
         if normalized_dist.scale <= 0:
             raise ValueError("logistic_params.scale must be greater than 0")
 
-        # The loc and scale have to be within a certain range for the
-        # Metaculus API to accept the prediction.
-
-        # max loc of 3 set based on API response to prediction on
-        # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
-        max_loc = 3
-        clipped_loc = min(normalized_dist.loc, max_loc)
-
-        min_scale = 0.01
-
-        # max scale of 10 set based on API response to prediction on
-        # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
-        max_scale = 10
-        clipped_scale = np.clip(normalized_dist.scale, min_scale, max_scale)
+        clipped_loc = min(normalized_dist.loc, MAX_LOC)
+        clipped_scale = float(onp.clip(normalized_dist.scale, MIN_SCALE, MAX_SCALE))  # type: ignore
 
         if self.low_open:
-            # We're not really sure what the deal with the low and high is.
-            # Presumably they're supposed to be the points at which Metaculus "cuts off"
-            # your distribution and ignores porbability mass assigned below/above.
-            # But we're not actually trying to use them to "cut off" our distribution
-            # in a smart way; we're just trying to include as much of our distribution
-            # as we can without the API getting unhappy
-            # (we believe that if you set the low higher than the value below
-            # [or if you set the high lower], then the API will reject the prediction,
-            # though we haven't tested that extensively)
-            min_open_low = 0.01
-            max_open_low = 0.98
-            low = np.clip(normalized_dist.cdf(0), min_open_low, max_open_low)
+            low = float(onp.clip(normalized_dist.cdf(0), MIN_OPEN_LOW, MAX_OPEN_LOW))
         else:
             low = 0
 
         if self.high_open:
-            # min high of (low + 0.01) set based on API response for
-            # https://www.metaculus.com/api2/questions/3961/predict/ --
-            # {'prediction': ['high minus low must be at least 0.01']}"
-            min_open_high = low + 0.01
-            max_open_high = 0.99
-            high = np.clip(normalized_dist.cdf(1), min_open_high, max_open_high)
+            high = float(
+                onp.clip(normalized_dist.cdf(1), MIN_OPEN_HIGH + low, MAX_OPEN_HIGH)
+            )
         else:
             high = 1
 
@@ -504,8 +506,8 @@ class ContinuousQuestion(MetaculusQuestion):
         transformed_components = [
             self.prepare_logistic(c) for c in normalized_dist.components
         ]
-        transformed_probs = [min(max(0.01, p), 0.99) for p in normalized_dist.probs]
-        return LogisticMixture(transformed_components, transformed_probs)
+        transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
+        return LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
     def denormalize_samples(self, samples) -> np.ndarray:
         """
@@ -581,11 +583,11 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def format_logistic_for_api(submission: Logistic, weight: float) -> dict:
-        # convert all the numbers to floats here so that you can be sure that
-        # wherever they originated (e.g. numpy), they'll be regular old floats that
-        # can be converted to json by json.dumps
         if submission.metadata is None:
             raise ValueError("Submission distribution needs metadata (low, high)")
+        # Convert all the numbers to floats here so that you can be sure that
+        # wherever they originated (e.g. numpy), they'll be regular old floats that
+        # can be converted to json by json.dumps.
         return {
             "kind": "logistic",
             "x0": float(submission.loc),
