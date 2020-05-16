@@ -6,6 +6,7 @@ partially have to work with arrays directly (all the params_*
 classmethods).
 """
 from dataclasses import dataclass
+from functools import partial
 import itertools
 from typing import Any, Dict, List, Optional
 
@@ -40,7 +41,7 @@ class Logistic(Distribution):
         return oscipy.stats.logistic(loc=self.loc, scale=self.scale)
 
     def sample(self):
-        # FIXME: This needs to be compatible with ergo sampling
+        # FIXME (#296): This needs to be compatible with ergo sampling
         return onp.random.logistic(loc=self.loc, scale=self.scale)
 
     def cdf(self, x):
@@ -211,11 +212,7 @@ class LogisticMixture(Distribution):
         """
         components = onp.random.rand(num_components, 3) * 0.1 + 1.0
         components[:, 2] = -num_components
-        params = components.reshape(-1)
-        # bounds = [((None, None), (0.01, None), (None, None))
-        #           for _ in range(num_components)]
-        # bound_params = list(itertools.chain.from_iterable(bounds))
-        return params
+        return components.reshape(-1)
 
     @staticmethod
     @jit
@@ -249,7 +246,7 @@ class LogisticMixture(Distribution):
 
 @jit
 def _mixture_params_logpdf(params, data):
-    scores = vmap(lambda datum: LogisticMixture.params_logpdf1(params, datum))(data)
+    scores = vmap(partial(LogisticMixture.params_logpdf1, params))(data)
     return np.sum(scores)
 
 

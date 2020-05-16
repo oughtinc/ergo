@@ -10,30 +10,30 @@ Metaculus
 
 MetaculusQuestion
 -----------------
-.. autoclass:: ergo.platforms.metaculus.MetaculusQuestion
+.. autoclass:: ergo.platforms.metaculus.question.MetaculusQuestion
    :members:
 
 ContinuousQuestion
 ------------------
-.. autoclass:: ergo.platforms.metaculus.ContinuousQuestion
+.. autoclass:: ergo.platforms.metaculus.question.ContinuousQuestion
    :members:
 
 LinearQuestion
 --------------
-.. autoclass:: ergo.platforms.metaculus.LinearQuestion
+.. autoclass:: ergo.platforms.metaculus.question.LinearQuestion
    :members:
 
 LogQuestion
 -----------
-.. autoclass:: ergo.platforms.metaculus.LogQuestion
+.. autoclass:: ergo.platforms.metaculus.question.LogQuestion
    :members:
 
 LinearDateQuestion
 ------------------
-.. autoclass:: ergo.platforms.metaculus.LinearDateQuestion
+.. autoclass:: ergo.platforms.metaculus.question.LinearDateQuestion
    :members:
 
 BinaryQuestion
 --------------
-.. autoclass:: ergo.platforms.metaculus.BinaryQuestion
+.. autoclass:: ergo.platforms.metaculus.question.BinaryQuestion
    :members:

@@ -3,7 +3,6 @@ import numpy as onp
 import pytest
 
 from ergo import Logistic, LogisticMixture
-import tests.mocks
 
 
 def test_cdf():
@@ -18,12 +17,12 @@ def test_fit_single_scipy():
     assert dist.loc == pytest.approx(0.15, abs=0.02)
 
 
-def test_logpdf1():
-    assert -18 < tests.mocks.mock_mixture.logpdf1(0.1) < -17
+def test_logpdf1(logistic_mixture):
+    assert -18 < logistic_mixture.logpdf1(0.1) < -17
 
 
-def test_logpdf():
-    tests.mocks.mock_mixture.logpdf(np.array([0.1, 0.2]))
+def test_logpdf(logistic_mixture):
+    logistic_mixture.logpdf(np.array([0.1, 0.2]))
 
 
 def test_fit_single_jax():
@@ -63,36 +62,35 @@ def test_fit_mixture_large():
 
 
 def test_mixture_cdf():
-    # make a mock with known properties. The median should be 15 for this mixture
-    mock_logistic_params = np.array([[10, 3.658268, 0.5], [20, 3.658268, 0.5]])
-    mock_mixture = LogisticMixture.from_params(mock_logistic_params)
-    cdf50 = mock_mixture.cdf(15)
+    # Make a mixture with known properties. The median should be 15 for this mixture.
+    logistic_params = np.array([[10, 3.658268, 0.5], [20, 3.658268, 0.5]])
+    mixture = LogisticMixture.from_params(logistic_params)
+    cdf50 = mixture.cdf(15)
     assert cdf50 == pytest.approx(0.5, rel=1e-3)
 
 
 def test_mixture_ppf():
-    # make a mock with known properties. The median should be 10 for this mixture
-    mock_logistic_params = np.array([[15, 2.3658268, 0.5], [5, 2.3658268, 0.5]])
-    mock_mixture = LogisticMixture.from_params(mock_logistic_params)
-    ppf5 = mock_mixture.ppf(0.5)
+    # Make a mixtures with known properties. The median should be 10 for this mixture.
+    logistic_params = np.array([[15, 2.3658268, 0.5], [5, 2.3658268, 0.5]])
+    mixture = LogisticMixture.from_params(logistic_params)
+    ppf5 = mixture.ppf(0.5)
     assert ppf5 == pytest.approx(10, rel=1e-3)
 
 
 def ppf_cdf_round_trip():
-    mock_mixture = LogisticMixture.from_samples(
+    mixture = LogisticMixture.from_samples(
         np.array([0.5, 0.4, 0.8, 0.8, 0.9, 0.95, 0.15, 0.1]), num_components=3
     )
     x = 0.65
-    prob = mock_mixture.cdf(x)
-    assert mock_mixture.ppf(prob) == pytest.approx(x, rel=1e-3)
+    prob = mixture.cdf(x)
+    assert mixture.ppf(prob) == pytest.approx(x, rel=1e-3)
 
 
-def test_fit_samples():
-    mock_mixture = tests.mocks.mock_mixture
-    data = np.array([mock_mixture.sample() for _ in range(0, 1000)])
+def test_fit_samples(logistic_mixture):
+    data = np.array([logistic_mixture.sample() for _ in range(0, 1000)])
     fitted_mixture = LogisticMixture.from_samples(data, num_components=2)
-    true_locs = sorted([c.loc for c in mock_mixture.components])
-    true_scales = sorted([c.scale for c in mock_mixture.components])
+    true_locs = sorted([c.loc for c in logistic_mixture.components])
+    true_scales = sorted([c.scale for c in logistic_mixture.components])
     fitted_locs = sorted([c.loc for c in fitted_mixture.components])
     fitted_scales = sorted([c.scale for c in fitted_mixture.components])
     for (true_loc, fitted_loc) in zip(true_locs, fitted_locs):

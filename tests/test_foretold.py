@@ -6,15 +6,14 @@ import pandas as pd
 import pytest
 import scipy.stats
 
-import ergo
-from ergo.platforms.foretold import ForetoldCdf, _measurement_query
+from ergo.platforms.foretold import Foretold, ForetoldCdf, _measurement_query
 from tests.utils import random_seed
 
 
 class TestForetold:
     @random_seed
     def test_foretold_sampling(self):
-        foretold = ergo.Foretold()
+        foretold = Foretold()
         # https://www.foretold.io/c/f45577e4-f1b0-4bba-8cf6-63944e63d70c/m/cf86da3f-c257-4787-b526-3ef3cb670cb4
 
         # Distribution is mm(10 to 20, 200 to 210), a mixture model with
@@ -32,7 +31,7 @@ class TestForetold:
         )
 
     def test_foretold_multiple_questions(self):
-        foretold = ergo.Foretold()
+        foretold = Foretold()
         # https://www.foretold.io/c/f45577e4-f1b0-4bba-8cf6-63944e63d70c/m/cf86da3f-c257-4787-b526-3ef3cb670cb4
 
         ids = [
@@ -50,7 +49,7 @@ class TestForetold:
             assert question.community_prediction_available == has_community_prediction
 
     def test_foretold_multiple_questions_error(self):
-        foretold = ergo.Foretold()
+        foretold = Foretold()
         with pytest.raises(NotImplementedError):
             ids = ["cf86da3f-c257-4787-b526-3ef3cb670cb4"] * 1000
             foretold.get_questions(ids)
@@ -85,7 +84,7 @@ class TestForetold:
 
     @pytest.mark.skip(reason="API token required")
     def test_create_measurement(self):
-        foretold = ergo.Foretold(token="")
+        foretold = Foretold(token="")
         question = foretold.get_question("cf86da3f-c257-4787-b526-3ef3cb670cb4")
         samples = onp.random.normal(loc=150, scale=5, size=1000)
         r = question.submit_from_samples(samples, length=20)
