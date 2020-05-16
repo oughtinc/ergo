@@ -41,8 +41,11 @@ class Logistic:
     def cdf(self, x):
         return self.rv().cdf(x)
 
-    def ppf(self, p):
-        return self.rv().ppf(p)
+    def ppf(self, q):
+        """
+        Percent point function (inverse of cdf) at q.
+        """
+        return self.rv().ppf(q)
 
     @classmethod
     def from_samples_scipy(cls, samples) -> "Logistic":
@@ -84,10 +87,22 @@ class LogisticMixture:
     def logpdf1(self, datum):
         return self.params_logpdf1(self.to_params(), datum)
 
-    def ppf(self, p):
-        ppfs = [c.ppf(p) for c in self.components]
+    def ppf(self, q):
+        """
+        Percent point function (inverse of cdf) at q.
+
+        Returns the smallest x where the mixture_cdf(x) is greater
+        than the requested q provided:
+
+            argmin{x} where mixture_cdf(x) > q
+
+        The quantile of a mixture distribution can always be found
+        within the range of its components quantiles:
+        https://cran.r-project.org/web/packages/mistr/vignettes/mistr-introduction.pdf
+        """
+        ppfs = [c.ppf(q) for c in self.components]
         return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - p, np.min(ppfs), np.max(ppfs), maxiter=1000,
+            lambda x: self.cdf(x) - q, np.min(ppfs), np.max(ppfs), maxiter=1000,
         )
 
     def cdf(self, x):
