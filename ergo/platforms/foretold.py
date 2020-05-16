@@ -7,7 +7,7 @@ import pandas as pd
 import requests
 import seaborn
 
-from ergo.distributions import uniform
+from ergo.distributions.base import uniform
 
 
 class Foretold:

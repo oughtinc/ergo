@@ -30,7 +30,7 @@ We predict that the admit rate will be 20% higher than the current community pre
     ... )
     >>> my_prediction_samples = community_prediction_samples * 1.2
 
-    >>> # harvard_question.show_submission(my_prediction_samples)
+    >>> # harvard_question.show_prediction(my_prediction_samples)
     >>> harvard_question.submit_from_samples(my_prediction_samples)
     <Response [202]>
 """
@@ -64,12 +64,11 @@ from plotnine import (
     theme,
 )
 import requests
-from scipy import stats
 from typing_extensions import Literal
 
 from ergo import ppl
-from ergo.distributions import Categorical, flip, halfnormal, random_choice
-import ergo.logistic as logistic
+from ergo.distributions.base import Categorical, flip, halfnormal, random_choice
+from ergo.distributions.logistic import Logistic, LogisticMixture
 from ergo.theme import ergo_theme
 from ergo.utils import memoized_method
 
@@ -380,27 +379,6 @@ class BinaryQuestion(MetaculusQuestion):
         return flip(community_prediction)
 
 
-@dataclass
-class SubmissionLogisticParams(logistic.LogisticParams):
-    """
-    Parameters needed to submit a logistic to Metaculus as part of a prediction
-    """
-
-    low: float
-    high: float
-
-
-@dataclass
-class SubmissionMixtureParams:
-    """
-    Parameters needed to submit a prediction to Metaculus
-    (in the form of a logistic mixture)
-    """
-
-    components: List[SubmissionLogisticParams]
-    probs: List[float]
-
-
 class ContinuousQuestion(MetaculusQuestion):
     """
     A continuous Metaculus question -- a question of the form,
@@ -448,8 +426,6 @@ class ContinuousQuestion(MetaculusQuestion):
     def plot_title(self):
         return "\n".join(textwrap.wrap(self.name or self.data["title"], 60))  # type: ignore
 
-    # TODO: maybe it's better to fit the logistic first then normalize,
-    # rather than the other way around?
     def normalize_samples(self, samples):
         """
         The Metaculus API accepts normalized predictions rather than predictions on
@@ -459,21 +435,18 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def get_submission_params(
-        self, logistic_params: logistic.LogisticParams
-    ) -> SubmissionLogisticParams:
+    def prepare_logistic(self, normalized_dist: Logistic) -> Logistic:
         """
-        Get the params needed to submit a logistic to Metaculus as part of a prediction.
-        See comments for more explanation of how the params need to be transformed
-        for Metaculus to accept them
+        Transform a single logistic distribution by clipping the
+        parameters and adding metadata as needed for submission to
+        Metaculus. See comments for more explanation of how the params
+        need to be transformed for Metaculus to accept them.
 
-        :param logistic_params: params for a logistic on the normalized scale
-        :return: params to submit the logistic to Metaculus as part of a prediction
+        :param dist: a (normalized) logistic distribution
+        :return: a transformed logistic distribution
         """
-        if logistic_params.scale <= 0:
+        if normalized_dist.scale <= 0:
             raise ValueError("logistic_params.scale must be greater than 0")
-
-        distribution = stats.logistic(logistic_params.loc, logistic_params.scale)
 
         # The loc and scale have to be within a certain range for the
         # Metaculus API to accept the prediction.
@@ -481,14 +454,14 @@ class ContinuousQuestion(MetaculusQuestion):
         # max loc of 3 set based on API response to prediction on
         # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         max_loc = 3
-        clipped_loc = min(logistic_params.loc, max_loc)
+        clipped_loc = min(normalized_dist.loc, max_loc)
 
         min_scale = 0.01
 
         # max scale of 10 set based on API response to prediction on
         # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         max_scale = 10
-        clipped_scale = min(max(logistic_params.scale, min_scale), max_scale)
+        clipped_scale = min(max(normalized_dist.scale, min_scale), max_scale)
 
         if self.low_open:
             # We're not really sure what the deal with the low and high is.
@@ -502,7 +475,7 @@ class ContinuousQuestion(MetaculusQuestion):
             # though we haven't tested that extensively)
             min_open_low = 0.01
             max_open_low = 0.98
-            low = min(max(distribution.cdf(0), min_open_low), max_open_low)
+            low = min(max(normalized_dist.cdf(0), min_open_low), max_open_low)
         else:
             low = 0
 
@@ -512,11 +485,27 @@ class ContinuousQuestion(MetaculusQuestion):
             # {'prediction': ['high minus low must be at least 0.01']}"
             min_open_high = low + 0.01
             max_open_high = 0.99
-            high = max(min(distribution.cdf(1), max_open_high), min_open_high)
+            high = max(min(normalized_dist.cdf(1), max_open_high), min_open_high)
         else:
             high = 1
 
-        return SubmissionLogisticParams(clipped_loc, clipped_scale, low, high)
+        return Logistic(clipped_loc, clipped_scale, metadata={"low": low, "high": high})
+
+    def prepare_logistic_mixture(
+        self, normalized_dist: LogisticMixture
+    ) -> LogisticMixture:
+        """
+        Transform a (normalized) logistic mixture distribution as
+        needed for submission to Metaculus.
+
+        :param normalized_dist: normalized mixture dist
+        :return: normalized dist clipped and formatted for the API
+        """
+        transformed_components = [
+            self.prepare_logistic(c) for c in normalized_dist.components
+        ]
+        transformed_probs = [min(max(0.01, p), 0.99) for p in normalized_dist.probs]
+        return LogisticMixture(transformed_components, transformed_probs)
 
     def denormalize_samples(self, samples) -> np.ndarray:
         """
@@ -581,57 +570,37 @@ class ContinuousQuestion(MetaculusQuestion):
             ppl.tag(sample, self.name)
         return float(sample)
 
-    def get_submission(
-        self, mixture_params: logistic.LogisticMixtureParams
-    ) -> SubmissionMixtureParams:
-        """
-        Get parameters to submit a prediction to the Metaculus API using a
-        logistic mixture
-
-        :param mixture_params: normalized mixture parameters
-        :return: normalized parameters clipped and formatted for the API
-        """
-        submission_logistic_params = [
-            self.get_submission_params(logistic_params)
-            for logistic_params in mixture_params.components
-        ]
-
-        submission_probs = [min(max(0.01, p), 0.99) for p in mixture_params.probs]
-
-        return SubmissionMixtureParams(submission_logistic_params, submission_probs)
-
     def get_submission_from_samples(
         self, samples: Union[pd.Series, np.ndarray], verbose=False
-    ) -> SubmissionMixtureParams:
+    ) -> LogisticMixture:
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
-        mixture_params = logistic.fit_mixture(normalized_samples, verbose=verbose)
-        return self.get_submission(mixture_params)
+        dist = LogisticMixture.from_samples(normalized_samples, verbose=verbose)
+        return self.prepare_logistic_mixture(dist)
 
     @staticmethod
-    def format_logistic_for_api(
-        submission: SubmissionLogisticParams, weight: float
-    ) -> dict:
+    def format_logistic_for_api(submission: Logistic, weight: float) -> dict:
         # convert all the numbers to floats here so that you can be sure that
         # wherever they originated (e.g. numpy), they'll be regular old floats that
         # can be converted to json by json.dumps
+        assert submission.metadata is not None
         return {
             "kind": "logistic",
             "x0": float(submission.loc),
             "s": float(submission.scale),
             "w": float(weight),
-            "low": float(submission.low),
-            "high": float(submission.high),
+            "low": float(submission.metadata["low"]),
+            "high": float(submission.metadata["high"]),
         }
 
-    def submit(self, submission: SubmissionMixtureParams) -> requests.Response:
+    def submit(self, submission: LogisticMixture) -> requests.Response:
         prediction_data = {
             "prediction": {
                 "kind": "multi",
                 "d": [
-                    self.format_logistic_for_api(logistic_params, submission.probs[idx])
-                    for idx, logistic_params in enumerate(submission.components)
+                    self.format_logistic_for_api(c, submission.probs[i])
+                    for i, c in enumerate(submission.components)
                 ],
             },
             "void": False,
@@ -657,24 +626,23 @@ class ContinuousQuestion(MetaculusQuestion):
         return self.submit(submission)
 
     @staticmethod
-    def get_logistic_from_json(logistic_json: Dict) -> SubmissionLogisticParams:
-        return SubmissionLogisticParams(
+    def get_logistic_from_json(logistic_json: Dict) -> Logistic:
+        return Logistic(
             logistic_json["x0"],
             logistic_json["s"],
-            logistic_json["low"],
-            logistic_json["high"],
+            metadata={"low": logistic_json["low"], "high": logistic_json["high"]},
         )
 
     @classmethod
-    def get_submission_from_json(cls, submission_json: Dict) -> SubmissionMixtureParams:
+    def get_submission_from_json(cls, submission_json: Dict) -> LogisticMixture:
         components = [
             cls.get_logistic_from_json(logistic_json)
             for logistic_json in submission_json
         ]
         probs = [logistic_json["w"] for logistic_json in submission_json]
-        return SubmissionMixtureParams(components, probs)
+        return LogisticMixture(components, probs)
 
-    def get_latest_normalized_prediction(self) -> SubmissionMixtureParams:
+    def get_latest_normalized_prediction(self) -> LogisticMixture:
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
         return self.get_submission_from_json(latest_prediction)
 
@@ -740,7 +708,7 @@ class ContinuousQuestion(MetaculusQuestion):
         if plot_fitted:
             prediction = self.get_submission_from_samples(samples)
             df["fitted"] = pd.Series(
-                [logistic.sample_mixture(prediction) for _ in range(0, num_samples)]
+                [prediction.sample() for _ in range(0, num_samples)]
             )
 
         if show_community:
@@ -894,44 +862,35 @@ class LinearQuestion(ContinuousQuestion):
 
     # TODO: also return low and high on the true scale,
     # and use those somehow in logistic.py
-    def get_true_scale_logistic_params(
-        self, submission_logistic_params: SubmissionLogisticParams
-    ) -> logistic.LogisticParams:
+    def get_true_scale_logistic(self, normalized_dist: Logistic) -> Logistic:
         """
-        Get logistic params on the true scale of the question,
-        from submission normalized params
+        Convert a normalized logistic distribution to a logistic on
+        the true scale of the question.
 
-        :param submission_logistic_params: normalized params
-        :return: params on the true scale of the question
+        :param normalized_dist: normalized logistic distribution
+        :return: logistic distribution on the true scale of the question
         """
-
         true_loc = (
-            submission_logistic_params.loc * self.question_range_width
-            + self.question_range["min"]
+            normalized_dist.loc * self.question_range_width + self.question_range["min"]
         )
 
-        true_scale = submission_logistic_params.scale * self.question_range_width
-
-        return logistic.LogisticParams(true_loc, true_scale)
+        true_scale = normalized_dist.scale * self.question_range_width
+        return Logistic(true_loc, true_scale)
 
     def get_true_scale_mixture(
-        self, submission_params: SubmissionMixtureParams
-    ) -> logistic.LogisticMixtureParams:
+        self, normalized_dist: LogisticMixture
+    ) -> LogisticMixture:
         """
-        Get logistic mixture params on the true scale of the question,
-        from normalized submission params
+        Convert a normalized logistic mixture distribution to a
+        logistic on the true scale of the question.
 
-        :param submission_params: params formatted for submission to Metaculus
-        :return: params on the true scale of the question
+        :param normalized_dist: normalized logistic mixture dist
+        :return: same distribution rescaled to the true scale of the question
         """
-        true_scale_logistics_params = [
-            self.get_true_scale_logistic_params(submission_logistic_params)
-            for submission_logistic_params in submission_params.components
+        true_scale_logistics = [
+            self.get_true_scale_logistic(c) for c in normalized_dist.components
         ]
-
-        return logistic.LogisticMixtureParams(
-            true_scale_logistics_params, submission_params.probs
-        )
+        return LogisticMixture(true_scale_logistics, normalized_dist.probs)
 
 
 class LogQuestion(ContinuousQuestion):

@@ -11,7 +11,7 @@ import pytest
 import requests
 
 import ergo
-import tests.mocks
+from tests.mocks import mock_log_question_data, mock_mixture, mock_normalized_mixture
 from tests.utils import random_seed
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -34,23 +34,13 @@ user_id = int(user_id_str)
 
 @random_seed
 def get_mock_samples(n=1000):
-    return np.array(
-        [
-            ergo.logistic.sample_mixture(tests.mocks.mock_true_params)
-            for _ in range(0, n)
-        ]
-    )
+    return np.array([mock_mixture.sample() for _ in range(0, n)])
 
 
 @random_seed
 def get_mock_date_samples(date_question):
     return date_question.denormalize_samples(
-        pd.Series(
-            [
-                ergo.logistic.sample_mixture(tests.mocks.mock_normalized_params)
-                for _ in range(0, 1000)
-            ]
-        )
+        pd.Series([mock_normalized_mixture.sample() for _ in range(0, 1000)])
     )
 
 
@@ -64,9 +54,7 @@ class TestMetaculus:
     binary_question = metaculus.get_question(3966)
     mock_samples = get_mock_samples()
     mock_date_samples = get_mock_date_samples(continuous_linear_date_open_question)
-    mock_log_question = metaculus.make_question_from_data(
-        tests.mocks.mock_log_question_data
-    )
+    mock_log_question = metaculus.make_question_from_data(mock_log_question_data)
 
     def test_login(self):
         assert self.metaculus.user_id == user_id
@@ -77,9 +65,7 @@ class TestMetaculus:
 
     def test_question_name_default(self):
         """make sure we get the correct default name if no name is specified"""
-        assert (
-            self.mock_log_question.name == tests.mocks.mock_log_question_data["title"]
-        )
+        assert self.mock_log_question.name == mock_log_question_data["title"]
 
     def test_date_normalize_denormalize(self):
         samples = self.mock_date_samples
@@ -98,29 +84,29 @@ class TestMetaculus:
         assert denormalized == pytest.approx(samples, abs=1e-5)
 
     def test_submit_continuous_linear_open(self):
-        submission = self.continuous_linear_open_question.get_submission(
-            tests.mocks.mock_normalized_params
+        submission = self.continuous_linear_open_question.prepare_logistic_mixture(
+            mock_normalized_mixture
         )
         r = self.continuous_linear_open_question.submit(submission)
         assert r.status_code == HTTPStatus.ACCEPTED
 
     def test_submit_continuous_linear_date_open(self):
-        submission = self.continuous_linear_date_open_question.get_submission(
-            tests.mocks.mock_normalized_params
+        submission = self.continuous_linear_date_open_question.prepare_logistic_mixture(
+            mock_normalized_mixture
         )
         r = self.continuous_linear_date_open_question.submit(submission)
         assert r.status_code == HTTPStatus.ACCEPTED
 
     def test_submit_continuous_linear_closed(self):
-        submission = self.continuous_linear_closed_question.get_submission(
-            tests.mocks.mock_normalized_params
+        submission = self.continuous_linear_closed_question.prepare_logistic_mixture(
+            mock_normalized_mixture
         )
         r = self.continuous_linear_closed_question.submit(submission)
         assert r.status_code == 202
 
     def test_submit_continuous_log_open(self):
-        submission = self.continuous_log_open_question.get_submission(
-            tests.mocks.mock_normalized_params
+        submission = self.continuous_log_open_question.prepare_logistic_mixture(
+            mock_normalized_mixture
         )
         r = self.continuous_log_open_question.submit(submission)
         assert r.status_code == 202
@@ -135,8 +121,8 @@ class TestMetaculus:
 
     def test_submit_closed_question_fails(self):
         with pytest.raises(requests.exceptions.HTTPError):
-            submission = self.closed_question.get_submission(
-                tests.mocks.mock_normalized_params
+            submission = self.closed_question.prepare_logistic_mixture(
+                mock_normalized_mixture
             )
             self.closed_question.submit(submission)
 
@@ -190,12 +176,10 @@ class TestMetaculus:
     @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
     @random_seed
     def test_submission_from_samples_linear(self):
-        mixture_params = self.continuous_linear_open_question.get_submission_from_samples(
+        normalized_mixture = self.continuous_linear_open_question.get_submission_from_samples(
             self.mock_samples
         )
-        normalized_mixture_samples = [
-            ergo.logistic.sample_mixture(mixture_params) for _ in range(5000)
-        ]
+        normalized_mixture_samples = [normalized_mixture.sample() for _ in range(5000)]
         mixture_samples = self.continuous_linear_open_question.denormalize_samples(
             normalized_mixture_samples
         )
@@ -214,12 +198,10 @@ class TestMetaculus:
         latest_prediction = (
             self.continuous_linear_open_question.get_latest_normalized_prediction()
         )
-        scaled_params = self.continuous_linear_open_question.get_true_scale_mixture(
+        true_mixture = self.continuous_linear_open_question.get_true_scale_mixture(
             latest_prediction
         )
-        prediction_samples = np.array(
-            [ergo.logistic.sample_mixture(scaled_params) for _ in range(0, 1000)]
-        )
+        prediction_samples = np.array([true_mixture.sample() for _ in range(0, 1000)])
         assert float(np.mean(self.mock_samples)) == pytest.approx(
             float(np.mean(prediction_samples)), rel=0.1
         )
@@ -235,7 +217,7 @@ class TestMetaculus:
         prediction_samples = np.array(
             [
                 self.continuous_log_open_question.true_from_normalized_value(
-                    ergo.logistic.sample_mixture(latest_prediction)
+                    latest_prediction.sample()
                 )
                 for _ in range(0, 5000)
             ]

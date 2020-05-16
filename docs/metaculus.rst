@@ -1,39 +1,39 @@
 Metaculus
 =========
-.. automodule:: ergo.metaculus
+.. automodule:: ergo.platforms.metaculus
 
 Metaculus
 ---------
-.. autoclass:: ergo.metaculus.Metaculus
+.. autoclass:: ergo.platforms.metaculus.Metaculus
    :members: get_question, get_questions
 
 
 MetaculusQuestion
 -----------------
-.. autoclass:: ergo.metaculus.MetaculusQuestion
+.. autoclass:: ergo.platforms.metaculus.MetaculusQuestion
    :members:
 
 ContinuousQuestion
 ------------------
-.. autoclass:: ergo.metaculus.ContinuousQuestion
+.. autoclass:: ergo.platforms.metaculus.ContinuousQuestion
    :members:
 
 LinearQuestion
 --------------
-.. autoclass:: ergo.metaculus.LinearQuestion
+.. autoclass:: ergo.platforms.metaculus.LinearQuestion
    :members:
 
 LogQuestion
 -----------
-.. autoclass:: ergo.metaculus.LogQuestion
+.. autoclass:: ergo.platforms.metaculus.LogQuestion
    :members:
 
 LinearDateQuestion
 ------------------
-.. autoclass:: ergo.metaculus.LinearDateQuestion
+.. autoclass:: ergo.platforms.metaculus.LinearDateQuestion
    :members:
 
 BinaryQuestion
 --------------
-.. autoclass:: ergo.metaculus.BinaryQuestion
+.. autoclass:: ergo.platforms.metaculus.BinaryQuestion
    :members:

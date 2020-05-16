@@ -7,6 +7,7 @@ import pytest
 import scipy.stats
 
 import ergo
+from ergo.platforms.foretold import ForetoldCdf, _measurement_query
 from tests.utils import random_seed
 
 
@@ -56,7 +57,7 @@ class TestForetold:
 
     def test_cdf_from_samples_numpy(self):
         samples = onp.random.normal(loc=0, scale=1, size=1000)
-        cdf = ergo.foretold.ForetoldCdf.from_samples(samples, length=100)
+        cdf = ForetoldCdf.from_samples(samples, length=100)
         xs = np.array(cdf.xs)
         ys = np.array(cdf.ys)
         true_ys = scipy.stats.norm.cdf(xs, loc=0, scale=1)
@@ -71,17 +72,15 @@ class TestForetold:
 
     def test_cdf_from_samples_pandas(self):
         df = pd.DataFrame({"samples": onp.random.normal(loc=0, scale=1, size=100)})
-        cdf = ergo.foretold.ForetoldCdf.from_samples(df["samples"], length=50)
+        cdf = ForetoldCdf.from_samples(df["samples"], length=50)
         assert len(cdf.xs) == 50
         assert len(cdf.ys) == 50
         assert type(cdf.xs[0]) == float
         assert type(cdf.ys[0]) == float
 
     def test_measurement_query(self):
-        cdf = ergo.foretold.ForetoldCdf([0.0, 1.0, 2.0], [1.0, 2.0, 3.0])
-        query = ergo.foretold._measurement_query(
-            "cf86da3f-c257-4787-b526-3ef3cb670cb4", cdf
-        )
+        cdf = ForetoldCdf([0.0, 1.0, 2.0], [1.0, 2.0, 3.0])
+        query = _measurement_query("cf86da3f-c257-4787-b526-3ef3cb670cb4", cdf)
         assert type(query) == str
 
     @pytest.mark.skip(reason="API token required")
