@@ -1,14 +1,12 @@
 from dataclasses import dataclass
-from pprint import pprint
+import itertools
 from typing import List
 
 from jax import grad, jit, nn, scipy, vmap
-from jax.experimental.optimizers import clip_grads, sgd
 from jax.interpreters.xla import DeviceArray
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
-from tqdm.autonotebook import tqdm
 
 from ergo.distributions import categorical
 
@@ -18,11 +16,28 @@ class LogisticParams:
     loc: float
     scale: float
 
+    def __init__(self, loc: float, scale: float):
+        self.loc = loc
+        self.scale = max(scale, 0.0000001)  # Do not allow values <= 0
+
+    def __mul__(self, x):
+        return LogisticParams(self.loc * x, self.scale * x)
+
+    def dist(
+        self,
+    ):  # could be just another field, but then maybe we should write our own repr as we probably don't want it printing
+        return oscipy.stats.logistic(loc=self.loc, scale=self.scale)
+
 
 @dataclass
 class LogisticMixtureParams:
     components: List[LogisticParams]
     probs: List[float]
+
+    def __mul__(self, x):
+        return LogisticMixtureParams(
+            [component * x for component in self.components], self.probs
+        )
 
 
 def fit_single_scipy(samples) -> LogisticParams:
@@ -51,25 +66,61 @@ def mixture_logpdf_single(datum, components):
 
 
 @jit
-def mixture_logpdf(data, components):
+def mixture_logpdf(data, component_params):
+    components = component_params.reshape((-1, 3))
     scores = vmap(lambda datum: mixture_logpdf_single(datum, components))(data)
     return np.sum(scores)
+
+
+def mixture_cdf(x: float, logistic_mixture_params: LogisticMixtureParams) -> float:
+    return np.sum(
+        [
+            component.dist().cdf(x) * p
+            for component, p in zip(
+                logistic_mixture_params.components, logistic_mixture_params.probs
+            )
+        ]
+    )
+
+
+def mixture_ppf(
+    p, logistic_mixture_params
+):  # TODO consider whether this should be part of abstract dist class
+    # Numerically determine the quantile for the mixture provided
+
+    ppfs = [c.dist().ppf(p) for c in logistic_mixture_params.components]
+
+    # return the smallest quantile from mixture_cdf that
+    # is larger than the one requested
+    return oscipy.optimize.bisect(
+        lambda x: mixture_cdf(x, logistic_mixture_params) - p,
+        np.min(ppfs),
+        np.max(ppfs),
+        maxiter=1000,
+    )
 
 
 grad_mixture_logpdf = jit(grad(mixture_logpdf, argnums=1))
 
 
 def initialize_components(num_components):
-    # Each component has (location, scale, weight)
-    # Weights sum to 1 (are given in log space)
-    # We use onp to initialize parameters since we don't want to track
-    # randomness
+    """
+    Each component has (location, scale, weight).
+    The shape of the components matrix is (num_components, 3).
+    Weights sum to 1 (are given in log space).
+    We use original numpy to initialize parameters since we don't
+    want to track randomness.
+    """
     components = onp.random.rand(num_components, 3) * 0.1 + 1.0
     components[:, 2] = -num_components
-    return components
+    component_params = components.reshape(-1)
+    bounds = [((None, None), (0.01, None), (None, None)) for _ in range(num_components)]
+    bound_params = list(itertools.chain.from_iterable(bounds))
+    return component_params, bound_params
 
 
-def structure_mixture_params(components) -> LogisticMixtureParams:
+def structure_mixture_params(component_params) -> LogisticMixtureParams:
+    components = component_params.reshape((-1, 3))
     unnormalized_weights = components[:, 2]
     probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
     component_params = [
@@ -78,32 +129,20 @@ def structure_mixture_params(components) -> LogisticMixtureParams:
     return LogisticMixtureParams(components=component_params, probs=probs)
 
 
-def fit_mixture(
-    data, num_components=3, verbose=False, num_samples=5000
-) -> LogisticMixtureParams:
-    # the data might be something weird, like a pandas dataframe column;
-    # turn it into a regular old numpy array
-    data_as_np_array = np.array(data)
-    step_size = 0.01
-    components = initialize_components(num_components)
-    (init_fun, update_fun, get_params) = sgd(step_size)
-    opt_state = init_fun(components)
-    for i in tqdm(range(num_samples)):
-        components = get_params(opt_state)
-        grads = -grad_mixture_logpdf(data_as_np_array, components)
-        if np.any(np.isnan(grads)):
-            if verbose:
-                print("Encoutered nan gradient, stopping early")
-                print(grads)
-                print(components)
-            break
-        grads = clip_grads(grads, 1.0)
-        opt_state = update_fun(i, grads, opt_state)
-        if i % 500 == 0 and verbose:
-            pprint(components)
-            score = mixture_logpdf(data_as_np_array, components)
-            print(f"Log score: {score:.3f}")
-    return structure_mixture_params(components)
+def fit_mixture(data, num_components=3, verbose=False) -> LogisticMixtureParams:
+    data = np.array(data)
+    z = float(np.mean(data))
+    normalized_data = data / z
+    component_params, _ = initialize_components(num_components)
+    fit_results = oscipy.optimize.minimize(
+        lambda comps: -mixture_logpdf(normalized_data, comps),
+        x0=component_params,
+        jac=lambda comps: -grad_mixture_logpdf(normalized_data, comps),
+    )
+    if not fit_results.success and verbose:
+        print(fit_results)
+    component_params = fit_results.x
+    return structure_mixture_params(component_params) * z
 
 
 def fit_single(samples) -> LogisticParams:
