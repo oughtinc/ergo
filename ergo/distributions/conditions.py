@@ -22,4 +22,4 @@ class PercentileCondition(Condition):
         return (actual_percentile - self.percentile) ** 2
 
     def __str__(self):
-        return f"There is a {self.percentile * 100}% chance that the value is <{self.value}"
+        return f"There is a {round(self.percentile * 100)}% chance that the value is <{self.value}"

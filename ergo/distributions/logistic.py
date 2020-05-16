@@ -186,13 +186,12 @@ class LogisticMixture(Distribution):
         num_components: Optional[int] = None,
         verbose=False,
     ):
-        if num_components is None and initial_dist is None:
-            raise ValueError("Need to provide either num_components or initial_dist")
-
         if initial_dist:
             init_params = initial_dist.to_params()
-        else:
+        elif num_components:
             init_params = cls.initialize_params(num_components)
+        else:
+            raise ValueError("Need to provide either num_components or initial_dist")
 
         fit_results = oscipy.optimize.minimize(loss, x0=init_params, jac=jac)
         if not fit_results.success and verbose:
