@@ -1,5 +1,5 @@
 """
-Functions for dealing with mixtures of logistic distributions.
+Mixtures of logistic distributions
 
 Jax jitting and scipy optimization don't handle classes well so we'll
 partially have to work with arrays directly (all the params_*
@@ -14,11 +14,16 @@ import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
-from ergo.distributions.base import categorical
+from .base import categorical
+from .conditions import Condition
+
+
+class Distribution:
+    pass
 
 
 @dataclass
-class Logistic:
+class Logistic(Distribution):
     loc: float
     scale: float
     metadata: Optional[Dict[str, Any]]
@@ -54,6 +59,12 @@ class Logistic:
             loc, scale = oscipy.stats.logistic.fit(samples)
             return cls(loc, scale)
 
+    @classmethod
+    def from_conditions(
+        self, conditions: List[Condition], initial_dist: Optional["Logistic"] = None
+    ):
+        raise NotImplementedError
+
     @staticmethod
     def from_samples(samples) -> "Logistic":
         mixture = LogisticMixture.from_samples(samples, num_components=1)
@@ -68,7 +79,7 @@ class Logistic:
 
 
 @dataclass
-class LogisticMixture:
+class LogisticMixture(Distribution):
     components: List[Logistic]
     probs: List[float]
 
@@ -126,22 +137,67 @@ class LogisticMixture:
         return cls(component_dists, probs)
 
     @classmethod
-    def from_samples(cls, data, num_components=3, verbose=False):
+    def from_samples(
+        cls,
+        data,
+        initial_dist: Optional["LogisticMixture"] = None,
+        num_components=3,
+        verbose=False,
+    ):
         data = np.array(data)
         z = float(np.mean(data))
         normalized_data = data / z
 
-        init_params = cls.initialize_params(num_components)
-        fit_results = oscipy.optimize.minimize(
-            lambda params: -cls.params_logpdf(params, normalized_data),
-            x0=init_params,
-            jac=lambda params: -cls.params_gradlogpdf(params, normalized_data),
-        )
+        def loss(params):
+            return -cls.params_logpdf(params, normalized_data)
+
+        def jac(params):
+            return -cls.params_gradlogpdf(params, normalized_data)
+
+        dist = cls.from_loss(loss, jac, initial_dist, num_components, verbose)
+        return dist * z
+
+    @classmethod
+    def from_conditions(
+        cls,
+        conditions: List[Condition],
+        initial_dist: Optional["LogisticMixture"] = None,
+        num_components: Optional[int] = None,
+        verbose=False,
+    ):
+        def loss(params):
+            dist = cls.from_params(params)
+            total_loss = 0.0
+            for condition in conditions:
+                total_loss += condition.loss(dist)
+            return total_loss
+
+        jac = grad(loss)
+        return cls.from_loss(loss, jac, initial_dist, num_components, verbose)
+
+    @classmethod
+    def from_loss(
+        cls,
+        loss,
+        jac,
+        initial_dist: Optional["LogisticMixture"] = None,
+        num_components: Optional[int] = None,
+        verbose=False,
+    ):
+        if num_components is None and initial_dist is None:
+            raise ValueError("Need to provide either num_components or initial_dist")
+
+        if initial_dist:
+            init_params = initial_dist.to_params()
+        else:
+            init_params = cls.initialize_params(num_components)
+
+        fit_results = oscipy.optimize.minimize(loss, x0=init_params, jac=jac)
         if not fit_results.success and verbose:
             print(fit_results)
         final_params = fit_results.x
 
-        return cls.from_params(final_params) * z
+        return cls.from_params(final_params)
 
     @staticmethod
     def initialize_params(num_components):
