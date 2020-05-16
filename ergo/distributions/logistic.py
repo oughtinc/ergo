@@ -30,7 +30,7 @@ class Logistic(Distribution):
 
     def __init__(self, loc: float, scale: float, metadata=None):
         self.loc = loc
-        self.scale = max(scale, 0.0000001)  # Do not allow values <= 0
+        self.scale = np.max([scale, 0.0000001])  # Do not allow values <= 0
         self.metadata = metadata
 
     def __mul__(self, x):
@@ -165,14 +165,16 @@ class LogisticMixture(Distribution):
         num_components: Optional[int] = None,
         verbose=False,
     ):
-        def loss(params):
+        def _loss(params):
             dist = cls.from_params(params)
             total_loss = 0.0
             for condition in conditions:
                 total_loss += condition.loss(dist)
-            return total_loss
+            return total_loss * 100
 
-        jac = grad(loss)
+        loss = jit(_loss)
+        jac = jit(grad(loss))
+
         return cls.from_loss(loss, jac, initial_dist, num_components, verbose)
 
     @classmethod
