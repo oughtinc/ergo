@@ -584,7 +584,8 @@ class ContinuousQuestion(MetaculusQuestion):
         # convert all the numbers to floats here so that you can be sure that
         # wherever they originated (e.g. numpy), they'll be regular old floats that
         # can be converted to json by json.dumps
-        assert submission.metadata is not None
+        if submission.metadata is None:
+            raise ValueError("Submission distribution needs metadata (low, high)")
         return {
             "kind": "logistic",
             "x0": float(submission.loc),
