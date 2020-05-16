@@ -461,7 +461,7 @@ class ContinuousQuestion(MetaculusQuestion):
         # max scale of 10 set based on API response to prediction on
         # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
         max_scale = 10
-        clipped_scale = min(max(normalized_dist.scale, min_scale), max_scale)
+        clipped_scale = np.clip(normalized_dist.scale, min_scale, max_scale)
 
         if self.low_open:
             # We're not really sure what the deal with the low and high is.
@@ -475,7 +475,7 @@ class ContinuousQuestion(MetaculusQuestion):
             # though we haven't tested that extensively)
             min_open_low = 0.01
             max_open_low = 0.98
-            low = min(max(normalized_dist.cdf(0), min_open_low), max_open_low)
+            low = np.clip(normalized_dist.cdf(0), min_open_low, max_open_low)
         else:
             low = 0
 
@@ -485,7 +485,7 @@ class ContinuousQuestion(MetaculusQuestion):
             # {'prediction': ['high minus low must be at least 0.01']}"
             min_open_high = low + 0.01
             max_open_high = 0.99
-            high = max(min(normalized_dist.cdf(1), max_open_high), min_open_high)
+            high = np.clip(normalized_dist.cdf(1), min_open_high, max_open_high)
         else:
             high = 1
 
@@ -576,8 +576,8 @@ class ContinuousQuestion(MetaculusQuestion):
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
-        dist = LogisticMixture.from_samples(normalized_samples, verbose=verbose)
-        return self.prepare_logistic_mixture(dist)
+        _dist = LogisticMixture.from_samples(normalized_samples, verbose=verbose)
+        return self.prepare_logistic_mixture(_dist)
 
     @staticmethod
     def format_logistic_for_api(submission: Logistic, weight: float) -> dict:
