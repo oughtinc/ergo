@@ -34,8 +34,8 @@ def test_fit_single_jax():
 def test_fit_single_compare():
     scipy_dist = Logistic.from_samples_scipy(onp.array([0.1, 0.2]))
     jax_dist = Logistic.from_samples(np.array([0.1, 0.2]))
-    assert scipy_dist.loc == pytest.approx(jax_dist.loc, abs=0.1)
-    assert scipy_dist.scale == pytest.approx(jax_dist.scale, abs=0.1)
+    assert scipy_dist.loc == pytest.approx(float(jax_dist.loc), abs=0.1)
+    assert scipy_dist.scale == pytest.approx(float(jax_dist.scale), abs=0.1)
 
 
 def test_fit_mixture_small():
@@ -96,6 +96,6 @@ def test_fit_samples():
     fitted_locs = sorted([c.loc for c in fitted_mixture.components])
     fitted_scales = sorted([c.scale for c in fitted_mixture.components])
     for (true_loc, fitted_loc) in zip(true_locs, fitted_locs):
-        assert fitted_loc == pytest.approx(true_loc, rel=0.2)
+        assert fitted_loc == pytest.approx(float(true_loc), rel=0.2)
     for (true_scale, fitted_scale) in zip(true_scales, fitted_scales):
-        assert fitted_scale == pytest.approx(true_scale, rel=0.2)
+        assert fitted_scale == pytest.approx(float(true_scale), rel=0.2)
