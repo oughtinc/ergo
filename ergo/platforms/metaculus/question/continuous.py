@@ -148,10 +148,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def community_dist_in_range(self) -> dist.Categorical:
         """
         A distribution for the portion of the current normalized community prediction
-        that's within the question's range.
+        that's within the question's range, i.e. 0...(len(self.prediction_histogram)-1).
 
         :return: distribution on integers
-        referencing 0...(len(self.prediction_histogram)-1)
         """
         y2 = [p[2] for p in self.prediction_histogram]
         return Categorical(np.array(y2))
@@ -308,7 +307,7 @@ class ContinuousQuestion(MetaculusQuestion):
         :param show_community: boolean indicating whether comparison
             to community predictions should be made
         :param num_samples: number of samples from the community
-        :param **kwargs: additional plotting parameters
+        :param kwargs: additional plotting parameters
         """
 
         df = pd.DataFrame()
@@ -389,7 +388,7 @@ class ContinuousQuestion(MetaculusQuestion):
         :param side_cut_from: which side to cut tails from,
             either 'both','lower', or 'upper'
         :param num_samples: number of samples from the community
-        :param **kwargs: additional plotting parameters
+        :param kwargs: additional plotting parameters
         """
         community_samples = pd.Series(
             [self.sample_normalized_community() for _ in range(0, num_samples)]
