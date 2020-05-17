@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 
 class Condition(ABC):
@@ -7,6 +8,7 @@ class Condition(ABC):
         ...
 
 
+@dataclass
 class PercentileCondition(Condition):
     percentile: float
     value: float
@@ -14,8 +16,8 @@ class PercentileCondition(Condition):
     def __init__(self, percentile, value):
         if not 0 <= percentile <= 1:
             raise ValueError(f"Percentile should be in 0..1, got {percentile}")
-        self.percentile = float(percentile)
-        self.value = float(value)
+        self.percentile = percentile
+        self.value = value
 
     def loss(self, dist):
         actual_percentile = dist.cdf(self.value)
