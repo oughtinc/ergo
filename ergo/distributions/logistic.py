@@ -1,5 +1,5 @@
 """
-Functions for dealing with mixtures of logistic distributions.
+Mixtures of logistic distributions
 
 Jax jitting and scipy optimization don't handle classes well so we'll
 partially have to work with arrays directly (all the params_*
@@ -9,24 +9,32 @@ from dataclasses import dataclass
 from functools import partial
 import itertools
 from typing import Any, Dict, List, Optional
+import warnings
 
 from jax import grad, jit, nn, scipy, vmap
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
-from ergo.distributions.base import categorical
+from ergo.utils import minimize
+
+from .base import categorical
+from .conditions import Condition, PercentileCondition
+
+
+class Distribution:
+    pass
 
 
 @dataclass
-class Logistic:
+class Logistic(Distribution):
     loc: float
     scale: float
     metadata: Optional[Dict[str, Any]]
 
     def __init__(self, loc: float, scale: float, metadata=None):
         self.loc = loc
-        self.scale = max(scale, 0.0000001)  # Do not allow values <= 0
+        self.scale = np.max([scale, 0.0000001])  # Do not allow values <= 0
         self.metadata = metadata
 
     def __mul__(self, x):
@@ -40,7 +48,8 @@ class Logistic:
         return onp.random.logistic(loc=self.loc, scale=self.scale)
 
     def cdf(self, x):
-        return self.rv().cdf(x)
+        y = (x - self.loc) / self.scale
+        return scipy.stats.logistic.cdf(y)
 
     def ppf(self, q):
         """
@@ -53,6 +62,12 @@ class Logistic:
         with onp.errstate(all="raise"):  # type: ignore
             loc, scale = oscipy.stats.logistic.fit(samples)
             return cls(loc, scale)
+
+    @classmethod
+    def from_conditions(
+        self, conditions: List[Condition], initial_dist: Optional["Logistic"] = None
+    ):
+        raise NotImplementedError
 
     @staticmethod
     def from_samples(samples) -> "Logistic":
@@ -68,7 +83,7 @@ class Logistic:
 
 
 @dataclass
-class LogisticMixture:
+class LogisticMixture(Distribution):
     components: List[Logistic]
     probs: List[float]
 
@@ -117,6 +132,41 @@ class LogisticMixture:
         ]
         return np.array(list(itertools.chain.from_iterable(nested_params)))
 
+    def to_percentiles(self, percentiles=None):
+        if percentiles is None:
+            percentiles = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
+        values = [self.ppf(q) for q in percentiles]
+        return [
+            PercentileCondition(percentile, value)
+            for (percentile, value) in zip(percentiles, values)
+        ]
+
+    def to_conditions(self, verbose=False):
+        """
+        Convert mixture to a set of percentile statements that
+        determines the mixture.
+        """
+        warnings.warn(
+            "to_conditions is a proof-of-concept for finding parameterized"
+            " conditions using optimization. It's not ready to be used!"
+        )
+
+        def condition_from_params(params):
+            percentile = nn.softmax(np.array([params[0], 1]))[0]
+            return PercentileCondition(percentile=percentile, value=params[1])
+
+        def loss(params):
+            condition = condition_from_params(params)
+            return condition.loss(self)
+
+        jac = grad(loss)
+        init_params = np.array([0.1, 0.1])  # percentile, value
+        fit_results = minimize(loss, x0=init_params, jac=jac, tries=5, verbose=verbose)
+        if not fit_results.success and verbose:
+            print(fit_results)
+        final_params = fit_results.x
+        return condition_from_params(final_params)
+
     @classmethod
     def from_params(cls, params):
         structured_params = params.reshape((-1, 3))
@@ -126,22 +176,68 @@ class LogisticMixture:
         return cls(component_dists, probs)
 
     @classmethod
-    def from_samples(cls, data, num_components=3, verbose=False):
+    def from_samples(
+        cls,
+        data,
+        initial_dist: Optional["LogisticMixture"] = None,
+        num_components=3,
+        verbose=False,
+    ):
         data = np.array(data)
         z = float(np.mean(data))
         normalized_data = data / z
 
-        init_params = cls.initialize_params(num_components)
-        fit_results = oscipy.optimize.minimize(
-            lambda params: -cls.params_logpdf(params, normalized_data),
-            x0=init_params,
-            jac=lambda params: -cls.params_gradlogpdf(params, normalized_data),
-        )
+        def loss(params):
+            return -cls.params_logpdf(params, normalized_data)
+
+        def jac(params):
+            return -cls.params_gradlogpdf(params, normalized_data)
+
+        dist = cls.from_loss(loss, jac, initial_dist, num_components, verbose)
+        return dist * z
+
+    @classmethod
+    def from_conditions(
+        cls,
+        conditions: List[Condition],
+        initial_dist: Optional["LogisticMixture"] = None,
+        num_components: Optional[int] = None,
+        verbose=False,
+    ):
+        def _loss(params):
+            dist = cls.from_params(params)
+            total_loss = 0.0
+            for condition in conditions:
+                total_loss += condition.loss(dist)
+            return total_loss * 100
+
+        loss = jit(_loss)
+        jac = jit(grad(loss))
+
+        return cls.from_loss(loss, jac, initial_dist, num_components, verbose)
+
+    @classmethod
+    def from_loss(
+        cls,
+        loss,
+        jac,
+        initial_dist: Optional["LogisticMixture"] = None,
+        num_components: Optional[int] = None,
+        verbose=False,
+    ):
+        if initial_dist:
+            init = lambda: initial_dist.to_params()  # noqa: E731
+        elif num_components:
+            init = lambda: cls.initialize_params(num_components)  # noqa: E731
+        else:
+            raise ValueError("Need to provide either num_components or initial_dist")
+
+        fit_results = minimize(loss, init=init, jac=jac, tries=5, verbose=verbose)
         if not fit_results.success and verbose:
             print(fit_results)
         final_params = fit_results.x
 
-        return cls.from_params(final_params) * z
+        return cls.from_params(final_params)
 
     @staticmethod
     def initialize_params(num_components):
