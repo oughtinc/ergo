@@ -45,5 +45,5 @@ def test_mem_2():
     def model():
         return ergo.lognormal_from_interval(1, 10)
 
-    samples = ergo.run(model, num_samples=1000)
-    assert samples["output"].unique().size == 1000
+    samples = ergo.run(model, num_samples=100)
+    assert samples["output"].unique().size == 100
