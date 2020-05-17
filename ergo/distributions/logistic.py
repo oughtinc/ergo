@@ -116,6 +116,8 @@ class LogisticMixture(Distribution):
         within the range of its components quantiles:
         https://cran.r-project.org/web/packages/mistr/vignettes/mistr-introduction.pdf
         """
+        if len(self.components) == 1:
+            return self.components[0].ppf(q)
         ppfs = [c.ppf(q) for c in self.components]
         return oscipy.optimize.bisect(
             lambda x: self.cdf(x) - q, np.min(ppfs), np.max(ppfs), maxiter=1000,
