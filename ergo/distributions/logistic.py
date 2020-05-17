@@ -9,14 +9,17 @@ from dataclasses import dataclass
 from functools import partial
 import itertools
 from typing import Any, Dict, List, Optional
+import warnings
 
 from jax import grad, jit, nn, scipy, vmap
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
+from ergo.utils import minimize
+
 from .base import categorical
-from .conditions import Condition
+from .conditions import Condition, PercentileCondition
 
 
 class Distribution:
@@ -129,6 +132,41 @@ class LogisticMixture(Distribution):
         ]
         return np.array(list(itertools.chain.from_iterable(nested_params)))
 
+    def to_percentiles(self, percentiles=None):
+        if percentiles is None:
+            percentiles = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
+        values = [self.ppf(q) for q in percentiles]
+        return [
+            PercentileCondition(percentile, value)
+            for (percentile, value) in zip(percentiles, values)
+        ]
+
+    def to_conditions(self, verbose=False):
+        """
+        Convert mixture to a set of percentile statements that
+        determines the mixture.
+        """
+        warnings.warn(
+            "to_conditions is a proof-of-concept for finding parameterized"
+            " conditions using optimization. It's not ready to be used!"
+        )
+
+        def condition_from_params(params):
+            percentile = nn.softmax(np.array([params[0], 1]))[0]
+            return PercentileCondition(percentile=percentile, value=params[1])
+
+        def loss(params):
+            condition = condition_from_params(params)
+            return condition.loss(self)
+
+        jac = grad(loss)
+        init_params = np.array([0.1, 0.1])  # percentile, value
+        fit_results = minimize(loss, x0=init_params, jac=jac, tries=5, verbose=verbose)
+        if not fit_results.success and verbose:
+            print(fit_results)
+        final_params = fit_results.x
+        return condition_from_params(final_params)
+
     @classmethod
     def from_params(cls, params):
         structured_params = params.reshape((-1, 3))
@@ -188,13 +226,13 @@ class LogisticMixture(Distribution):
         verbose=False,
     ):
         if initial_dist:
-            init_params = initial_dist.to_params()
+            init = lambda: initial_dist.to_params()  # noqa: E731
         elif num_components:
-            init_params = cls.initialize_params(num_components)
+            init = lambda: cls.initialize_params(num_components)  # noqa: E731
         else:
             raise ValueError("Need to provide either num_components or initial_dist")
 
-        fit_results = oscipy.optimize.minimize(loss, x0=init_params, jac=jac)
+        fit_results = minimize(loss, init=init, jac=jac, tries=5, verbose=verbose)
         if not fit_results.success and verbose:
             print(fit_results)
         final_params = fit_results.x
