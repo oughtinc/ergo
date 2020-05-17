@@ -1,29 +1,25 @@
 """
-Mixtures of logistic distributions
+Logistic distributions
 
 Jax jitting and scipy optimization don't handle classes well so we'll
 partially have to work with arrays directly (all the params_*
 classmethods).
 """
 from dataclasses import dataclass
-from functools import partial
 import itertools
 from typing import Any, Dict, List, Optional
 import warnings
 
-from jax import grad, jit, nn, scipy, vmap
+from jax import grad, jit, nn, scipy
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
 from ergo.utils import minimize
 
-from .base import categorical
 from .conditions import Condition, PercentileCondition
-
-
-class Distribution:
-    pass
+from .distribution import Distribution
+from .mixture import Mixture
 
 
 @dataclass
@@ -71,7 +67,9 @@ class Logistic(Distribution):
 
     @staticmethod
     def from_samples(samples) -> "Logistic":
-        mixture = LogisticMixture.from_samples(samples, num_components=1)
+        mixture = LogisticMixture.from_samples(
+            samples, num_components=1
+        )  # TODO consider refactoring
         return mixture.components[0]
 
     @staticmethod
@@ -83,7 +81,7 @@ class Logistic(Distribution):
 
 
 @dataclass
-class LogisticMixture(Distribution):
+class LogisticMixture(Mixture):
     components: List[Logistic]
     probs: List[float]
 
@@ -91,48 +89,6 @@ class LogisticMixture(Distribution):
         return LogisticMixture(
             [component * x for component in self.components], self.probs
         )
-
-    def sample(self):
-        i = categorical(np.array(self.probs))
-        component_dist = self.components[i]
-        return component_dist.sample()
-
-    def logpdf(self, data):
-        return self.params_logpdf(self.to_params(), data)
-
-    def logpdf1(self, datum):
-        return self.params_logpdf1(self.to_params(), datum)
-
-    def ppf(self, q):
-        """
-        Percent point function (inverse of cdf) at q.
-
-        Returns the smallest x where the mixture_cdf(x) is greater
-        than the requested q provided:
-
-            argmin{x} where mixture_cdf(x) > q
-
-        The quantile of a mixture distribution can always be found
-        within the range of its components quantiles:
-        https://cran.r-project.org/web/packages/mistr/vignettes/mistr-introduction.pdf
-        """
-        if len(self.components) == 1:
-            return self.components[0].ppf(q)
-        ppfs = [c.ppf(q) for c in self.components]
-        return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q, np.min(ppfs), np.max(ppfs),
-        )
-
-    def cdf(self, x):
-        return np.sum(
-            [c.cdf(x) * p for c, p in zip(self.components, self.probs)]
-        )
-
-    def to_params(self):
-        nested_params = [
-            [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
-        ]
-        return np.array(list(itertools.chain.from_iterable(nested_params)))
 
     def to_percentiles(self, percentiles=None):
         if percentiles is None:
@@ -168,6 +124,12 @@ class LogisticMixture(Distribution):
             print(fit_results)
         final_params = fit_results.x
         return condition_from_params(final_params)
+
+    def to_params(self):
+        nested_params = [
+            [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
+        ]
+        return np.array(list(itertools.chain.from_iterable(nested_params)))
 
     @classmethod
     def from_params(cls, params):
@@ -266,28 +228,3 @@ class LogisticMixture(Distribution):
             scale = np.max([p[1], 0.01])  # Find a better solution?
             component_scores.append(Logistic.params_logpdf(datum, loc, scale) + weight)
         return scipy.special.logsumexp(np.array(component_scores))
-
-    @staticmethod
-    def params_logpdf(params, data):
-        return _mixture_params_logpdf(params, data)
-
-    @staticmethod
-    def params_gradlogpdf(params, data):
-        return _mixture_params_gradlogpdf(params, data)
-
-    @staticmethod
-    def params_cdf(params, x):
-        raise NotImplementedError
-
-    @staticmethod
-    def params_ppf(params, p):
-        raise NotImplementedError
-
-
-@jit
-def _mixture_params_logpdf(params, data):
-    scores = vmap(partial(LogisticMixture.params_logpdf1, params))(data)
-    return np.sum(scores)
-
-
-_mixture_params_gradlogpdf = jit(grad(_mixture_params_logpdf, argnums=0))
