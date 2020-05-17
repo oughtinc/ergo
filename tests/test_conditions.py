@@ -64,3 +64,14 @@ def test_mixture_from_histogram(histogram):
     )
     for entry in histogram:
         assert mixture.pdf1(entry["x"]) == pytest.approx(entry["density"], abs=0.2)
+
+
+def test_weights():
+    conditions = [
+        PercentileCondition(percentile=0.4, value=1, weight=0.01),
+        PercentileCondition(percentile=0.5, value=2, weight=100),
+        PercentileCondition(percentile=0.8, value=2.2, weight=0.01),
+        PercentileCondition(percentile=0.9, value=2.3, weight=0.01),
+    ]
+    dist = LogisticMixture.from_conditions(conditions, num_components=1, verbose=True)
+    assert dist.components[0].loc == pytest.approx(2, rel=0.1)
