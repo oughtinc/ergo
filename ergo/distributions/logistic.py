@@ -120,12 +120,12 @@ class LogisticMixture(Distribution):
             return self.components[0].ppf(q)
         ppfs = [c.ppf(q) for c in self.components]
         return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q, np.min(ppfs), np.max(ppfs), maxiter=1000,
+            lambda x: self.cdf(x) - q, np.min(ppfs), np.max(ppfs),
         )
 
     def cdf(self, x):
         return np.sum(
-            [component.cdf(x) * p for component, p in zip(self.components, self.probs)]
+            [c.cdf(x) * p for c, p in zip(self.components, self.probs)]
         )
 
     def to_params(self):
