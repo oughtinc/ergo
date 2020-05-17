@@ -103,6 +103,9 @@ class LogisticMixture(Distribution):
     def logpdf1(self, datum):
         return self.params_logpdf1(self.to_params(), datum)
 
+    def pdf1(self, datum):
+        return np.exp(self.logpdf1(datum))
+
     def ppf(self, q):
         """
         Percent point function (inverse of cdf) at q.

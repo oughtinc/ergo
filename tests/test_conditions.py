@@ -1,7 +1,7 @@
 import pytest
 
 from ergo import Logistic, LogisticMixture
-from ergo.distributions.conditions import PercentileCondition
+from ergo.distributions.conditions import HistogramCondition, PercentileCondition
 
 
 def test_mixture_from_percentile():
@@ -55,3 +55,12 @@ def test_percentile_roundtrip():
     )
     for (condition, recovered_condition) in zip(conditions, recovered_conditions):
         assert recovered_condition.value == pytest.approx(condition.value, rel=0.1)
+
+
+def test_mixture_from_histogram(histogram):
+    conditions = [HistogramCondition(histogram)]
+    mixture = LogisticMixture.from_conditions(
+        conditions, num_components=3, verbose=True
+    )
+    for entry in histogram:
+        assert mixture.pdf1(entry["x"]) == pytest.approx(entry["density"], abs=0.2)
