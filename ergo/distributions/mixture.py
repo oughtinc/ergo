@@ -1,16 +1,17 @@
 """
 Mixture distributions
 
-Jax jitting and scipy optimization don't handle classes well so we'll
-partially have to work with arrays directly (all the params_*
-classmethods).
+This module contains both the base Mixture Class as well as the Location-Scale Family
+Mixture Subclass.
 """
-from dataclasses import dataclass
-from typing import Any, List, Optional, TypeVar
+from dataclasses import dataclass, field
+import itertools
+from typing import List, Optional, Sequence, Type, TypeVar
 import warnings
 
 from jax import grad, jit, nn, scipy
 import jax.numpy as np
+import numpy as onp
 import scipy as oscipy
 
 from ergo.utils import minimize
@@ -18,23 +19,26 @@ from ergo.utils import minimize
 from .base import categorical
 from .conditions import Condition, PercentileCondition
 from .distribution import Distribution
+from .location_scale_family import LSDistribution
 
-# from .Logistic import Logistic
-# from .Normal import Normal
 M = TypeVar("M", bound="Mixture")
 
 
 @dataclass
 class Mixture(Distribution):
-    components: List[
-        Any
-    ]  # Once from_samples() is refactored into singular distributions  Union[List[Logistic], List[Normal]]
+    components: Sequence[Distribution]
     probs: List[float]
 
     def __mul__(self, x):
         return self.__class__(
             [component * x for component in self.components], self.probs
         )
+
+    def rv(self,):
+        raise NotImplementedError("No access to mixture rv at this time")
+
+    def cdf(self, x):
+        return np.sum([c.cdf(x) * p for c, p in zip(self.components, self.probs)])
 
     def ppf(self, q):
         """
@@ -55,9 +59,6 @@ class Mixture(Distribution):
         return oscipy.optimize.bisect(
             lambda x: self.cdf(x) - q, np.min(ppfs), np.max(ppfs),
         )
-
-    def cdf(self, x):
-        return np.sum([c.cdf(x) * p for c, p in zip(self.components, self.probs)])
 
     def sample(self):
         i = categorical(np.array(self.probs))
@@ -183,3 +184,37 @@ class Mixture(Distribution):
     @staticmethod
     def params_ppf(params, p):
         raise NotImplementedError
+
+
+@dataclass
+class LSMixture(Mixture):
+    components: Sequence[LSDistribution]
+    probs: List[float]
+    component_type: Type[LSDistribution] = field(repr=False)
+
+    @staticmethod
+    def initialize_params(num_components):
+        """
+        Each component has (location, scale, weight).
+        The shape of the components matrix is (num_components, 3).
+        Weights sum to 1 (are given in log space).
+        We use original numpy to initialize parameters since we don't
+        want to track randomness.
+        """
+        components = onp.random.rand(num_components, 3) * 0.1 + 1.0
+        components[:, 2] = -num_components
+        return components.reshape(-1)
+
+    @classmethod
+    def from_params(cls, params):
+        structured_params = params.reshape((-1, 3))
+        unnormalized_weights = structured_params[:, 2]
+        probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
+        component_dists = [cls.component_type(p[0], p[1]) for p in structured_params]
+        return cls(component_dists, probs)
+
+    def to_params(self):
+        nested_params = [
+            [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
+        ]
+        return np.array(list(itertools.chain.from_iterable(nested_params)))

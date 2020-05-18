@@ -37,10 +37,6 @@ class LSDistribution(Distribution):
     def rv(self,):
         return self.odist(loc=self.loc, scale=self.scale)
 
-    def sample(self):
-        # FIXME (#296): This needs to be compatible with ergo sampling
-        return onp.random.logistic(loc=self.loc, scale=self.scale)
-
     def cdf(self, x):
         y = (x - self.loc) / self.scale
         return self.dist.cdf(y)
@@ -50,6 +46,10 @@ class LSDistribution(Distribution):
         Percent point function (inverse of cdf) at q.
         """
         return self.rv().ppf(q)
+
+    def sample(self):
+        # FIXME (#296): This needs to be compatible with ergo sampling
+        return self.odist.rvs(loc=self.loc, scale=self.scale)
 
     @classmethod
     def from_samples_scipy(cls: Type[LSD], samples) -> LSD:

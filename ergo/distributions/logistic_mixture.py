@@ -6,55 +6,22 @@ partially have to work with arrays directly (all the params_*
 classmethods).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
-import itertools
-from typing import List
+from typing import List, Type
 
 from jax import grad, jit, nn, scipy, vmap
 import jax.numpy as np
-import numpy as onp
 
 from .location_scale_family import Logistic
-from .mixture import Mixture
+from .mixture import LSMixture
 
 
 @dataclass
-class LogisticMixture(Mixture):
+class LogisticMixture(LSMixture):
     components: List[Logistic]
     probs: List[float]
-
-    def __mul__(self, x):
-        return LogisticMixture(
-            [component * x for component in self.components], self.probs
-        )
-
-    @staticmethod
-    def initialize_params(num_components):
-        """
-        Each component has (location, scale, weight).
-        The shape of the components matrix is (num_components, 3).
-        Weights sum to 1 (are given in log space).
-        We use original numpy to initialize parameters since we don't
-        want to track randomness.
-        """
-        components = onp.random.rand(num_components, 3) * 0.1 + 1.0
-        components[:, 2] = -num_components
-        return components.reshape(-1)
-
-    @classmethod
-    def from_params(cls, params):
-        structured_params = params.reshape((-1, 3))
-        unnormalized_weights = structured_params[:, 2]
-        probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
-        component_dists = [Logistic(p[0], p[1]) for p in structured_params]
-        return cls(component_dists, probs)
-
-    def to_params(self):
-        nested_params = [
-            [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
-        ]
-        return np.array(list(itertools.chain.from_iterable(nested_params)))
+    component_type: Type[Logistic] = field(default=Logistic, repr=False)
 
     ## param-based functions for Jax compatibility ##
     @staticmethod

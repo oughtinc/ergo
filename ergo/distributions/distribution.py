@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+
+
 """
 Base Distribution Class
 
@@ -5,18 +8,23 @@ Specifies interface for specific Distribution Classes
 """
 
 
-class Distribution:
+class Distribution(ABC):
+    @abstractmethod
     def __mul__(self, x):
-        raise NotImplementedError("This should be implemented by a subclass")
+        ...
 
+    @abstractmethod
     def rv(self,):
-        raise NotImplementedError("This should be implemented by a subclass")
+        ...
 
-    def sample(self):
-        raise NotImplementedError("This should be implemented by a subclass")
-
+    @abstractmethod
     def cdf(self, x):
-        raise NotImplementedError("This should be implemented by a subclass")
+        ...
 
+    @abstractmethod
     def ppf(self, q):
-        raise NotImplementedError("This should be implemented by a subclass")
+        ...
+
+    @abstractmethod
+    def sample(self):
+        ...
