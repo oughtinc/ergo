@@ -65,10 +65,7 @@ class LSDistribution(Distribution):
 
     @staticmethod
     def from_samples(samples):  # TODO consider refactoring
-        from .logistic_mixture import LogisticMixture
-
-        mixture = LogisticMixture.from_samples(samples, num_components=1)
-        return mixture.components[0]
+        raise NotImplementedError
 
 
 @dataclass
@@ -86,6 +83,13 @@ class Logistic(LSDistribution):
         y = (x - loc) / scale
         return scipy.stats.logistic.logpdf(y) - np.log(scale)
 
+    @staticmethod
+    def from_samples(samples):  # TODO consider refactoring
+        from .logistic_mixture import LogisticMixture
+
+        mixture = LogisticMixture.from_samples(samples, num_components=1)
+        return mixture.components[0]
+
 
 @dataclass
 class Normal(LSDistribution):
@@ -101,3 +105,10 @@ class Normal(LSDistribution):
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.logistic.html
         y = (x - loc) / scale
         return scipy.stats.norm.logpdf(y) - np.log(scale)
+
+    # @staticmethod
+    # def from_samples(samples):  # TODO consider refactoring
+    #     from .normal_mixture import NormalMixture
+
+    #     mixture = NormalMixture.from_samples(samples, num_components=1)
+    #     return mixture.components[0]
