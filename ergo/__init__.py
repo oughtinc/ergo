@@ -1,11 +1,7 @@
 __version__ = "0.8.3"
 
 import ergo.distributions
-import ergo.distributions.base
-import ergo.distributions.logistic
 import ergo.platforms
-import ergo.platforms.foretold
-import ergo.platforms.metaculus
 import ergo.ppl
 import ergo.theme
 import ergo.utils
