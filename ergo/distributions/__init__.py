@@ -21,3 +21,4 @@ from .base import (
 from .conditions import Condition, PercentileCondition
 from .location_scale_family import Logistic, Normal
 from .logistic_mixture import LogisticMixture
+from .normal_mixture import NormalMixture
