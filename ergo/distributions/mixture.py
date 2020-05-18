@@ -40,6 +40,9 @@ class Mixture(Distribution):
     def cdf(self, x):
         return np.sum([c.cdf(x) * p for c, p in zip(self.components, self.probs)])
 
+    def pdf1(self, datum):
+        return np.exp(self.logpdf1(datum))
+
     def ppf(self, q):
         """
         Percent point function (inverse of cdf) at q.

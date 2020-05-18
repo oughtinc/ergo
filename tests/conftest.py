@@ -81,3 +81,17 @@ def date_samples(metaculus_questions, normalized_logistic_mixture):
     return metaculus_questions.continuous_linear_date_open_question.denormalize_samples(
         pd.Series([normalized_logistic_mixture.sample() for _ in range(0, 1000)])
     )
+
+
+@pytest.fixture(scope="module")
+def histogram():
+    return [
+        {"x": -0.22231131421566422, "density": 0.05020944540593859},
+        {"x": 0.2333153619512007, "density": 0.3902426887736647},
+        {"x": 0.6889420381180656, "density": 0.5887675161478794},
+        {"x": 1.1445687142849306, "density": 0.19516571803813396},
+        {"x": 1.6001953904517954, "density": 0.33712516238248535},
+        {"x": 2.0558220666186604, "density": 0.4151935926066581},
+        {"x": 2.5114487427855257, "density": 0.16147625748938946},
+        {"x": 2.9670754189523905, "density": 0.03650993407810862},
+    ]
