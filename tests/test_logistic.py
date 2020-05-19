@@ -77,6 +77,16 @@ def test_mixture_ppf():
     assert ppf5 == pytest.approx(10, rel=1e-3)
 
 
+def test_mixture_ppf_adversarial():
+    # Make a mixture with one very improbable distribution and one dominant
+    mixture = LogisticMixture([Logistic(10, 3), Logistic(5, 5)], [1.8629593e-29, 1.0])
+    assert mixture.ppf(0.5) == pytest.approx(5.0, rel=1e-3)
+    assert mixture.ppf(0.01) == pytest.approx(-17.9755, rel=1e-3)
+    assert mixture.ppf(0.001) == pytest.approx(-29.5337, rel=1e-3)
+    assert mixture.ppf(0.99) == pytest.approx(27.9755, rel=1e-3)
+    assert mixture.ppf(0.999) == pytest.approx(39.5337, rel=1e-3)
+
+
 def ppf_cdf_round_trip():
     mixture = LogisticMixture.from_samples(
         np.array([0.5, 0.4, 0.8, 0.8, 0.9, 0.95, 0.15, 0.1]), num_components=3

@@ -57,7 +57,10 @@ class Mixture(Distribution):
             return self.components[0].ppf(q)
         ppfs = [c.ppf(q) for c in self.components]
         return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q, np.min(ppfs), np.max(ppfs),
+            lambda x: self.cdf(x) - q,
+            np.min(ppfs) - 0.01,
+            np.max(ppfs) + 0.01,
+            maxiter=1000,
         )
 
     def sample(self):
