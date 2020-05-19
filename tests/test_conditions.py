@@ -1,7 +1,12 @@
 import pytest
 
 from ergo import Logistic, LogisticMixture
-from ergo.distributions.conditions import HistogramCondition, PercentileCondition
+from ergo.distributions.conditions import (
+    HistogramCondition,
+    PercentileCondition,
+    IntervalCondition,
+)
+import numpyro.distributions as distributions
 
 
 def test_mixture_from_percentile():
@@ -75,3 +80,18 @@ def test_weights():
     ]
     dist = LogisticMixture.from_conditions(conditions, num_components=1, verbose=True)
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
+
+
+def test_interval_loss():
+    dist = distributions.Uniform(-1, 1)
+
+    assert IntervalCondition(low=0, high=1, p=0.5).loss(dist) == pytest.approx(
+        0, abs=0.01
+    )
+    assert IntervalCondition(low=0, high=1, p=0.25).loss(dist) == pytest.approx(
+        0.25 ** 2, abs=0.01
+    )
+    assert IntervalCondition(high=0, p=1).loss(dist) == pytest.approx(
+        0.5 ** 2, abs=0.01
+    )
+    assert IntervalCondition(p=1).loss(dist) == 0
