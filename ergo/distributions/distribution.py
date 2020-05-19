@@ -1,11 +1,10 @@
-from abc import ABC, abstractmethod
-
-
 """
 Base Distribution Class
 
 Specifies interface for specific Distribution Classes
 """
+
+from abc import ABC, abstractmethod
 
 
 class Distribution(ABC):

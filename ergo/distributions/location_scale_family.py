@@ -1,7 +1,9 @@
-"""Location–Scale Family Distribution Base Class
+"""
+Location–Scale Family Distribution Base Class
 
-A location–scale family is a family of probability distributions parametrized by a
-location parameter and a non-negative scale parameter
+A location–scale family is a family of probability distributions
+parametrized by a location parameter and a non-negative scale
+parameter
 """
 
 from dataclasses import dataclass, field
@@ -23,12 +25,17 @@ class LSDistribution(Distribution):
     loc: float
     scale: float
     metadata: Optional[Dict[str, Any]]
-    odist: oscipy.stats = field(repr=False)
-    dist: scipy.stats = field(repr=False)
+
+    dist: Any = field(
+        default=scipy.stats.logistic, repr=False
+    )  # no jax.scipy.stats.rv_continuous
+    odist: oscipy.stats.rv_continuous = field(default=oscipy.stats.logistic, repr=False)
 
     def __init__(self, loc: float, scale: float, metadata=None):
+        # TODO (#303): Raise ValueError on scale < 0
+        self.scale = np.max([scale, 0.0000001])
         self.loc = loc
-        self.scale = np.max([scale, 0.0000001])  # Do not allow values <= 0
+        self.scale = scale
         self.metadata = metadata
 
     def __mul__(self, x):
@@ -64,17 +71,13 @@ class LSDistribution(Distribution):
         raise NotImplementedError
 
     @staticmethod
-    def from_samples(samples):  # TODO consider refactoring
+    def from_samples(samples):
         raise NotImplementedError
 
 
-@dataclass
 class Logistic(LSDistribution):
-    dist: scipy.stats = field(default=scipy.stats.logistic, repr=False)
-    odist: oscipy.stats = field(default=oscipy.stats.logistic, repr=False)
-
-    def __init__(self, loc: float, scale: float, metadata=None):
-        super().__init__(loc, scale, metadata)
+    dist = scipy.stats.logistic
+    odist = oscipy.stats.logistic
 
     @staticmethod
     @jit
@@ -91,13 +94,9 @@ class Logistic(LSDistribution):
         return mixture.components[0]
 
 
-@dataclass
 class Normal(LSDistribution):
-    dist: scipy.stats = field(default=scipy.stats.norm, repr=False)
-    odist: oscipy.stats = field(default=oscipy.stats.norm, repr=False)
-
-    def __init__(self, loc: float, scale: float, metadata=None):
-        super().__init__(loc, scale, metadata)
+    dist = scipy.stats.logistic
+    odist = oscipy.stats.logistic
 
     @staticmethod
     @jit
