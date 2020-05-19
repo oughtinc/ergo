@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 import jax.numpy as np
 import pandas as pd
 
+import ergo.distributions as dist
+
 from .types import ArrayLikeType
 
 
@@ -139,6 +141,9 @@ class MetaculusQuestion:
         prediction on this question
         (sample is denormalized/on the the true scale of the question)
         """
+        raise NotImplementedError("This should be implemented by a subclass")
+
+    def community_dist(self) -> dist.Distribution:
         raise NotImplementedError("This should be implemented by a subclass")
 
     @staticmethod
