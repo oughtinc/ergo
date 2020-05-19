@@ -1,4 +1,4 @@
-all: format scrub lint docs test
+all: format lint docs xtest
 
 lint: FORCE  ## Run flake8, mypy and black (in check mode)
 	poetry run flake8

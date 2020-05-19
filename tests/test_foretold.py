@@ -6,14 +6,14 @@ import pandas as pd
 import pytest
 import scipy.stats
 
-import ergo
+from ergo.platforms.foretold import Foretold, ForetoldCdf, _measurement_query
 from tests.utils import random_seed
 
 
 class TestForetold:
     @random_seed
     def test_foretold_sampling(self):
-        foretold = ergo.Foretold()
+        foretold = Foretold()
         # https://www.foretold.io/c/f45577e4-f1b0-4bba-8cf6-63944e63d70c/m/cf86da3f-c257-4787-b526-3ef3cb670cb4
 
         # Distribution is mm(10 to 20, 200 to 210), a mixture model with
@@ -31,7 +31,7 @@ class TestForetold:
         )
 
     def test_foretold_multiple_questions(self):
-        foretold = ergo.Foretold()
+        foretold = Foretold()
         # https://www.foretold.io/c/f45577e4-f1b0-4bba-8cf6-63944e63d70c/m/cf86da3f-c257-4787-b526-3ef3cb670cb4
 
         ids = [
@@ -49,14 +49,14 @@ class TestForetold:
             assert question.community_prediction_available == has_community_prediction
 
     def test_foretold_multiple_questions_error(self):
-        foretold = ergo.Foretold()
+        foretold = Foretold()
         with pytest.raises(NotImplementedError):
             ids = ["cf86da3f-c257-4787-b526-3ef3cb670cb4"] * 1000
             foretold.get_questions(ids)
 
     def test_cdf_from_samples_numpy(self):
         samples = onp.random.normal(loc=0, scale=1, size=1000)
-        cdf = ergo.foretold.ForetoldCdf.from_samples(samples, length=100)
+        cdf = ForetoldCdf.from_samples(samples, length=100)
         xs = np.array(cdf.xs)
         ys = np.array(cdf.ys)
         true_ys = scipy.stats.norm.cdf(xs, loc=0, scale=1)
@@ -71,22 +71,20 @@ class TestForetold:
 
     def test_cdf_from_samples_pandas(self):
         df = pd.DataFrame({"samples": onp.random.normal(loc=0, scale=1, size=100)})
-        cdf = ergo.foretold.ForetoldCdf.from_samples(df["samples"], length=50)
+        cdf = ForetoldCdf.from_samples(df["samples"], length=50)
         assert len(cdf.xs) == 50
         assert len(cdf.ys) == 50
         assert type(cdf.xs[0]) == float
         assert type(cdf.ys[0]) == float
 
     def test_measurement_query(self):
-        cdf = ergo.foretold.ForetoldCdf([0.0, 1.0, 2.0], [1.0, 2.0, 3.0])
-        query = ergo.foretold._measurement_query(
-            "cf86da3f-c257-4787-b526-3ef3cb670cb4", cdf
-        )
+        cdf = ForetoldCdf([0.0, 1.0, 2.0], [1.0, 2.0, 3.0])
+        query = _measurement_query("cf86da3f-c257-4787-b526-3ef3cb670cb4", cdf)
         assert type(query) == str
 
     @pytest.mark.skip(reason="API token required")
     def test_create_measurement(self):
-        foretold = ergo.Foretold(token="")
+        foretold = Foretold(token="")
         question = foretold.get_question("cf86da3f-c257-4787-b526-3ef3cb670cb4")
         samples = onp.random.normal(loc=150, scale=5, size=1000)
         r = question.submit_from_samples(samples, length=20)
