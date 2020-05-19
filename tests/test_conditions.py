@@ -6,7 +6,7 @@ from ergo.distributions.conditions import (
     PercentileCondition,
     IntervalCondition,
 )
-import numpyro.distributions as distributions
+from dataclasses import dataclass
 
 
 def test_mixture_from_percentile():
@@ -82,16 +82,25 @@ def test_weights():
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
 
 
-def test_interval_loss():
-    dist = distributions.Uniform(-1, 1)
+@dataclass
+class Uniform:
+    min: float = 0
+    max: float = 1
 
-    assert IntervalCondition(low=0, high=1, p=0.5).loss(dist) == pytest.approx(
-        0, abs=0.01
-    )
-    assert IntervalCondition(low=0, high=1, p=0.25).loss(dist) == pytest.approx(
-        0.25 ** 2, abs=0.01
-    )
-    assert IntervalCondition(high=0, p=1).loss(dist) == pytest.approx(
-        0.5 ** 2, abs=0.01
-    )
+    def cdf(self, value):
+        if value < self.min:
+            return 0
+
+        if value > self.max:
+            return 1
+
+        return (value - self.min) / (self.max - self.min)
+
+
+def test_interval_loss():
+    dist = Uniform(min=-1, max=1)
+
+    assert IntervalCondition(p=0.5, low=0, high=1).loss(dist) == 0
+    assert IntervalCondition(p=0.25, low=0, high=1).loss(dist) == 0.25 ** 2
+    assert IntervalCondition(p=1, high=0).loss(dist) == 0.5 ** 2
     assert IntervalCondition(p=1).loss(dist) == 0

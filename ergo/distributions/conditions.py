@@ -30,7 +30,13 @@ class PercentileCondition(Condition):
         return self.weight * (actual_percentile - target_percentile) ** 2
 
     def __str__(self):
-        return f"There is a {round(self.percentile * 100)}% chance that the value is <{self.value}"
+        return (
+            f"There is a {self.percentile:.0%} chance that the value is <{self.value}"
+        )
+
+
+HistogramEntry = TypedDict("HistogramEntry", {"x": float, "density": float})
+Histogram = List[HistogramEntry]
 
 
 @dataclass
@@ -63,5 +69,16 @@ class IntervalCondition(Condition):
                 f"High must be greater than low, got high: {high}, low: {low}"
             )
 
+        self.p = p
+        self.low = low
+        self.high = high
+        self.weight = weight
+
+    def loss(self, dist):
+        cdf_at_low = dist.cdf(self.low) if self.low is not None else 0
+        cdf_at_high = dist.cdf(self.high) if self.high is not None else 1
+        actual_p = cdf_at_high - cdf_at_low
+        return self.weight * (actual_p - self.p) ** 2
+
     def __str__(self):
-        return f"There is a {self.p:%.0} chance that "
+        return f"There is a {self.p:.0%} chance that the value is in [{self.low}, {self.high}]"
