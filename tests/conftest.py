@@ -85,6 +85,10 @@ def date_samples(metaculus_questions, normalized_logistic_mixture):
 
 @pytest.fixture(scope="module")
 def histogram():
+    return make_histogram()
+
+
+def make_histogram():
     return [
         {"x": -0.22231131421566422, "density": 0.05020944540593859},
         {"x": 0.2333153619512007, "density": 0.3902426887736647},

@@ -4,7 +4,6 @@ from typing import Dict, Union
 
 import jax.numpy as np
 import numpy as onp
-import numpyro.distributions as dist
 import pandas as pd
 from plotnine import (
     aes,
@@ -18,13 +17,7 @@ from plotnine import (
 import requests
 
 from ergo import ppl
-from ergo.distributions import (
-    Categorical,
-    Logistic,
-    LogisticMixture,
-    halfnormal,
-    random_choice,
-)
+import ergo.distributions as dist
 from ergo.theme import ergo_theme
 from ergo.utils import memoized_method
 
@@ -97,7 +90,7 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def prepare_logistic(self, normalized_dist: Logistic) -> Logistic:
+    def prepare_logistic(self, normalized_dist: dist.Logistic) -> dist.Logistic:
         """
         Transform a single logistic distribution by clipping the
         parameters and adding metadata as needed for submission to
@@ -125,11 +118,13 @@ class ContinuousQuestion(MetaculusQuestion):
         else:
             high = 1
 
-        return Logistic(clipped_loc, clipped_scale, metadata={"low": low, "high": high})
+        return dist.Logistic(
+            clipped_loc, clipped_scale, metadata={"low": low, "high": high}
+        )
 
     def prepare_logistic_mixture(
-        self, normalized_dist: LogisticMixture
-    ) -> LogisticMixture:
+        self, normalized_dist: dist.LogisticMixture
+    ) -> dist.LogisticMixture:
         """
         Transform a (normalized) logistic mixture distribution as
         needed for submission to Metaculus.
@@ -141,7 +136,7 @@ class ContinuousQuestion(MetaculusQuestion):
             self.prepare_logistic(c) for c in normalized_dist.components
         ]
         transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
-        return LogisticMixture(transformed_components, transformed_probs)  # type: ignore
+        return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
     def denormalize_samples(self, samples) -> np.ndarray:
         """
@@ -149,8 +144,15 @@ class ContinuousQuestion(MetaculusQuestion):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
+    def community_dist(self) -> dist.HistogramDist:
+        # TODO (#306): Unify distributions interface
+        # TODO (#307): Account for values out of range in
+        #   ContinuousQuestion.community_dist()
+        histogram = [{"x": v[0], "density": v[2]} for v in self.prediction_histogram]
+        return dist.HistogramDist(histogram)
+
     @memoized_method(None)
-    def community_dist_in_range(self) -> dist.Categorical:
+    def community_dist_in_range(self):
         """
         A distribution for the portion of the current normalized community prediction
         that's within the question's range, i.e. 0...(len(self.prediction_histogram)-1).
@@ -158,7 +160,7 @@ class ContinuousQuestion(MetaculusQuestion):
         :return: distribution on integers
         """
         y2 = [p[2] for p in self.prediction_histogram]
-        return Categorical(np.array(y2))
+        return dist.Categorical(np.array(y2))
 
     def sample_normalized_community(self) -> float:
         """
@@ -171,8 +173,8 @@ class ContinuousQuestion(MetaculusQuestion):
         """
 
         # FIXME: Samples below/above range are pretty arbitrary
-        sample_below_range = -halfnormal(0.1)
-        sample_above_range = 1 + halfnormal(0.1)
+        sample_below_range = -dist.halfnormal(0.1)
+        sample_above_range = 1 + dist.halfnormal(0.1)
         sample_in_range = ppl.sample(self.community_dist_in_range()) / float(
             len(self.prediction_histogram)
         )
@@ -180,7 +182,7 @@ class ContinuousQuestion(MetaculusQuestion):
         p_above = 1 - self.latest_community_percentiles["high"]
         p_in_range = 1 - p_below - p_above
         return float(
-            random_choice(
+            dist.random_choice(
                 [sample_below_range, sample_in_range, sample_above_range],
                 ps=[p_below, p_in_range, p_above],
             )
@@ -207,17 +209,17 @@ class ContinuousQuestion(MetaculusQuestion):
 
     def get_submission_from_samples(
         self, samples: Union[pd.Series, np.ndarray], verbose=False
-    ) -> LogisticMixture:
+    ) -> dist.LogisticMixture:
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
-        _dist: LogisticMixture = LogisticMixture.from_samples(
+        _dist: dist.LogisticMixture = dist.LogisticMixture.from_samples(
             normalized_samples, verbose=verbose
         )
         return self.prepare_logistic_mixture(_dist)
 
     @staticmethod
-    def format_logistic_for_api(submission: Logistic, weight: float) -> dict:
+    def format_logistic_for_api(submission: dist.Logistic, weight: float) -> dict:
         if submission.metadata is None:
             raise ValueError("Submission distribution needs metadata (low, high)")
         # Convert all the numbers to floats here so that you can be sure that
@@ -232,7 +234,7 @@ class ContinuousQuestion(MetaculusQuestion):
             "high": float(submission.metadata["high"]),
         }
 
-    def submit(self, submission: LogisticMixture) -> requests.Response:
+    def submit(self, submission: dist.LogisticMixture) -> requests.Response:
         prediction_data = {
             "prediction": {
                 "kind": "multi",
@@ -264,23 +266,23 @@ class ContinuousQuestion(MetaculusQuestion):
         return self.submit(submission)
 
     @staticmethod
-    def get_logistic_from_json(logistic_json: Dict) -> Logistic:
-        return Logistic(
+    def get_logistic_from_json(logistic_json: Dict) -> dist.Logistic:
+        return dist.Logistic(
             logistic_json["x0"],
             logistic_json["s"],
             metadata={"low": logistic_json["low"], "high": logistic_json["high"]},
         )
 
     @classmethod
-    def get_submission_from_json(cls, submission_json: Dict) -> LogisticMixture:
+    def get_submission_from_json(cls, submission_json: Dict) -> dist.LogisticMixture:
         components = [
             cls.get_logistic_from_json(logistic_json)
             for logistic_json in submission_json
         ]
         probs = [logistic_json["w"] for logistic_json in submission_json]
-        return LogisticMixture(components, probs)
+        return dist.LogisticMixture(components, probs)
 
-    def get_latest_normalized_prediction(self) -> LogisticMixture:
+    def get_latest_normalized_prediction(self) -> dist.LogisticMixture:
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
         return self.get_submission_from_json(latest_prediction)
 

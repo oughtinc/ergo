@@ -19,5 +19,7 @@ from .base import (
     uniform,
 )
 from .conditions import Condition, PercentileCondition
+from .distribution import Distribution
+from .histogram import HistogramDist
 from .location_scale_family import Logistic, Normal
 from .logistic_mixture import LogisticMixture

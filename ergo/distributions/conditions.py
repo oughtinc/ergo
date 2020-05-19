@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List
 
-from typing_extensions import TypedDict
+from jax import vmap
+import jax.numpy as np
+
+from .types import Histogram
 
 
 class Condition(ABC):
@@ -33,21 +35,24 @@ class PercentileCondition(Condition):
         return f"There is a {round(self.percentile * 100)}% chance that the value is <{self.value}"
 
 
-HistogramEntry = TypedDict("HistogramEntry", {"x": float, "density": float})
-Histogram = List[HistogramEntry]
-
-
 @dataclass
 class HistogramCondition(Condition):
     histogram: Histogram
     weight: float = 1.0
 
-    def loss(self, dist):
+    def _loss_loop(self, dist):
         total_loss = 0.0
         for entry in self.histogram:
             target_density = entry["density"]
             actual_density = dist.pdf1(entry["x"])
             total_loss += (actual_density - target_density) ** 2
+        return self.weight * total_loss / len(self.histogram)
+
+    def loss(self, dist):
+        xs = np.array([entry["x"] for entry in self.histogram])
+        densities = np.array([entry["density"] for entry in self.histogram])
+        entry_loss_fn = lambda x, density: (density - dist.pdf1(x)) ** 2  # noqa: E731
+        total_loss = np.sum(vmap(entry_loss_fn)(xs, densities))
         return self.weight * total_loss / len(self.histogram)
 
     def __str__(self):
