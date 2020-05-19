@@ -11,3 +11,4 @@ docs/build
 .ipynb_checkpoints
 **.ipynb_checkpoints
 **.ob-jupyter*
+**.prof
