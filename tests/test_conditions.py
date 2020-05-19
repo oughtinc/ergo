@@ -104,3 +104,5 @@ def test_interval_loss():
     assert IntervalCondition(p=0.25, low=0, high=1).loss(dist) == 0.25 ** 2
     assert IntervalCondition(p=1, high=0).loss(dist) == 0.5 ** 2
     assert IntervalCondition(p=1).loss(dist) == 0
+    assert IntervalCondition(p=0, low=-1, high=1).loss(dist) == 1
+    assert IntervalCondition(p=0, low=-1, high=1, weight=10).loss(dist) == 10
