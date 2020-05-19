@@ -18,8 +18,13 @@ from plotnine import (
 import requests
 
 from ergo import ppl
-from ergo.distributions.base import Categorical, halfnormal, random_choice
-from ergo.distributions.logistic import Logistic, LogisticMixture
+from ergo.distributions import (
+    Categorical,
+    Logistic,
+    LogisticMixture,
+    halfnormal,
+    random_choice,
+)
 from ergo.theme import ergo_theme
 from ergo.utils import memoized_method
 
@@ -206,7 +211,9 @@ class ContinuousQuestion(MetaculusQuestion):
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
-        _dist = LogisticMixture.from_samples(normalized_samples, verbose=verbose)
+        _dist: LogisticMixture = LogisticMixture.from_samples(
+            normalized_samples, verbose=verbose
+        )
         return self.prepare_logistic_mixture(_dist)
 
     @staticmethod

@@ -1,17 +1,15 @@
 """
-Mixtures of logistic distributions
+Mixture distributions
 
-Jax jitting and scipy optimization don't handle classes well so we'll
-partially have to work with arrays directly (all the params_*
-classmethods).
+This module contains both the base Mixture Class as well as the Location-Scale Family
+Mixture Subclass.
 """
-from dataclasses import dataclass
-from functools import partial
+from dataclasses import dataclass, field
 import itertools
-from typing import Any, Dict, List, Optional
+from typing import List, Optional, Sequence, Type, TypeVar
 import warnings
 
-from jax import grad, jit, nn, scipy, vmap
+from jax import grad, jit, nn, scipy
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
@@ -20,91 +18,27 @@ from ergo.utils import minimize
 
 from .base import categorical
 from .conditions import Condition, PercentileCondition
+from .distribution import Distribution
+from .location_scale_family import LSDistribution
 
-
-class Distribution:
-    pass
-
-
-@dataclass
-class Logistic(Distribution):
-    loc: float
-    scale: float
-    metadata: Optional[Dict[str, Any]]
-
-    def __init__(self, loc: float, scale: float, metadata=None):
-        self.loc = loc
-        self.scale = np.max([scale, 0.0000001])  # Do not allow values <= 0
-        self.metadata = metadata
-
-    def __mul__(self, x):
-        return Logistic(self.loc * x, self.scale * x)
-
-    def rv(self,):
-        return oscipy.stats.logistic(loc=self.loc, scale=self.scale)
-
-    def sample(self):
-        # FIXME (#296): This needs to be compatible with ergo sampling
-        return onp.random.logistic(loc=self.loc, scale=self.scale)
-
-    def cdf(self, x):
-        y = (x - self.loc) / self.scale
-        return scipy.stats.logistic.cdf(y)
-
-    def ppf(self, q):
-        """
-        Percent point function (inverse of cdf) at q.
-        """
-        return self.rv().ppf(q)
-
-    @classmethod
-    def from_samples_scipy(cls, samples) -> "Logistic":
-        with onp.errstate(all="raise"):  # type: ignore
-            loc, scale = oscipy.stats.logistic.fit(samples)
-            return cls(loc, scale)
-
-    @classmethod
-    def from_conditions(
-        self, conditions: List[Condition], initial_dist: Optional["Logistic"] = None
-    ):
-        raise NotImplementedError
-
-    @staticmethod
-    def from_samples(samples) -> "Logistic":
-        mixture = LogisticMixture.from_samples(samples, num_components=1)
-        return mixture.components[0]
-
-    @staticmethod
-    @jit
-    def params_logpdf(x, loc, scale):
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.logistic.html
-        y = (x - loc) / scale
-        return scipy.stats.logistic.logpdf(y) - np.log(scale)
+M = TypeVar("M", bound="Mixture")
 
 
 @dataclass
-class LogisticMixture(Distribution):
-    components: List[Logistic]
+class Mixture(Distribution):
+    components: Sequence[Distribution]
     probs: List[float]
 
     def __mul__(self, x):
-        return LogisticMixture(
+        return self.__class__(
             [component * x for component in self.components], self.probs
         )
 
-    def sample(self):
-        i = categorical(np.array(self.probs))
-        component_dist = self.components[i]
-        return component_dist.sample()
+    def rv(self,):
+        raise NotImplementedError("No access to mixture rv at this time")
 
-    def logpdf(self, data):
-        return self.params_logpdf(self.to_params(), data)
-
-    def logpdf1(self, datum):
-        return self.params_logpdf1(self.to_params(), datum)
-
-    def pdf1(self, datum):
-        return np.exp(self.logpdf1(datum))
+    def cdf(self, x):
+        return np.sum([c.cdf(x) * p for c, p in zip(self.components, self.probs)])
 
     def ppf(self, q):
         """
@@ -129,16 +63,17 @@ class LogisticMixture(Distribution):
             maxiter=1000,
         )
 
-    def cdf(self, x):
-        return np.sum(
-            [component.cdf(x) * p for component, p in zip(self.components, self.probs)]
-        )
+    def sample(self):
+        i = categorical(np.array(self.probs))
+        component_dist = self.components[i]
+        return component_dist.sample()
+
+    @staticmethod
+    def initialize_params(num_components):
+        raise NotImplementedError("This should be implemented by a subclass")
 
     def to_params(self):
-        nested_params = [
-            [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
-        ]
-        return np.array(list(itertools.chain.from_iterable(nested_params)))
+        raise NotImplementedError("This should be implemented by a subclass")
 
     def to_percentiles(self, percentiles=None):
         if percentiles is None:
@@ -176,21 +111,9 @@ class LogisticMixture(Distribution):
         return condition_from_params(final_params)
 
     @classmethod
-    def from_params(cls, params):
-        structured_params = params.reshape((-1, 3))
-        unnormalized_weights = structured_params[:, 2]
-        probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
-        component_dists = [Logistic(p[0], p[1]) for p in structured_params]
-        return cls(component_dists, probs)
-
-    @classmethod
     def from_samples(
-        cls,
-        data,
-        initial_dist: Optional["LogisticMixture"] = None,
-        num_components=3,
-        verbose=False,
-    ):
+        cls, data, initial_dist: Optional[M] = None, num_components=3, verbose=False,
+    ) -> M:
         data = np.array(data)
         z = float(np.mean(data))
         normalized_data = data / z
@@ -205,13 +128,17 @@ class LogisticMixture(Distribution):
         return dist * z
 
     @classmethod
+    def from_params(cls, params):
+        raise NotImplementedError("This should be implemented by a subclass")
+
+    @classmethod
     def from_conditions(
         cls,
         conditions: List[Condition],
-        initial_dist: Optional["LogisticMixture"] = None,
+        initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
-    ):
+    ) -> M:
         def _loss(params):
             dist = cls.from_params(params)
             total_loss = 0.0
@@ -229,10 +156,10 @@ class LogisticMixture(Distribution):
         cls,
         loss,
         jac,
-        initial_dist: Optional["LogisticMixture"] = None,
+        initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
-    ):
+    ) -> M:
         if initial_dist:
             init = lambda: initial_dist.to_params()  # noqa: E731
         elif num_components:
@@ -247,6 +174,30 @@ class LogisticMixture(Distribution):
 
         return cls.from_params(final_params)
 
+    def logpdf(self, data):
+        return self.params_logpdf(self.to_params(), data)
+
+    def logpdf1(self, datum):
+        return self.params_logpdf1(self.to_params(), datum)
+
+    def pdf1(self, datum):
+        return np.exp(self.logpdf1(datum))
+
+    @staticmethod
+    def params_cdf(params, x):
+        raise NotImplementedError
+
+    @staticmethod
+    def params_ppf(params, p):
+        raise NotImplementedError
+
+
+@dataclass
+class LSMixture(Mixture):
+    components: Sequence[LSDistribution]
+    probs: List[float]
+    component_type: Type[LSDistribution] = field(repr=False)
+
     @staticmethod
     def initialize_params(num_components):
         """
@@ -260,40 +211,16 @@ class LogisticMixture(Distribution):
         components[:, 2] = -num_components
         return components.reshape(-1)
 
-    @staticmethod
-    @jit
-    def params_logpdf1(params, datum):
+    @classmethod
+    def from_params(cls, params):
         structured_params = params.reshape((-1, 3))
-        component_scores = []
-        unnormalized_weights = np.array([p[2] for p in structured_params])
-        weights = nn.log_softmax(unnormalized_weights)
-        for p, weight in zip(structured_params, weights):
-            loc = p[0]
-            scale = np.max([p[1], 0.01])  # Find a better solution?
-            component_scores.append(Logistic.params_logpdf(datum, loc, scale) + weight)
-        return scipy.special.logsumexp(np.array(component_scores))
+        unnormalized_weights = structured_params[:, 2]
+        probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
+        component_dists = [cls.component_type(p[0], p[1]) for p in structured_params]
+        return cls(component_dists, probs)
 
-    @staticmethod
-    def params_logpdf(params, data):
-        return _mixture_params_logpdf(params, data)
-
-    @staticmethod
-    def params_gradlogpdf(params, data):
-        return _mixture_params_gradlogpdf(params, data)
-
-    @staticmethod
-    def params_cdf(params, x):
-        raise NotImplementedError
-
-    @staticmethod
-    def params_ppf(params, p):
-        raise NotImplementedError
-
-
-@jit
-def _mixture_params_logpdf(params, data):
-    scores = vmap(partial(LogisticMixture.params_logpdf1, params))(data)
-    return np.sum(scores)
-
-
-_mixture_params_gradlogpdf = jit(grad(_mixture_params_logpdf, argnums=0))
+    def to_params(self):
+        nested_params = [
+            [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
+        ]
+        return np.array(list(itertools.chain.from_iterable(nested_params)))

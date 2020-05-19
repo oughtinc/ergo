@@ -1,6 +1,6 @@
 import jax.numpy as np
 
-from ergo.distributions.logistic import Logistic, LogisticMixture
+from ergo.distributions import Logistic, LogisticMixture
 
 from .continuous import ContinuousQuestion
 
