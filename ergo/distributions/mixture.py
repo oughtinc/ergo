@@ -126,18 +126,18 @@ class Mixture(Distribution):
         initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
+        tries=5,
     ) -> M:
-        def _loss(params):
+        def loss(params):
             dist = cls.from_params(params)
-            total_loss = 0.0
-            for condition in conditions:
-                total_loss += condition.loss(dist)
+            total_loss = sum(condition.loss(dist) for condition in conditions)
             return total_loss * 100
 
-        loss = jit(_loss)
+        loss = jit(loss)
         jac = jit(grad(loss))
-
-        return cls.from_loss(loss, jac, initial_dist, num_components, verbose)
+        return cls.from_loss(
+            loss, jac, initial_dist, num_components, verbose, tries=tries
+        )
 
     @classmethod
     def from_loss(
@@ -147,6 +147,7 @@ class Mixture(Distribution):
         initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
+        tries=5,
     ) -> M:
         if initial_dist:
             init = lambda: initial_dist.to_params()  # noqa: E731
@@ -155,7 +156,7 @@ class Mixture(Distribution):
         else:
             raise ValueError("Need to provide either num_components or initial_dist")
 
-        fit_results = minimize(loss, init=init, jac=jac, tries=5, verbose=verbose)
+        fit_results = minimize(loss, init=init, jac=jac, tries=tries, verbose=verbose)
         if not fit_results.success and verbose:
             print(fit_results)
         final_params = fit_results.x
@@ -169,7 +170,9 @@ class Mixture(Distribution):
         return self.params_logpdf1(self.to_params(), datum)
 
     def pdf1(self, datum):
-        return np.exp(self.logpdf1(datum))
+        # Not calling logpdf1 because we only want to call
+        # to_params once even if we call this with a vector
+        return np.exp(self.params_logpdf1(self.to_params(), datum))
 
     @staticmethod
     def params_cdf(params, x):
@@ -203,7 +206,7 @@ class LSMixture(Mixture):
     def from_params(cls, params):
         structured_params = params.reshape((-1, 3))
         unnormalized_weights = structured_params[:, 2]
-        probs = list(np.exp(nn.log_softmax(unnormalized_weights)))
+        probs = list(nn.softmax(unnormalized_weights))
         component_dists = [cls.component_type(p[0], p[1]) for p in structured_params]
         return cls(component_dists, probs)
 
