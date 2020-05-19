@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import ergo
-from ergo.distributions.logistic import Logistic, LogisticMixture
+from ergo.distributions import Logistic, LogisticMixture
 
 
 @pytest.fixture(scope="module")

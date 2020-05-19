@@ -1,5 +1,6 @@
 from .base import (
     BetaFromHits,
+    Categorical,
     LogNormalFromInterval,
     NormalFromInterval,
     bernoulli,
@@ -7,6 +8,7 @@ from .base import (
     beta_from_hits,
     categorical,
     flip,
+    halfnormal,
     halfnormal_from_interval,
     lognormal,
     lognormal_from_interval,
@@ -17,4 +19,5 @@ from .base import (
     uniform,
 )
 from .conditions import Condition, PercentileCondition
-from .logistic import Logistic, LogisticMixture
+from .location_scale_family import Logistic, Normal
+from .logistic_mixture import LogisticMixture
