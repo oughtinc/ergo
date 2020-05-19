@@ -75,3 +75,54 @@ def test_weights():
     ]
     dist = LogisticMixture.from_conditions(conditions, num_components=1, verbose=True)
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
+
+
+def test_histogram_condition(histogram, normalized_logistic_mixture):
+    condition = HistogramCondition(histogram)
+    vectorized_loss = float(condition.loss(normalized_logistic_mixture))
+    loop_loss = float(condition._loss_loop(normalized_logistic_mixture))
+    assert vectorized_loss == pytest.approx(loop_loss, rel=0.0001)
+
+
+def test_mixed_1(histogram):
+    conditions = [
+        PercentileCondition(percentile=0.4, value=1),
+        PercentileCondition(percentile=0.45, value=1.2),
+        PercentileCondition(percentile=0.47, value=1.3),
+        PercentileCondition(percentile=0.5, value=2),
+        PercentileCondition(percentile=0.8, value=2.2),
+        PercentileCondition(percentile=0.9, value=2.3),
+        HistogramCondition(histogram),
+    ]
+    dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
+    assert dist.pdf1(-5) == pytest.approx(0, abs=0.1)
+    assert dist.pdf1(6) == pytest.approx(0, abs=0.1)
+
+
+def test_mixed_2(histogram):
+    conditions = [
+        HistogramCondition(histogram),
+        PercentileCondition(percentile=0.4, value=1),
+        PercentileCondition(percentile=0.45, value=1.2),
+        PercentileCondition(percentile=0.48, value=1.3),
+        PercentileCondition(percentile=0.5, value=2),
+        PercentileCondition(percentile=0.7, value=2.2),
+        PercentileCondition(percentile=0.9, value=2.3),
+    ]
+    dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
+    assert dist.pdf1(-5) == pytest.approx(0, abs=0.1)
+    assert dist.pdf1(6) == pytest.approx(0, abs=0.1)
+
+
+def compare_runtimes():
+    from tests.conftest import make_histogram
+
+    histogram = make_histogram()
+    import time
+
+    start = time.time()
+    test_mixed_1(histogram)
+    mid = time.time()
+    print(f"Total time (1): {mid - start:.2f}s")
+    test_mixed_2(histogram)
+    print(f"Total time (2): {time.time() - mid:.2f}s")
