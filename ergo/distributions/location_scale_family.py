@@ -35,7 +35,6 @@ class LSDistribution(Distribution):
         # TODO (#303): Raise ValueError on scale < 0
         self.scale = np.max([scale, 0.0000001])
         self.loc = loc
-        self.scale = scale
         self.metadata = metadata
 
     def __mul__(self, x):
