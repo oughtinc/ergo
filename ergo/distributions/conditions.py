@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List
 
-from typing_extensions import TypedDict
+from .types import Histogram
 
 
 class Condition(ABC):
@@ -31,10 +30,6 @@ class PercentileCondition(Condition):
 
     def __str__(self):
         return f"There is a {round(self.percentile * 100)}% chance that the value is <{self.value}"
-
-
-HistogramEntry = TypedDict("HistogramEntry", {"x": float, "density": float})
-Histogram = List[HistogramEntry]
 
 
 @dataclass

@@ -8,6 +8,7 @@ import ergo.utils
 
 from .distributions import (
     BetaFromHits,
+    HistogramDist,
     Logistic,
     LogisticMixture,
     LogNormalFromInterval,

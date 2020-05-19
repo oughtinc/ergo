@@ -30,7 +30,7 @@ def test_percentiles_from_mixture():
         components=[Logistic(loc=1, scale=0.1), Logistic(loc=2, scale=0.1)],
         probs=[0.5, 0.5],
     )
-    conditions = mixture.to_percentiles(percentiles=[0.1, 0.5, 0.9])
+    conditions = mixture.percentiles(percentiles=[0.1, 0.5, 0.9])
     for condition in conditions:
         if condition.percentile == pytest.approx(0.5):
             assert condition.value == pytest.approx(1.5, rel=0.01)
@@ -50,7 +50,7 @@ def test_percentile_roundtrip():
     mixture = LogisticMixture.from_conditions(
         conditions, num_components=3, verbose=True
     )
-    recovered_conditions = mixture.to_percentiles(
+    recovered_conditions = mixture.percentiles(
         percentiles=[condition.percentile for condition in conditions]
     )
     for (condition, recovered_condition) in zip(conditions, recovered_conditions):

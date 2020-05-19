@@ -72,15 +72,6 @@ class Mixture(Distribution):
     def to_params(self):
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def to_percentiles(self, percentiles=None):
-        if percentiles is None:
-            percentiles = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
-        values = [self.ppf(q) for q in percentiles]
-        return [
-            PercentileCondition(percentile, value)
-            for (percentile, value) in zip(percentiles, values)
-        ]
-
     def to_conditions(self, verbose=False):
         """
         Convert mixture to a set of percentile statements that

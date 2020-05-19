@@ -40,7 +40,7 @@ class LSDistribution(Distribution):
     def __mul__(self, x):
         return self.__class__(self.loc * x, self.scale * x)
 
-    def rv(self,):
+    def rv(self):
         return self.odist(loc=self.loc, scale=self.scale)
 
     def cdf(self, x):
