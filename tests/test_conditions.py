@@ -1,12 +1,13 @@
+from dataclasses import dataclass
+
 import pytest
 
 from ergo import Logistic, LogisticMixture
 from ergo.distributions.conditions import (
     HistogramCondition,
-    PercentileCondition,
     IntervalCondition,
+    PercentileCondition,
 )
-from dataclasses import dataclass
 
 
 def test_mixture_from_percentile():

@@ -78,7 +78,7 @@ class HistogramCondition(Condition):
 class IntervalCondition(Condition):
     """
     Condition that the specified interval should include
-    as close to the specified probability mass as possible 
+    as close to the specified probability mass as possible
 
     :raises ValueError: max must be strictly greater than min
     """
