@@ -1,9 +1,11 @@
-import pandas as pd
-import numpy as np
 from datetime import date
-from ergo.contrib.utils import daterange
 from typing import Tuple
+
+import numpy as np
+import pandas as pd
+
 import ergo
+from ergo.contrib.utils import daterange
 
 
 def extract_projections_for_param(
