@@ -1,7 +1,13 @@
+from dataclasses import dataclass
+
 import pytest
 
 from ergo import Logistic, LogisticMixture
-from ergo.distributions.conditions import HistogramCondition, PercentileCondition
+from ergo.distributions.conditions import (
+    HistogramCondition,
+    IntervalCondition,
+    PercentileCondition,
+)
 
 
 def test_mixture_from_percentile():
@@ -75,6 +81,32 @@ def test_weights():
     ]
     dist = LogisticMixture.from_conditions(conditions, num_components=1, verbose=True)
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
+
+
+@dataclass
+class Uniform:
+    min: float = 0
+    max: float = 1
+
+    def cdf(self, value):
+        if value < self.min:
+            return 0
+
+        if value > self.max:
+            return 1
+
+        return (value - self.min) / (self.max - self.min)
+
+
+def test_interval_loss():
+    dist = Uniform(min=-1, max=1)
+
+    assert IntervalCondition(p=0.5, min=0, max=1).loss(dist) == 0
+    assert IntervalCondition(p=0.25, min=0, max=1).loss(dist) == 0.25 ** 2
+    assert IntervalCondition(p=1, max=0).loss(dist) == 0.5 ** 2
+    assert IntervalCondition(p=1).loss(dist) == 0
+    assert IntervalCondition(p=0, min=-1, max=1).loss(dist) == 1
+    assert IntervalCondition(p=0, min=-1, max=1, weight=10).loss(dist) == 10
 
 
 def test_histogram_condition(histogram, normalized_logistic_mixture):

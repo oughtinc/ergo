@@ -10,6 +10,14 @@ from .types import Histogram
 class Condition(ABC):
     @abstractmethod
     def loss(self, dist):
+        """
+        Loss function for this condition when fitting a distribution.
+
+        Should have max loss = 1 without considering weight
+        Should multiple loss * weight
+
+        :param dist: A probability distribution
+        """
         ...
 
 
@@ -32,11 +40,18 @@ class PercentileCondition(Condition):
         return self.weight * (actual_percentile - target_percentile) ** 2
 
     def __str__(self):
-        return f"There is a {round(self.percentile * 100)}% chance that the value is <{self.value}"
+        return (
+            f"There is a {self.percentile:.0%} chance that the value is <{self.value}"
+        )
 
 
 @dataclass
 class HistogramCondition(Condition):
+    """
+    Condition that the distribution should fit the specified histogram
+    as closely as possible
+    """
+
     histogram: Histogram
     weight: float = 1.0
 
@@ -57,3 +72,38 @@ class HistogramCondition(Condition):
 
     def __str__(self):
         return f"The probability density function looks similar to the provided density function."
+
+
+@dataclass
+class IntervalCondition(Condition):
+    """
+    Condition that the specified interval should include
+    as close to the specified probability mass as possible
+
+    :raises ValueError: max must be strictly greater than min
+    """
+
+    p: float
+    min: float
+    max: float
+    weight: float
+
+    def __init__(self, p, min=float("-inf"), max=float("inf"), weight=1.0):
+        if max <= min:
+            raise ValueError(
+                f"max must be strictly greater than min, got max: {max}, min: {min}"
+            )
+
+        self.p = p
+        self.min = min
+        self.max = max
+        self.weight = weight
+
+    def loss(self, dist):
+        cdf_at_min = dist.cdf(self.min) if self.min is not float("-inf") else 0
+        cdf_at_max = dist.cdf(self.max) if self.max is not float("inf") else 1
+        actual_p = cdf_at_max - cdf_at_min
+        return self.weight * (actual_p - self.p) ** 2
+
+    def __str__(self):
+        return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"
