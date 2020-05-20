@@ -10,6 +10,14 @@ from .types import Histogram
 class Condition(ABC):
     @abstractmethod
     def loss(self, dist):
+        """
+        Loss function for this condition when fitting a distribution.
+
+        Should have max loss = 1 without considering weight
+        Should multiple loss * weight
+
+        :param dist: A probability distribution
+        """
         ...
 
 
@@ -39,6 +47,11 @@ class PercentileCondition(Condition):
 
 @dataclass
 class HistogramCondition(Condition):
+    """
+    Condition that the distribution should fit the specified histogram
+    as closely as possible
+    """
+
     histogram: Histogram
     weight: float = 1.0
 
@@ -63,6 +76,13 @@ class HistogramCondition(Condition):
 
 @dataclass
 class IntervalCondition(Condition):
+    """
+    Condition that the specified interval should include
+    as close to the specified probability mass as possible 
+
+    :raises ValueError: max must be strictly greater than min
+    """
+
     p: float
     min: float
     max: float
@@ -71,7 +91,7 @@ class IntervalCondition(Condition):
     def __init__(self, p, min=float("-inf"), max=float("inf"), weight=1.0):
         if max <= min:
             raise ValueError(
-                f"max must be greater than min, got max: {max}, min: {min}"
+                f"max must be strictly greater than min, got max: {max}, min: {min}"
             )
 
         self.p = p
