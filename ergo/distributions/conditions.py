@@ -10,7 +10,7 @@ from .types import Histogram
 
 class Condition(ABC):
     @abstractmethod
-    def loss(self, dist) -> float:
+    def loss(self, dist):
         """
         Loss function for this condition when fitting a distribution.
 
@@ -28,7 +28,9 @@ class Condition(ABC):
         :return: A description of various aspects of how well
         the distribution meets the condition
         """
-        return {"loss": self.loss(dist)}
+
+        # convert to float for easy serialization
+        return {"loss": float(self.loss(dist))}
 
 
 @dataclass
@@ -53,7 +55,7 @@ class PercentileCondition(Condition):
         description = super().describe_fit(dist)
 
         # report the acutal probability mass in the interval
-        description["p_in_interval"] = dist.cdf(self.value)
+        description["p_in_interval"] = float(dist.cdf(self.value))
         return description
 
     def __str__(self):
@@ -100,7 +102,7 @@ class IntervalCondition(Condition):
         description = super().describe_fit(dist)
 
         # report the acutal probability mass in the interval
-        description["p_in_interval"] = self.actual_p(dist)
+        description["p_in_interval"] = float(self.actual_p(dist))
         return description
 
     def __str__(self):
