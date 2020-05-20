@@ -100,12 +100,12 @@ class Uniform:
 def test_interval_loss():
     dist = Uniform(min=-1, max=1)
 
-    assert IntervalCondition(p=0.5, low=0, high=1).loss(dist) == 0
-    assert IntervalCondition(p=0.25, low=0, high=1).loss(dist) == 0.25 ** 2
-    assert IntervalCondition(p=1, high=0).loss(dist) == 0.5 ** 2
+    assert IntervalCondition(p=0.5, min=0, max=1).loss(dist) == 0
+    assert IntervalCondition(p=0.25, min=0, max=1).loss(dist) == 0.25 ** 2
+    assert IntervalCondition(p=1, max=0).loss(dist) == 0.5 ** 2
     assert IntervalCondition(p=1).loss(dist) == 0
-    assert IntervalCondition(p=0, low=-1, high=1).loss(dist) == 1
-    assert IntervalCondition(p=0, low=-1, high=1, weight=10).loss(dist) == 10
+    assert IntervalCondition(p=0, min=-1, max=1).loss(dist) == 1
+    assert IntervalCondition(p=0, min=-1, max=1, weight=10).loss(dist) == 10
 
 
 def test_histogram_condition(histogram, normalized_logistic_mixture):
