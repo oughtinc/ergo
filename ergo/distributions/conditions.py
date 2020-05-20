@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from typing import Dict, Any
 from jax import vmap
 import jax.numpy as np
 
@@ -9,7 +10,7 @@ from .types import Histogram
 
 class Condition(ABC):
     @abstractmethod
-    def loss(self, dist):
+    def loss(self, dist) -> float:
         """
         Loss function for this condition when fitting a distribution.
 
@@ -18,7 +19,16 @@ class Condition(ABC):
 
         :param dist: A probability distribution
         """
-        ...
+
+    def describe_fit(self, dist) -> Dict[str, Any]:
+        """
+        Describe how well the distribution meets the condition
+
+        :param dist: A probability distribution
+        :return: A description of various aspects of how well
+        the distribution meets the condition
+        """
+        return {"loss": self.loss(dist)}
 
 
 @dataclass
@@ -39,10 +49,58 @@ class PercentileCondition(Condition):
         actual_percentile = dist.cdf(self.value)
         return self.weight * (actual_percentile - target_percentile) ** 2
 
+    def describe_fit(self, dist):
+        description = super().describe_fit(dist)
+        description["p_in_interval"] = dist.cdf(self.value)
+        return description
+
     def __str__(self):
         return (
             f"There is a {self.percentile:.0%} chance that the value is <{self.value}"
         )
+
+
+@dataclass
+class IntervalCondition(Condition):
+    """
+    Condition that the specified interval should include
+    as close to the specified probability mass as possible
+
+    :raises ValueError: max must be strictly greater than min
+    """
+
+    p: float
+    min: float
+    max: float
+    weight: float
+
+    def __init__(self, p, min=float("-inf"), max=float("inf"), weight=1.0):
+        if max <= min:
+            raise ValueError(
+                f"max must be strictly greater than min, got max: {max}, min: {min}"
+            )
+
+        self.p = p
+        self.min = min
+        self.max = max
+        self.weight = weight
+
+    def actual_p(self, dist) -> float:
+        cdf_at_min = dist.cdf(self.min) if self.min is not float("-inf") else 0
+        cdf_at_max = dist.cdf(self.max) if self.max is not float("inf") else 1
+        return cdf_at_max - cdf_at_min
+
+    def loss(self, dist):
+        actual_p = self.actual_p(dist)
+        return self.weight * (actual_p - self.p) ** 2
+
+    def describe_fit(self, dist):
+        description = super().describe_fit(dist)
+        description["p_in_interval"] = self.actual_p(dist)
+        return description
+
+    def __str__(self):
+        return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"
 
 
 @dataclass
@@ -72,38 +130,3 @@ class HistogramCondition(Condition):
 
     def __str__(self):
         return f"The probability density function looks similar to the provided density function."
-
-
-@dataclass
-class IntervalCondition(Condition):
-    """
-    Condition that the specified interval should include
-    as close to the specified probability mass as possible
-
-    :raises ValueError: max must be strictly greater than min
-    """
-
-    p: float
-    min: float
-    max: float
-    weight: float
-
-    def __init__(self, p, min=float("-inf"), max=float("inf"), weight=1.0):
-        if max <= min:
-            raise ValueError(
-                f"max must be strictly greater than min, got max: {max}, min: {min}"
-            )
-
-        self.p = p
-        self.min = min
-        self.max = max
-        self.weight = weight
-
-    def loss(self, dist):
-        cdf_at_min = dist.cdf(self.min) if self.min is not float("-inf") else 0
-        cdf_at_max = dist.cdf(self.max) if self.max is not float("inf") else 1
-        actual_p = cdf_at_max - cdf_at_min
-        return self.weight * (actual_p - self.p) ** 2
-
-    def __str__(self):
-        return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"

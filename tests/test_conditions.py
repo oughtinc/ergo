@@ -98,7 +98,7 @@ class Uniform:
         return (value - self.min) / (self.max - self.min)
 
 
-def test_interval_loss():
+def test_interval_condition():
     dist = Uniform(min=-1, max=1)
 
     assert IntervalCondition(p=0.5, min=0, max=1).loss(dist) == 0
@@ -107,6 +107,16 @@ def test_interval_loss():
     assert IntervalCondition(p=1).loss(dist) == 0
     assert IntervalCondition(p=0, min=-1, max=1).loss(dist) == 1
     assert IntervalCondition(p=0, min=-1, max=1, weight=10).loss(dist) == 10
+
+    assert (
+        IntervalCondition(p=0.25, min=0, max=1).describe_fit(dist)["loss"] == 0.25 ** 2
+    )
+    assert (
+        IntervalCondition(p=0, min=-1, max=0).describe_fit(dist)["p_in_interval"] == 0.5
+    )
+    assert (
+        IntervalCondition(p=1, min=-1, max=0).describe_fit(dist)["p_in_interval"] == 0.5
+    )
 
 
 def test_histogram_condition(histogram, normalized_logistic_mixture):
