@@ -72,7 +72,7 @@ class MetaculusQuestion:
         elif self.data:
             return f'<MetaculusQuestion title="{self.title}">'
         else:
-            return f"<MetaculusQuestion>"
+            return "<MetaculusQuestion>"
 
     def __str__(self):
         return repr(self)

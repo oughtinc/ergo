@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any, Dict
 
-from typing import Dict, Any
 from jax import vmap
 import jax.numpy as np
 
@@ -54,7 +54,7 @@ class PercentileCondition(Condition):
     def describe_fit(self, dist):
         description = super().describe_fit(dist)
 
-        # report the acutal probability mass in the interval
+        # report the actual probability mass in the interval
         description["p_in_interval"] = float(dist.cdf(self.value))
         return description
 
@@ -90,8 +90,8 @@ class IntervalCondition(Condition):
         self.weight = weight
 
     def actual_p(self, dist) -> float:
-        cdf_at_min = dist.cdf(self.min) if self.min is not float("-inf") else 0
-        cdf_at_max = dist.cdf(self.max) if self.max is not float("inf") else 1
+        cdf_at_min = dist.cdf(self.min) if not np.isneginf(self.min) else 0
+        cdf_at_max = dist.cdf(self.max) if not np.isposinf(self.max) else 1
         return cdf_at_max - cdf_at_min
 
     def loss(self, dist):
@@ -135,4 +135,4 @@ class HistogramCondition(Condition):
         return self.weight * total_loss / len(self.histogram)
 
     def __str__(self):
-        return f"The probability density function looks similar to the provided density function."
+        return "The probability density function looks similar to the provided density function."

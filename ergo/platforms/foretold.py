@@ -161,7 +161,7 @@ class ForetoldQuestion:
         try:
             self.channelId = data["channelId"]
         except (KeyError, TypeError):
-            raise ValueError(f"Foretold data missing or invalid")
+            raise ValueError("Foretold data missing or invalid")
 
         # If floatCdf is not available, we can just keep it as None
         try:
