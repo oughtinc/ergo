@@ -15,7 +15,7 @@ class Condition(ABC):
         Loss function for this condition when fitting a distribution.
 
         Should have max loss = 1 without considering weight
-        Should multiple loss * weight
+        Should multiply loss * weight
 
         :param dist: A probability distribution
         """
@@ -101,7 +101,7 @@ class IntervalCondition(Condition):
     def describe_fit(self, dist):
         description = super().describe_fit(dist)
 
-        # report the acutal probability mass in the interval
+        # report the actual probability mass in the interval
         description["p_in_interval"] = float(self.actual_p(dist))
         return description
 
