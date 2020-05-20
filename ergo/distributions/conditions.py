@@ -90,8 +90,8 @@ class IntervalCondition(Condition):
         self.weight = weight
 
     def actual_p(self, dist) -> float:
-        cdf_at_min = dist.cdf(self.min) if self.min is not float("-inf") else 0
-        cdf_at_max = dist.cdf(self.max) if self.max is not float("inf") else 1
+        cdf_at_min = dist.cdf(self.min) if not np.isneginf(self.min) else 0
+        cdf_at_max = dist.cdf(self.max) if not np.isposinf(self.max) else 1
         return cdf_at_max - cdf_at_min
 
     def loss(self, dist):
