@@ -51,6 +51,8 @@ class PercentileCondition(Condition):
 
     def describe_fit(self, dist):
         description = super().describe_fit(dist)
+
+        # report the acutal probability mass in the interval
         description["p_in_interval"] = dist.cdf(self.value)
         return description
 
@@ -96,6 +98,8 @@ class IntervalCondition(Condition):
 
     def describe_fit(self, dist):
         description = super().describe_fit(dist)
+
+        # report the acutal probability mass in the interval
         description["p_in_interval"] = self.actual_p(dist)
         return description
 
