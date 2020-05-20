@@ -194,6 +194,7 @@ class Metaculus:
         cat: Union[str, None] = None,
         pages: int = 1,
         include_discussion_questions: bool = False,
+        load_detail: bool = True,
     ) -> List[Dict]:
         """
         Retrieve JSON for multiple questions from Metaculus API.
@@ -240,10 +241,11 @@ class Metaculus:
 
         questions = get_questions_for_pages(query_string, pages)
 
-        # add additional fields ommited from previous query
-        for i, q in enumerate(questions):
-            r = self.s.get(f"{self.api_url}/questions/{q['id']}")
-            questions[i] = dict(r.json(), **q)
+        # Add fields omitted by previous query
+        if load_detail:
+            for i, q in enumerate(questions):
+                r = self.s.get(f"{self.api_url}/questions/{q['id']}")
+                questions[i] = dict(r.json(), **q)
 
         if not include_discussion_questions:
             questions = [
