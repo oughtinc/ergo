@@ -193,7 +193,7 @@ class LSMixture(Mixture):
     component_type: Type[LSDistribution] = field(repr=False)
 
     @staticmethod
-    def initialize_params(num_components):
+    def initialize_params(num_components, scale_multiplier=0.2):
         """
         Each component has (location, scale, weight).
         The shape of the components matrix is (num_components, 3).
@@ -201,8 +201,10 @@ class LSMixture(Mixture):
         We use original numpy to initialize parameters since we don't
         want to track randomness.
         """
-        components = onp.random.rand(num_components, 3) * 0.1 + 1.0
-        components[:, 2] = -num_components
+        locs = onp.random.rand(num_components)
+        scales = onp.random.rand(num_components) * scale_multiplier
+        weights = onp.full(num_components, -num_components)
+        components = onp.stack([locs, scales, weights]).transpose()
         return components.reshape(-1)
 
     @classmethod
