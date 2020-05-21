@@ -18,7 +18,7 @@ from .base import (
     random_integer,
     uniform,
 )
-from .conditions import Condition, PercentileCondition
+from .conditions import Condition
 from .distribution import Distribution
 from .histogram import HistogramDist
 from .location_scale_family import Logistic, Normal

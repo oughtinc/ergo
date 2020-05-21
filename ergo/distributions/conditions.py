@@ -34,37 +34,6 @@ class Condition(ABC):
 
 
 @dataclass
-class PercentileCondition(Condition):
-    percentile: float
-    value: float
-    weight: float
-
-    def __init__(self, percentile, value, weight=1.0):
-        if not 0 <= percentile <= 1:
-            raise ValueError(f"Percentile should be in 0..1, got {percentile}")
-        self.percentile = percentile
-        self.value = value
-        self.weight = weight
-
-    def loss(self, dist):
-        target_percentile = self.percentile
-        actual_percentile = dist.cdf(self.value)
-        return self.weight * (actual_percentile - target_percentile) ** 2
-
-    def describe_fit(self, dist):
-        description = super().describe_fit(dist)
-
-        # report the actual probability mass in the interval
-        description["p_in_interval"] = float(dist.cdf(self.value))
-        return description
-
-    def __str__(self):
-        return (
-            f"There is a {self.percentile:.0%} chance that the value is <{self.value}"
-        )
-
-
-@dataclass
 class IntervalCondition(Condition):
     """
     Condition that the specified interval should include
