@@ -87,7 +87,7 @@ class Mixture(Distribution):
 
         def condition_from_params(params):
             percentile = nn.softmax(np.array([params[0], 1]))[0]
-            return IntervalCondition(p=percentile, max=params[1])
+            return IntervalCondition(p=percentile, value=params[1])
 
         def loss(params):
             condition = condition_from_params(params)
@@ -130,7 +130,23 @@ class Mixture(Distribution):
         num_components: Optional[int] = None,
         verbose=False,
         tries=5,
+        true_min=0,
+        true_max=1,
     ) -> M:
+        """
+        Fit a mixture distribution from Conditions
+
+        :param conditions: conditions to fit
+        :param initial_dist: mixture distribution to start from.
+        Takes precedence over num_components
+        :param num_components: number of components to include in the mixture.
+        initial_dist take precedence
+        :param tries:
+        :param true_min: the true-scale minimum of the range to fit over.
+        :param true_max: the true-scale maximum of the range to fit over.
+        :return: the fitted mixture
+        """
+
         def loss(params):
             dist = cls.from_params(params)
             total_loss = sum(condition.loss(dist) for condition in conditions)

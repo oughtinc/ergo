@@ -42,6 +42,27 @@ def test_interval_condition():
     )
 
 
+def test_normalization_interval_condition():
+    condition = IntervalCondition(p=0.5, min=10, max=100)
+    assert condition.get_normalized(10, 1000).get_denormalized(10, 1000) == condition
+
+
+def test_normalization_histogram_condition(histogram):
+    original = HistogramCondition(histogram)
+    normalized_denormalized = original.get_normalized(10, 1000).get_denormalized(
+        10, 1000
+    )
+    for entry in normalized_denormalized.histogram:
+        assert entry["x"] == pytest.approx(
+            [
+                original_entry["x"]
+                for original_entry in original.histogram
+                if original_entry["density"] == entry["density"]
+            ][0],
+            rel=0.001,
+        )
+
+
 def test_mixture_from_percentile():
     for value in [0.01, 0.1, 1, 3]:
         conditions = [IntervalCondition(p=0.5, max=value)]
