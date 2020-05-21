@@ -129,17 +129,25 @@ class Mixture(Distribution):
         initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
-        tries=5,
+        init_tries=100,
+        opt_tries=10,
     ) -> M:
         def loss(params):
             dist = cls.from_params(params)
             total_loss = sum(condition.loss(dist) for condition in conditions)
-            return total_loss * 100
+            return total_loss * 100.0
 
         loss = jit(loss)
         jac = jit(grad(loss))
+
         return cls.from_loss(
-            loss, jac, initial_dist, num_components, verbose, tries=tries
+            loss=loss,
+            jac=jac,
+            initial_dist=initial_dist,
+            num_components=num_components,
+            verbose=verbose,
+            init_tries=init_tries,
+            opt_tries=opt_tries,
         )
 
     @classmethod
@@ -150,7 +158,8 @@ class Mixture(Distribution):
         initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
-        tries=5,
+        init_tries=100,
+        opt_tries=10,
     ) -> M:
         if initial_dist:
             init = lambda: initial_dist.to_params()  # noqa: E731
@@ -159,7 +168,14 @@ class Mixture(Distribution):
         else:
             raise ValueError("Need to provide either num_components or initial_dist")
 
-        fit_results = minimize(loss, init=init, jac=jac, tries=tries, verbose=verbose)
+        fit_results = minimize(
+            loss,
+            init=init,
+            jac=jac,
+            init_tries=init_tries,
+            opt_tries=opt_tries,
+            verbose=verbose,
+        )
         if not fit_results.success and verbose:
             print(fit_results)
         final_params = fit_results.x
