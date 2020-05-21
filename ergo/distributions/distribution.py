@@ -31,6 +31,6 @@ class Distribution(ABC):
             percentiles = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
         values = [self.ppf(q) for q in percentiles]
         return [
-            IntervalCondition(percentile, min=None, max=value)
+            IntervalCondition(percentile, max=value)
             for (percentile, value) in zip(percentiles, values)
         ]
