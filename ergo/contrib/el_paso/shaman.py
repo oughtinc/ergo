@@ -1,4 +1,11 @@
+from datetime import date
+from typing import Tuple
+
+import numpy as np
 import pandas as pd
+
+import ergo
+from ergo.contrib.utils import daterange
 
 
 def extract_projections_for_param(
@@ -72,3 +79,51 @@ def load_cu_projections(county: str):
         )
         cu_model_data[scenario] = all_projections_df
     return cu_model_data
+
+
+# The below were added for the workflow/tutorial nb
+# they're not yet used in the main El Paso notebook
+@ergo.mem
+def cu_model_scenario(scenarios: Tuple[str]):
+    """Which of the model scenarios are we in?"""
+    return ergo.random_choice(scenarios)
+
+
+@ergo.mem
+def cu_model_quantile():
+    """Where in the distribution of model outputs are we for this model run?
+    Want to be consistent across time, so we sample it once per model run"""
+    return ergo.uniform()
+
+
+def cu_projection(param: str, date: date, cu_projections) -> int:
+    """
+    Get the Columbia model's prediction
+    of the param for the date
+    """
+    scenario = cu_model_scenario(tuple([s for s in cu_projections.keys()]))
+    quantile = cu_model_quantile()
+
+    # Extract quantiles of the model distribution
+    xs = np.array([0.025, 0.25, 0.5, 0.75, 0.975])
+    scenario_df = cu_projections[scenario]
+    param_df = scenario_df[scenario_df["var"] == param]
+    date_df = param_df[param_df["Date"] == date]
+    if date_df.empty:
+        raise KeyError(f"No Columbia project for param: {param}, date: {date}")
+
+    ys = np.array(date_df[["2.5", "25", "50", "75", "97.5"]].iloc[0])
+
+    # Linearly interpolate
+    # mypy doesn't know that there's an np.interp
+    return int(round(np.interp(quantile, xs, ys)))  # type: ignore
+
+
+def cu_projections_for_dates(
+    param: str, start_date: date, end_date: date, cu_projections
+):
+    """
+    Get Columbia model projections over a range of dates
+    """
+    date_range = daterange(start_date, end_date)
+    return [cu_projection(param, date, cu_projections) for date in date_range]
