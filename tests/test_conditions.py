@@ -38,8 +38,8 @@ def test_percentiles_from_mixture():
     )
     conditions = mixture.percentiles(percentiles=[0.1, 0.5, 0.9])
     for condition in conditions:
-        if condition.percentile == pytest.approx(0.5):
-            assert condition.value == pytest.approx(1.5, rel=0.01)
+        if condition.max == 0.5:
+            assert condition.p == pytest.approx(1.5, rel=0.01)
     return conditions
 
 
@@ -60,7 +60,7 @@ def test_percentile_roundtrip():
         percentiles=[condition.percentile for condition in conditions]
     )
     for (condition, recovered_condition) in zip(conditions, recovered_conditions):
-        assert recovered_condition.value == pytest.approx(condition.value, rel=0.1)
+        assert recovered_condition.max == pytest.approx(condition.value, rel=0.1)
 
 
 def test_mixture_from_histogram(histogram):
