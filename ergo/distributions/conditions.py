@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from jax import vmap
 import jax.numpy as np
@@ -74,12 +74,12 @@ class IntervalCondition(Condition):
     """
 
     p: float
-    min: float
-    max: float
+    min: Optional[float]
+    max: Optional[float]
     weight: float
 
-    def __init__(self, p, min=float("-inf"), max=float("inf"), weight=1.0):
-        if max <= min:
+    def __init__(self, p, min=None, max=None, weight=1.0):
+        if min is not None and max is not None and max <= min:
             raise ValueError(
                 f"max must be strictly greater than min, got max: {max}, min: {min}"
             )
@@ -90,8 +90,8 @@ class IntervalCondition(Condition):
         self.weight = weight
 
     def actual_p(self, dist) -> float:
-        cdf_at_min = dist.cdf(self.min) if not np.isneginf(self.min) else 0
-        cdf_at_max = dist.cdf(self.max) if not np.isposinf(self.max) else 1
+        cdf_at_min = dist.cdf(self.min) if self.min is not None else 0
+        cdf_at_max = dist.cdf(self.max) if self.max is not None else 1
         return cdf_at_max - cdf_at_min
 
     def loss(self, dist):

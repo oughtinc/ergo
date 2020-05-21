@@ -15,4 +15,4 @@ def test_histogram_dist():
     ]
     dist = ergo.HistogramDist(histogram)
     for condition in dist.percentiles():
-        assert condition.percentile == pytest.approx(condition.value, rel=0.01)
+        assert condition.max == pytest.approx(condition.p, rel=0.01)
