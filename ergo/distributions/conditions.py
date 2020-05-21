@@ -146,7 +146,10 @@ class HistogramCondition(Condition):
     def get_normalized(self, true_min: float, true_max: float):
         true_range = true_max - true_min
         normalized_histogram: Histogram = [
-            {"x": (entry["x"] - true_min) / true_range, "density": entry["density"]}
+            {
+                "x": (entry["x"] - true_min) / true_range,
+                "density": entry["density"] * true_range,
+            }
             for entry in self.histogram
         ]
         return self.__class__(normalized_histogram, self.weight)
@@ -154,7 +157,10 @@ class HistogramCondition(Condition):
     def get_denormalized(self, true_min: float, true_max: float):
         true_range = true_max - true_min
         denormalized_histogram: Histogram = [
-            {"x": (entry["x"] * true_range) + true_min, "density": entry["density"]}
+            {
+                "x": (entry["x"] * true_range) + true_min,
+                "density": entry["density"] / true_range,
+            }
             for entry in self.histogram
         ]
         return self.__class__(denormalized_histogram, self.weight)
