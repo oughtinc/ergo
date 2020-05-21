@@ -148,7 +148,10 @@ class ContinuousQuestion(MetaculusQuestion):
         # TODO (#306): Unify distributions interface
         # TODO (#307): Account for values out of range in
         #   ContinuousQuestion.community_dist()
-        histogram = [{"x": v[0], "density": v[2]} for v in self.prediction_histogram]
+        histogram = [
+            {"x": float(self.denormalize_samples(v[0])), "density": v[2]}
+            for v in self.prediction_histogram
+        ]
         return dist.HistogramDist(histogram)
 
     @memoized_method(None)
