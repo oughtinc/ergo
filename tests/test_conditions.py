@@ -46,6 +46,12 @@ def test_normalization_interval_condition():
     condition = IntervalCondition(p=0.5, min=10, max=100)
     assert condition.get_normalized(10, 1000).get_denormalized(10, 1000) == condition
 
+    open_condition = IntervalCondition(p=0.5, min=None, max=10000)
+    assert (
+        open_condition.get_normalized(10, 1000).get_denormalized(10, 1000)
+        == open_condition
+    )
+
 
 def test_normalization_histogram_condition(histogram):
     original = HistogramCondition(histogram)

@@ -21,7 +21,7 @@ class Condition(ABC):
         """
 
     @abstractmethod
-    def get_normalized(self, true_min, true_max):
+    def get_normalized(self, true_min: float, true_max: float):
         """
         Assume that the true range that the condition is over is [true_min, true_max].
         Return the condition normalized to [0,1]
@@ -31,9 +31,9 @@ class Condition(ABC):
         """
 
     @abstractmethod
-    def get_denormalized(self, true_min, true_max):
+    def get_denormalized(self, true_min: float, true_max: float):
         """
-        Assume that the condition is has been normalized to be over [0,1].
+        Assume that the condition has been normalized to be over [0,1].
         Return the condition on the true scale of [true_min, true_max]
 
         :param true_min: the true-scale minimum of the range
@@ -94,16 +94,24 @@ class IntervalCondition(Condition):
         description["p_in_interval"] = float(self.actual_p(dist))
         return description
 
-    def get_normalized(self, true_min, true_max):
+    def get_normalized(self, true_min: float, true_max: float):
         true_range = true_max - true_min
-        normalized_min = (self.min - true_min) / true_range
-        normalized_max = (self.max - true_min) / true_range
+        normalized_min = (
+            ((self.min - true_min) / true_range) if self.min is not None else None
+        )
+        normalized_max = (
+            ((self.max - true_min) / true_range) if self.max is not None else None
+        )
         return self.__class__(self.p, normalized_min, normalized_max, self.weight)
 
-    def get_denormalized(self, true_min, true_max):
+    def get_denormalized(self, true_min: float, true_max: float):
         true_range = true_max - true_min
-        denormalized_min = (self.min * true_range) + true_min
-        denormalized_max = (self.max * true_range) + true_min
+        denormalized_min = (
+            (self.min * true_range) + true_min if self.min is not None else None
+        )
+        denormalized_max = (
+            (self.max * true_range) + true_min if self.max is not None else None
+        )
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
 
     def __str__(self):
@@ -135,7 +143,7 @@ class HistogramCondition(Condition):
         total_loss = np.sum(vmap(entry_loss_fn)(xs, densities))
         return self.weight * total_loss / len(self.histogram)
 
-    def get_normalized(self, true_min, true_max):
+    def get_normalized(self, true_min: float, true_max: float):
         true_range = true_max - true_min
         normalized_histogram: Histogram = [
             {"x": (entry["x"] - true_min) / true_range, "density": entry["density"]}
@@ -143,7 +151,7 @@ class HistogramCondition(Condition):
         ]
         return self.__class__(normalized_histogram, self.weight)
 
-    def get_denormalized(self, true_min, true_max):
+    def get_denormalized(self, true_min: float, true_max: float):
         true_range = true_max - true_min
         denormalized_histogram: Histogram = [
             {"x": (entry["x"] * true_range) + true_min, "density": entry["density"]}

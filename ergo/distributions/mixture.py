@@ -75,6 +75,16 @@ class Mixture(Distribution):
     def to_params(self):
         raise NotImplementedError("This should be implemented by a subclass")
 
+    def get_denormalized(self, true_min, true_max):
+        """
+        Assume that the distribution has been normalized to be over [0,1].
+        Return the distribution on the true scale of [true_min, true_max]
+        
+        :param true_min: the true-scale minimum of the range
+        :param true_max: the true-scale minimum of the range
+        """
+        raise NotImplementedError("This should be implemented by a subclass")
+
     def to_conditions(self, verbose=False):
         """
         Convert mixture to a set of percentile statements that
@@ -137,7 +147,8 @@ class Mixture(Distribution):
         Fit a mixture distribution from Conditions
 
         :param conditions: conditions to fit
-        :param initial_dist: mixture distribution to start from.
+        :param initial_dist: mixture distribution to start from
+        (should be normalizes, i.e. on [0,1]).
         Takes precedence over num_components
         :param num_components: number of components to include in the mixture.
         initial_dist take precedence
@@ -146,17 +157,23 @@ class Mixture(Distribution):
         :param true_max: the true-scale maximum of the range to fit over.
         :return: the fitted mixture
         """
+        normalized_conditions = [
+            condition.get_normalized(true_min, true_max) for condition in conditions
+        ]
 
         def loss(params):
             dist = cls.from_params(params)
-            total_loss = sum(condition.loss(dist) for condition in conditions)
+            total_loss = sum(
+                condition.loss(dist) for condition in normalized_conditions
+            )
             return total_loss * 100
 
         loss = jit(loss)
         jac = jit(grad(loss))
-        return cls.from_loss(
+        normalized_mixture = cls.from_loss(
             loss, jac, initial_dist, num_components, verbose, tries=tries
         )
+        return normalized_mixture.get_denormalized(true_min, true_max)
 
     @classmethod
     def from_loss(
@@ -234,3 +251,10 @@ class LSMixture(Mixture):
             [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
         ]
         return np.array(list(itertools.chain.from_iterable(nested_params)))
+
+    def get_denormalized(self, true_min: float, true_max: float):
+        denormalized_components = [
+            component.get_denormalized(true_min, true_max)
+            for component in self.components
+        ]
+        return self.__class__(denormalized_components, self.probs, self.component_type)
