@@ -31,24 +31,35 @@ def memoized_method(*lru_args, **lru_kwargs):
     return decorator
 
 
-def minimize(*args, init=None, tries=1, verbose=False, **kwargs):
+def minimize_random(fun, init, tries=100):
+    best_x = None
+    best_loss = float("+inf")
+    while tries > 0:
+        x = init()
+        loss = fun(x)
+        if best_x is None or loss < best_loss:
+            best_x = x
+            best_loss = loss
+        tries -= 1
+    return best_x
+
+
+def minimize(fun, *args, init=None, init_tries=1, opt_tries=1, verbose=False, **kwargs):
     """
     Wrapper around scipy.optimize.minimize that supports retries
     """
     if "x0" in kwargs:
         raise ValueError("Provide initialization function (init), not x0")
+
     best_results = None
     best_loss = float("+inf")
-    while tries > 0:
-        results = oscipy.optimize.minimize(*args, x0=init(), **kwargs)
-        tries -= 1
-        if best_results is None or results.fun < best_loss or results.success:
+    while opt_tries > 0:
+        init_params = minimize_random(fun, init, tries=init_tries)
+        results = oscipy.optimize.minimize(fun, *args, x0=init_params, **kwargs)
+        opt_tries -= 1
+        if best_results is None or results.fun < best_loss:
             best_results = results
             best_loss = results.fun
-        if results.success or tries == 0:
+        if opt_tries == 0:
             break
-        if verbose:
-            print(
-                f"Minimize failed (best loss {best_loss}). Retrying ({tries} tries left)..."
-            )
     return best_results
