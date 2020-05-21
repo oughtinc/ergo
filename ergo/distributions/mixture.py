@@ -17,7 +17,7 @@ import scipy as oscipy
 from ergo.utils import minimize
 
 from .base import categorical
-from .conditions import Condition, PercentileCondition
+from .conditions import Condition, IntervalCondition
 from .distribution import Distribution
 from .location_scale_family import LSDistribution
 
@@ -87,7 +87,7 @@ class Mixture(Distribution):
 
         def condition_from_params(params):
             percentile = nn.softmax(np.array([params[0], 1]))[0]
-            return PercentileCondition(percentile=percentile, value=params[1])
+            return IntervalCondition(p=percentile, max=params[1])
 
         def loss(params):
             condition = condition_from_params(params)
