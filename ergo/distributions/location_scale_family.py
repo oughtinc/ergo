@@ -63,7 +63,7 @@ class LSDistribution(Distribution):
         Return the distribution on the true scale of [true_min, true_max]
 
         :param true_min: the true-scale minimum of the range
-        :param true_max: the true-scale minimum of the range
+        :param true_max: the true-scale maximum of the range
         """
         true_range = true_max - true_min
         denormalized_loc = self.loc * true_range + true_min

@@ -27,7 +27,7 @@ class Condition(ABC):
         Return the condition normalized to [0,1]
 
         :param true_min: the true-scale minimum of the range
-        :param true_max: the true-scale minimum of the range
+        :param true_max: the true-scale maximum of the range
         """
 
     @abstractmethod
@@ -37,7 +37,7 @@ class Condition(ABC):
         Return the condition on the true scale of [true_min, true_max]
 
         :param true_min: the true-scale minimum of the range
-        :param true_max: the true-scale minimum of the range
+        :param true_max: the true-scale maximum of the range
         """
 
     def describe_fit(self, dist) -> Dict[str, Any]:
@@ -185,6 +185,16 @@ class ScalePriorCondition(Condition):
             total_loss += scale_penalty
         return self.weight * total_loss
 
+    def get_normalized(self, true_min: float, true_max: float):
+        # I think this is wrong and that you do need to scale to normalize,
+        # but want to confirm with Andreas
+        return self
+
+    def get_denormalized(self, true_min, true_max):
+        # I think this is wrong and that you do need to scale to normalize,
+        # but want to confirm with Andreas
+        return self
+
     def __str__(self):
         return f"The scale is normally distributed around {self.scale_mean}"
 
@@ -204,6 +214,16 @@ class LocationPriorCondition(Condition):
             loc_penalty = (self.loc_mean - component.loc) ** 2
             total_loss += loc_penalty
         return self.weight * total_loss
+
+    def get_normalized(self, true_min: float, true_max: float):
+        # I think this is wrong and that you do need to scale to normalize,
+        # but want to confirm with Andreas
+        return self
+
+    def get_denormalized(self, true_min, true_max):
+        # I think this is wrong and that you do need to scale to normalize,
+        # but want to confirm with Andreas
+        return self
 
     def __str__(self):
         return f"The location is normally distributed around {self.loc_mean}"

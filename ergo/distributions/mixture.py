@@ -79,9 +79,9 @@ class Mixture(Distribution):
         """
         Assume that the distribution has been normalized to be over [0,1].
         Return the distribution on the true scale of [true_min, true_max]
-        
+
         :param true_min: the true-scale minimum of the range
-        :param true_max: the true-scale minimum of the range
+        :param true_max: the true-scale maximum of the range
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
