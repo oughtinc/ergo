@@ -48,14 +48,48 @@ def test_interval_condition():
 
 
 def test_normalization_interval_condition():
-    condition = IntervalCondition(p=0.5, min=10, max=100)
-    assert condition.get_normalized(10, 1000).get_denormalized(10, 1000) == condition
+    def normalization_interval_condition_test(p, min, max, scale_min, scale_max):
+        condition = IntervalCondition(p=p, min=min, max=max)
+        assert (
+            condition.get_normalized(
+                scale_min=scale_min, scale_max=scale_max
+            ).get_denormalized(scale_min=scale_min, scale_max=scale_max)
+            == condition
+        )
 
-    open_condition = IntervalCondition(p=0.5, min=None, max=10000)
-    assert (
-        open_condition.get_normalized(10, 1000).get_denormalized(10, 1000)
-        == open_condition
+    # straightforward scenario
+    normalization_interval_condition_test(
+        p=0.5, min=10, max=100, scale_min=10, scale_max=1000
     )
+
+    # left open
+    normalization_interval_condition_test(
+        p=0.5, min=None, max=10000, scale_min=10, scale_max=1000
+    )
+
+    # right open
+    normalization_interval_condition_test(
+        p=0.5, min=10, max=None, scale_min=10, scale_max=1000
+    )
+
+    # negative values
+    normalization_interval_condition_test(
+        p=0.5, min=-1000, max=-100, scale_min=-10000, scale_max=-1000
+    )
+
+    # p = 1
+    normalization_interval_condition_test(
+        p=1, min=10, max=100, scale_min=10, scale_max=1000
+    )
+
+    # interval bigger than scale
+    normalization_interval_condition_test(
+        p=1, min=0, max=1000, scale_min=10, scale_max=100
+    )
+
+    assert IntervalCondition(p=0.5, min=0, max=5).get_normalized(
+        scale_min=0, scale_max=10
+    ) == IntervalCondition(p=0.5, min=0, max=0.5)
 
 
 def test_normalization_histogram_condition(histogram):
@@ -73,15 +107,31 @@ def test_normalization_histogram_condition(histogram):
             rel=0.001,
         )
 
+    # half-assed test that xs and densities are at least
+    # getting transformed in the right direction
+    normalized = original.get_normalized(1, 4)
+    for idx, normalized_entry in enumerate(normalized.histogram):
+        orig_entry = original.histogram[idx]
+        assert orig_entry["x"] > normalized_entry["x"]
+        assert orig_entry["density"] < normalized_entry["density"]
+
 
 def test_normalization_scale_condition():
     original = ScalePriorCondition(weight=0.5, scale_mean=10)
     assert original == original.get_denormalized(10, 1000).get_normalized(10, 1000)
 
+    assert original.get_normalized(scale_min=0, scale_max=100) == ScalePriorCondition(
+        weight=0.5, scale_mean=0.1
+    )
+
 
 def test_normalization_loc_condition():
     original = LocationPriorCondition(weight=0.5, loc_mean=100)
     assert original == original.get_denormalized(10, 1000).get_normalized(10, 1000)
+
+    assert original.get_normalized(
+        scale_min=0, scale_max=1000
+    ) == LocationPriorCondition(weight=0.5, loc_mean=0.1)
 
 
 def test_mixture_from_percentile():
