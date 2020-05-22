@@ -186,14 +186,12 @@ class ScalePriorCondition(Condition):
         return self.weight * total_loss
 
     def get_normalized(self, true_min: float, true_max: float):
-        # I think this is wrong and that you do need to scale to normalize,
-        # but want to confirm with Andreas
-        return self
+        true_range = true_max - true_min
+        return self.__class__(self.weight, self.scale_mean / true_range)
 
     def get_denormalized(self, true_min, true_max):
-        # I think this is wrong and that you do need to scale to normalize,
-        # but want to confirm with Andreas
-        return self
+        true_range = true_max - true_min
+        return self.__class__(self.weight, self.scale_mean * true_range)
 
     def __str__(self):
         return f"The scale is normally distributed around {self.scale_mean}"
@@ -216,14 +214,12 @@ class LocationPriorCondition(Condition):
         return self.weight * total_loss
 
     def get_normalized(self, true_min: float, true_max: float):
-        # I think this is wrong and that you do need to scale to normalize,
-        # but want to confirm with Andreas
-        return self
+        true_range = true_max - true_min
+        return self.__class__(self.weight, (self.loc_mean - true_min) / true_range)
 
     def get_denormalized(self, true_min, true_max):
-        # I think this is wrong and that you do need to scale to normalize,
-        # but want to confirm with Andreas
-        return self
+        true_range = true_max - true_min
+        return self.__class__(self.weight, (self.loc_mean * true_range) + true_min)
 
     def __str__(self):
         return f"The location is normally distributed around {self.loc_mean}"

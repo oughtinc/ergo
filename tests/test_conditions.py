@@ -3,7 +3,12 @@ from dataclasses import dataclass
 import pytest
 
 from ergo import Logistic, LogisticMixture
-from ergo.distributions.conditions import HistogramCondition, IntervalCondition
+from ergo.distributions.conditions import (
+    HistogramCondition,
+    IntervalCondition,
+    ScalePriorCondition,
+    LocationPriorCondition,
+)
 
 
 @dataclass
@@ -67,6 +72,16 @@ def test_normalization_histogram_condition(histogram):
             ][0],
             rel=0.001,
         )
+
+
+def test_normalization_scale_condition():
+    original = ScalePriorCondition(weight=0.5, scale_mean=10)
+    assert original == original.get_denormalized(10, 1000).get_normalized(10, 1000)
+
+
+def test_normalization_loc_condition():
+    original = LocationPriorCondition(weight=0.5, loc_mean=100)
+    assert original == original.get_denormalized(10, 1000).get_normalized(10, 1000)
 
 
 def test_mixture_from_percentile():
