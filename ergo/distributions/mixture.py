@@ -193,6 +193,8 @@ class Mixture(Distribution):
         init_tries=100,
         opt_tries=10,
     ) -> M:
+        onp.random.seed(0)
+
         if initial_dist:
             init = lambda: initial_dist.to_params()  # noqa: E731
         elif num_components:
