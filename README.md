@@ -152,14 +152,6 @@ Outdated Ergo notebooks:
 5. [Assorted COVID predictions](notebooks/build/assorted-predictions.ipynb)
 
 
-Notebooks on the path to Ergo:
-
-1. [Guesstimate in Colab](https://colab.research.google.com/drive/1V9eR6T1RAbtfpZYFaueL8miBJ6wgLXIm)
-  
-2. [Fitting mixtures of logistic distributions](https://colab.research.google.com/drive/1xwO-0A36wnut9GPlEaRj6zzZBBLf1T2C)
-   - How can we transform arbitrary distributions represented as samples into the "mixtures of logistics" format Metaculus uses for user submissions?
-
-
 ## Contributing
 
 Ergo is an open source project and we love contributions!
