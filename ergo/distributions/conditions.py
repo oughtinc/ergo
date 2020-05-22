@@ -167,3 +167,43 @@ class HistogramCondition(Condition):
 
     def __str__(self):
         return "The probability density function looks similar to the provided density function."
+
+
+@dataclass
+class ScalePriorCondition(Condition):
+    """
+    Condition that enforces prior on scales for mixture distributions
+    """
+
+    weight: float = 1.0
+    scale_mean: float = 1.0
+
+    def loss(self, dist):
+        total_loss = 0.0
+        for component in dist.components:
+            scale_penalty = (self.scale_mean - component.scale) ** 2
+            total_loss += scale_penalty
+        return self.weight * total_loss
+
+    def __str__(self):
+        return f"The scale is normally distributed around {self.scale_mean}"
+
+
+@dataclass
+class LocationPriorCondition(Condition):
+    """
+    Condition that enforces prior on scales for mixture distributions
+    """
+
+    weight: float = 1.0
+    loc_mean: float = 0.0
+
+    def loss(self, dist):
+        total_loss = 0.0
+        for component in dist.components:
+            loc_penalty = (self.loc_mean - component.loc) ** 2
+            total_loss += loc_penalty
+        return self.weight * total_loss
+
+    def __str__(self):
+        return f"The location is normally distributed around {self.loc_mean}"

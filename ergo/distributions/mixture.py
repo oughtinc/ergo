@@ -139,9 +139,10 @@ class Mixture(Distribution):
         initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
-        tries=5,
         true_min=0,
         true_max=1,
+        init_tries=100,
+        opt_tries=10,
     ) -> M:
         """
         Fit a mixture distribution from Conditions
@@ -171,7 +172,13 @@ class Mixture(Distribution):
         loss = jit(loss)
         jac = jit(grad(loss))
         normalized_mixture = cls.from_loss(
-            loss, jac, initial_dist, num_components, verbose, tries=tries
+            loss=loss,
+            jac=jac,
+            initial_dist=initial_dist,
+            num_components=num_components,
+            verbose=verbose,
+            init_tries=init_tries,
+            opt_tries=opt_tries,
         )
         return normalized_mixture.get_denormalized(true_min, true_max)
 
@@ -183,7 +190,8 @@ class Mixture(Distribution):
         initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
-        tries=5,
+        init_tries=100,
+        opt_tries=10,
     ) -> M:
         if initial_dist:
             init = lambda: initial_dist.to_params()  # noqa: E731
@@ -192,7 +200,14 @@ class Mixture(Distribution):
         else:
             raise ValueError("Need to provide either num_components or initial_dist")
 
-        fit_results = minimize(loss, init=init, jac=jac, tries=tries, verbose=verbose)
+        fit_results = minimize(
+            loss,
+            init=init,
+            jac=jac,
+            init_tries=init_tries,
+            opt_tries=opt_tries,
+            verbose=verbose,
+        )
         if not fit_results.success and verbose:
             print(fit_results)
         final_params = fit_results.x
@@ -226,7 +241,7 @@ class LSMixture(Mixture):
     component_type: Type[LSDistribution] = field(repr=False)
 
     @staticmethod
-    def initialize_params(num_components):
+    def initialize_params(num_components, scale_multiplier=0.2):
         """
         Each component has (location, scale, weight).
         The shape of the components matrix is (num_components, 3).
@@ -234,8 +249,10 @@ class LSMixture(Mixture):
         We use original numpy to initialize parameters since we don't
         want to track randomness.
         """
-        components = onp.random.rand(num_components, 3) * 0.1 + 1.0
-        components[:, 2] = -num_components
+        locs = onp.random.rand(num_components)
+        scales = onp.random.rand(num_components) * scale_multiplier
+        weights = onp.full(num_components, -num_components)
+        components = onp.stack([locs, scales, weights]).transpose()
         return components.reshape(-1)
 
     @classmethod
