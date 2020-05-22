@@ -20,6 +20,28 @@ class Condition(ABC):
         :param dist: A probability distribution
         """
 
+    @abstractmethod
+    def get_normalized(self, scale_min: float, scale_max: float):
+        """
+        Assume that the condition's true range is [scale_min, scale_max].
+        Return the normalized condition.
+
+        :param scale_min: the true-scale minimum of the range
+        :param scale_max: the true-scale maximum of the range
+        :return: the condition normalized to [0,1]
+        """
+
+    @abstractmethod
+    def get_denormalized(self, scale_min: float, scale_max: float):
+        """
+        Assume that the condition has been normalized to be over [0,1].
+        Return the condition on the true scale.
+
+        :param scale_min: the true-scale minimum of the range
+        :param scale_max: the true-scale maximum of the range
+        :return: the condition on the true scale of [scale_min, scale_max]
+        """
+
     def describe_fit(self, dist) -> Dict[str, Any]:
         """
         Describe how well the distribution meets the condition
@@ -74,6 +96,26 @@ class IntervalCondition(Condition):
         description["p_in_interval"] = float(self.actual_p(dist))
         return description
 
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        normalized_min = (
+            ((self.min - scale_min) / scale_range) if self.min is not None else None
+        )
+        normalized_max = (
+            ((self.max - scale_min) / scale_range) if self.max is not None else None
+        )
+        return self.__class__(self.p, normalized_min, normalized_max, self.weight)
+
+    def get_denormalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        denormalized_min = (
+            (self.min * scale_range) + scale_min if self.min is not None else None
+        )
+        denormalized_max = (
+            (self.max * scale_range) + scale_min if self.max is not None else None
+        )
+        return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
+
     def __str__(self):
         return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"
 
@@ -103,6 +145,28 @@ class HistogramCondition(Condition):
         total_loss = np.sum(vmap(entry_loss_fn)(xs, densities))
         return self.weight * total_loss / len(self.histogram)
 
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        normalized_histogram: Histogram = [
+            {
+                "x": (entry["x"] - scale_min) / scale_range,
+                "density": entry["density"] * scale_range,
+            }
+            for entry in self.histogram
+        ]
+        return self.__class__(normalized_histogram, self.weight)
+
+    def get_denormalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        denormalized_histogram: Histogram = [
+            {
+                "x": (entry["x"] * scale_range) + scale_min,
+                "density": entry["density"] / scale_range,
+            }
+            for entry in self.histogram
+        ]
+        return self.__class__(denormalized_histogram, self.weight)
+
     def __str__(self):
         return "The probability density function looks similar to the provided density function."
 
@@ -123,6 +187,14 @@ class ScalePriorCondition(Condition):
             total_loss += scale_penalty
         return self.weight * total_loss
 
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, self.scale_mean / scale_range)
+
+    def get_denormalized(self, scale_min, scale_max):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, self.scale_mean * scale_range)
+
     def __str__(self):
         return f"The scale is normally distributed around {self.scale_mean}"
 
@@ -142,6 +214,14 @@ class LocationPriorCondition(Condition):
             loc_penalty = (self.loc_mean - component.loc) ** 2
             total_loss += loc_penalty
         return self.weight * total_loss
+
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, (self.loc_mean - scale_min) / scale_range)
+
+    def get_denormalized(self, scale_min, scale_max):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, (self.loc_mean * scale_range) + scale_min)
 
     def __str__(self):
         return f"The location is normally distributed around {self.loc_mean}"

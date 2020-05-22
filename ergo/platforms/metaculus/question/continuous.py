@@ -145,11 +145,29 @@ class ContinuousQuestion(MetaculusQuestion):
         raise NotImplementedError("This should be implemented by a subclass")
 
     def community_dist(self) -> dist.HistogramDist:
+        """
+        Get the community distribution for this question
+
+        :return: the (true-scale) community distribution as a histogram.
+        NB: currently missing the part of the distribtion outside the question range
+        """
         # TODO (#306): Unify distributions interface
         # TODO (#307): Account for values out of range in
         #   ContinuousQuestion.community_dist()
+        denormalized_max = float(
+            self.denormalize_samples(self.prediction_histogram[-1][0])
+        )
+        denormalized_min = float(
+            self.denormalize_samples(self.prediction_histogram[0][0])
+        )
+
+        denormalized_range = denormalized_max - denormalized_min
+
         histogram = [
-            {"x": float(self.denormalize_samples(v[0])), "density": v[2]}
+            {
+                "x": float(self.denormalize_samples(v[0])),
+                "density": v[2] / denormalized_range,
+            }
             for v in self.prediction_histogram
         ]
         return dist.HistogramDist(histogram)
