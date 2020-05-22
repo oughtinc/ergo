@@ -6,8 +6,8 @@ from ergo import Logistic, LogisticMixture
 from ergo.distributions.conditions import (
     HistogramCondition,
     IntervalCondition,
-    ScalePriorCondition,
     LocationPriorCondition,
+    ScalePriorCondition,
 )
 
 
