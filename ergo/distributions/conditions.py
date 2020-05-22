@@ -21,23 +21,25 @@ class Condition(ABC):
         """
 
     @abstractmethod
-    def get_normalized(self, true_min: float, true_max: float):
+    def get_normalized(self, scale_min: float, scale_max: float):
         """
-        Assume that the true range that the condition is over is [true_min, true_max].
-        Return the condition normalized to [0,1]
+        Assume that the condition's true range is [scale_min, scale_max].
+        Return the normalized condition.
 
-        :param true_min: the true-scale minimum of the range
-        :param true_max: the true-scale maximum of the range
+        :param scale_min: the true-scale minimum of the range
+        :param scale_max: the true-scale maximum of the range
+        :return: the condition normalized to [0,1]
         """
 
     @abstractmethod
-    def get_denormalized(self, true_min: float, true_max: float):
+    def get_denormalized(self, scale_min: float, scale_max: float):
         """
         Assume that the condition has been normalized to be over [0,1].
-        Return the condition on the true scale of [true_min, true_max]
+        Return the condition on the true scale.
 
-        :param true_min: the true-scale minimum of the range
-        :param true_max: the true-scale maximum of the range
+        :param scale_min: the true-scale minimum of the range
+        :param scale_max: the true-scale maximum of the range
+        :return: the condition on the true scale of [scale_min, scale_max]
         """
 
     def describe_fit(self, dist) -> Dict[str, Any]:
@@ -94,23 +96,23 @@ class IntervalCondition(Condition):
         description["p_in_interval"] = float(self.actual_p(dist))
         return description
 
-    def get_normalized(self, true_min: float, true_max: float):
-        true_range = true_max - true_min
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
         normalized_min = (
-            ((self.min - true_min) / true_range) if self.min is not None else None
+            ((self.min - scale_min) / scale_range) if self.min is not None else None
         )
         normalized_max = (
-            ((self.max - true_min) / true_range) if self.max is not None else None
+            ((self.max - scale_min) / scale_range) if self.max is not None else None
         )
         return self.__class__(self.p, normalized_min, normalized_max, self.weight)
 
-    def get_denormalized(self, true_min: float, true_max: float):
-        true_range = true_max - true_min
+    def get_denormalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
         denormalized_min = (
-            (self.min * true_range) + true_min if self.min is not None else None
+            (self.min * scale_range) + scale_min if self.min is not None else None
         )
         denormalized_max = (
-            (self.max * true_range) + true_min if self.max is not None else None
+            (self.max * scale_range) + scale_min if self.max is not None else None
         )
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
 
@@ -143,23 +145,23 @@ class HistogramCondition(Condition):
         total_loss = np.sum(vmap(entry_loss_fn)(xs, densities))
         return self.weight * total_loss / len(self.histogram)
 
-    def get_normalized(self, true_min: float, true_max: float):
-        true_range = true_max - true_min
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
         normalized_histogram: Histogram = [
             {
-                "x": (entry["x"] - true_min) / true_range,
-                "density": entry["density"] * true_range,
+                "x": (entry["x"] - scale_min) / scale_range,
+                "density": entry["density"] * scale_range,
             }
             for entry in self.histogram
         ]
         return self.__class__(normalized_histogram, self.weight)
 
-    def get_denormalized(self, true_min: float, true_max: float):
-        true_range = true_max - true_min
+    def get_denormalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
         denormalized_histogram: Histogram = [
             {
-                "x": (entry["x"] * true_range) + true_min,
-                "density": entry["density"] / true_range,
+                "x": (entry["x"] * scale_range) + scale_min,
+                "density": entry["density"] / scale_range,
             }
             for entry in self.histogram
         ]
@@ -185,13 +187,13 @@ class ScalePriorCondition(Condition):
             total_loss += scale_penalty
         return self.weight * total_loss
 
-    def get_normalized(self, true_min: float, true_max: float):
-        true_range = true_max - true_min
-        return self.__class__(self.weight, self.scale_mean / true_range)
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, self.scale_mean / scale_range)
 
-    def get_denormalized(self, true_min, true_max):
-        true_range = true_max - true_min
-        return self.__class__(self.weight, self.scale_mean * true_range)
+    def get_denormalized(self, scale_min, scale_max):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, self.scale_mean * scale_range)
 
     def __str__(self):
         return f"The scale is normally distributed around {self.scale_mean}"
@@ -213,13 +215,13 @@ class LocationPriorCondition(Condition):
             total_loss += loc_penalty
         return self.weight * total_loss
 
-    def get_normalized(self, true_min: float, true_max: float):
-        true_range = true_max - true_min
-        return self.__class__(self.weight, (self.loc_mean - true_min) / true_range)
+    def get_normalized(self, scale_min: float, scale_max: float):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, (self.loc_mean - scale_min) / scale_range)
 
-    def get_denormalized(self, true_min, true_max):
-        true_range = true_max - true_min
-        return self.__class__(self.weight, (self.loc_mean * true_range) + true_min)
+    def get_denormalized(self, scale_min, scale_max):
+        scale_range = scale_max - scale_min
+        return self.__class__(self.weight, (self.loc_mean * scale_range) + scale_min)
 
     def __str__(self):
         return f"The location is normally distributed around {self.loc_mean}"

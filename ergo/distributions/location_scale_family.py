@@ -57,17 +57,17 @@ class LSDistribution(Distribution):
         # FIXME (#296): This needs to be compatible with ergo sampling
         return self.odist.rvs(loc=self.loc, scale=self.scale)
 
-    def get_denormalized(self, true_min: float, true_max: float):
+    def get_denormalized(self, scale_min: float, scale_max: float):
         """
         Assume that the distribution has been normalized to be over [0,1].
-        Return the distribution on the true scale of [true_min, true_max]
+        Return the distribution on the true scale of [scale_min, scale_max]
 
-        :param true_min: the true-scale minimum of the range
-        :param true_max: the true-scale maximum of the range
+        :param scale_min: the true-scale minimum of the range
+        :param scale_max: the true-scale maximum of the range
         """
-        true_range = true_max - true_min
-        denormalized_loc = self.loc * true_range + true_min
-        denormalized_scale = self.scale * true_range
+        scale_range = scale_max - scale_min
+        denormalized_loc = self.loc * scale_range + scale_min
+        denormalized_scale = self.scale * scale_range
         return self.__class__(denormalized_loc, denormalized_scale, self.metadata)
 
     @classmethod
