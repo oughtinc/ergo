@@ -86,6 +86,20 @@ def test_mixture_ppf_adversarial():
     assert mixture.ppf(0.99) == pytest.approx(27.9755, rel=1e-3)
     assert mixture.ppf(0.999) == pytest.approx(39.5337, rel=1e-3)
 
+    # Make a mixture with hugely overlapping distributions
+    mixture = LogisticMixture(
+        [
+            Logistic(4000000.035555004, 200000.02),
+            Logistic(4000000.0329152746, 200000.0),
+        ],
+        [0.5, 0.5],
+    )
+    assert mixture.ppf(0.5) == pytest.approx(4000000.0342351394, rel=1e-3)
+    assert mixture.ppf(0.01) == pytest.approx(3080976.018257023, rel=1e-3)
+    assert mixture.ppf(0.001) == pytest.approx(2618649.009437881, rel=1e-3)
+    assert mixture.ppf(0.99) == pytest.approx(4919024.050213255, rel=1e-3)
+    assert mixture.ppf(0.999) == pytest.approx(5381351.059032397, rel=1e-3)
+
 
 def ppf_cdf_round_trip():
     mixture = LogisticMixture.from_samples(
