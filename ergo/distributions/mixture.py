@@ -85,6 +85,17 @@ class Mixture(Distribution):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
+    def get_normalized(self, scale_min, scale_max):
+        """
+        Assume that the distribution's true range is [scale_min, scale_max].
+        Return the normalized condition.
+
+        :param scale_min: the true-scale minimum of the range
+        :param scale_max: the true-scale maximum of the range
+        :return: the condition normalized to [0,1]
+        """
+        raise NotImplementedError("This should be implemented by a subclass")
+
     def to_conditions(self, verbose=False):
         """
         Convert mixture to a set of percentile statements that
@@ -270,6 +281,13 @@ class LSMixture(Mixture):
             [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)
         ]
         return np.array(list(itertools.chain.from_iterable(nested_params)))
+
+    def get_normalized(self, scale_min: float, scale_max: float):
+        normalized_components = [
+            component.get_normalized(scale_min, scale_max)
+            for component in self.components
+        ]
+        return self.__class__(normalized_components, self.probs, self.component_type)
 
     def get_denormalized(self, scale_min: float, scale_max: float):
         denormalized_components = [

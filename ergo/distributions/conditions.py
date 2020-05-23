@@ -6,6 +6,7 @@ from jax import vmap
 import jax.numpy as np
 
 from .types import Histogram
+from .scale import Scale
 
 
 class Condition(ABC):
@@ -97,23 +98,15 @@ class IntervalCondition(Condition):
         return description
 
     def get_normalized(self, scale_min: float, scale_max: float):
-        scale_range = scale_max - scale_min
-        normalized_min = (
-            ((self.min - scale_min) / scale_range) if self.min is not None else None
-        )
-        normalized_max = (
-            ((self.max - scale_min) / scale_range) if self.max is not None else None
-        )
+        scale = Scale(scale_min, scale_max)
+        normalized_min = scale.normalize_point(self.min)
+        normalized_max = scale.normalize_point(self.max)
         return self.__class__(self.p, normalized_min, normalized_max, self.weight)
 
     def get_denormalized(self, scale_min: float, scale_max: float):
-        scale_range = scale_max - scale_min
-        denormalized_min = (
-            (self.min * scale_range) + scale_min if self.min is not None else None
-        )
-        denormalized_max = (
-            (self.max * scale_range) + scale_min if self.max is not None else None
-        )
+        scale = Scale(scale_min, scale_max)
+        denormalized_min = scale.denormalize_point(self.min)
+        denormalized_max = scale.denormalize_point(self.max)
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
 
     def __str__(self):
@@ -146,22 +139,22 @@ class HistogramCondition(Condition):
         return self.weight * total_loss / len(self.histogram)
 
     def get_normalized(self, scale_min: float, scale_max: float):
-        scale_range = scale_max - scale_min
+        scale = Scale(scale_min, scale_max)
         normalized_histogram: Histogram = [
             {
-                "x": (entry["x"] - scale_min) / scale_range,
-                "density": entry["density"] * scale_range,
+                "x": scale.normalize_point(entry["x"]),
+                "density": entry["density"] * scale.range,
             }
             for entry in self.histogram
         ]
         return self.__class__(normalized_histogram, self.weight)
 
     def get_denormalized(self, scale_min: float, scale_max: float):
-        scale_range = scale_max - scale_min
+        scale = Scale(scale_min, scale_max)
         denormalized_histogram: Histogram = [
             {
-                "x": (entry["x"] * scale_range) + scale_min,
-                "density": entry["density"] / scale_range,
+                "x": scale.denormalize_point(entry["x"]),
+                "density": entry["density"] / scale.range,
             }
             for entry in self.histogram
         ]
@@ -188,12 +181,12 @@ class ScalePriorCondition(Condition):
         return self.weight * total_loss
 
     def get_normalized(self, scale_min: float, scale_max: float):
-        scale_range = scale_max - scale_min
-        return self.__class__(self.weight, self.scale_mean / scale_range)
+        scale = Scale(scale_min, scale_max)
+        return self.__class__(self.weight, self.scale_mean / scale.range)
 
-    def get_denormalized(self, scale_min, scale_max):
-        scale_range = scale_max - scale_min
-        return self.__class__(self.weight, self.scale_mean * scale_range)
+    def get_denormalized(self, scale_min: float, scale_max: float):
+        scale = Scale(scale_min, scale_max)
+        return self.__class__(self.weight, self.scale_mean * scale.range)
 
     def __str__(self):
         return f"The scale is normally distributed around {self.scale_mean}"
@@ -216,12 +209,12 @@ class LocationPriorCondition(Condition):
         return self.weight * total_loss
 
     def get_normalized(self, scale_min: float, scale_max: float):
-        scale_range = scale_max - scale_min
-        return self.__class__(self.weight, (self.loc_mean - scale_min) / scale_range)
+        scale = Scale(scale_min, scale_max)
+        return self.__class__(self.weight, scale.normalize_point(self.loc_mean))
 
-    def get_denormalized(self, scale_min, scale_max):
-        scale_range = scale_max - scale_min
-        return self.__class__(self.weight, (self.loc_mean * scale_range) + scale_min)
+    def get_denormalized(self, scale_min: float, scale_max: float):
+        scale = Scale(scale_min, scale_max)
+        return self.__class__(self.weight, scale.denormalize_point(self.loc_mean))
 
     def __str__(self):
         return f"The location is normally distributed around {self.loc_mean}"
