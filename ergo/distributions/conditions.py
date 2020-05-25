@@ -22,7 +22,7 @@ class Condition(ABC):
         """
 
     @abstractmethod
-    def get_normalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
         """
         Assume that the condition's true range is [scale_min, scale_max].
         Return the normalized condition.
@@ -33,7 +33,7 @@ class Condition(ABC):
         """
 
     @abstractmethod
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale_min: float, scale_max: float):
         """
         Assume that the condition has been normalized to be over [0,1].
         Return the condition on the true scale.
@@ -97,13 +97,13 @@ class IntervalCondition(Condition):
         description["p_in_interval"] = float(self.actual_p(dist))
         return description
 
-    def get_normalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         normalized_min = scale.normalize_point(self.min)
         normalized_max = scale.normalize_point(self.max)
         return self.__class__(self.p, normalized_min, normalized_max, self.weight)
 
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         denormalized_min = scale.denormalize_point(self.min)
         denormalized_max = scale.denormalize_point(self.max)
@@ -138,7 +138,7 @@ class HistogramCondition(Condition):
         total_loss = np.sum(vmap(entry_loss_fn)(xs, densities))
         return self.weight * total_loss / len(self.histogram)
 
-    def get_normalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         normalized_histogram: Histogram = [
             {
@@ -149,7 +149,7 @@ class HistogramCondition(Condition):
         ]
         return self.__class__(normalized_histogram, self.weight)
 
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         denormalized_histogram: Histogram = [
             {
@@ -180,11 +180,11 @@ class ScalePriorCondition(Condition):
             total_loss += scale_penalty
         return self.weight * total_loss
 
-    def get_normalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         return self.__class__(self.weight, self.scale_mean / scale.range)
 
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         return self.__class__(self.weight, self.scale_mean * scale.range)
 
@@ -208,11 +208,11 @@ class LocationPriorCondition(Condition):
             total_loss += loc_penalty
         return self.weight * total_loss
 
-    def get_normalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         return self.__class__(self.weight, scale.normalize_point(self.loc_mean))
 
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
         return self.__class__(self.weight, scale.denormalize_point(self.loc_mean))
 

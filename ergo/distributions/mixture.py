@@ -75,7 +75,7 @@ class Mixture(Distribution):
     def to_params(self):
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def get_denormalized(self, scale_min, scale_max):
+    def denormalize(self, scale_min, scale_max):
         """
         Assume that the distribution has been normalized to be over [0,1].
         Return the distribution on the true scale of [scale_min, scale_max]
@@ -85,7 +85,7 @@ class Mixture(Distribution):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def get_normalized(self, scale_min, scale_max):
+    def normalize(self, scale_min, scale_max):
         """
         Assume that the distribution's true range is [scale_min, scale_max].
         Return the normalized condition.
@@ -170,7 +170,7 @@ class Mixture(Distribution):
         :return: the fitted mixture
         """
         normalized_conditions = [
-            condition.get_normalized(scale_min, scale_max) for condition in conditions
+            condition.normalize(scale_min, scale_max) for condition in conditions
         ]
 
         def loss(params):
@@ -191,7 +191,7 @@ class Mixture(Distribution):
             init_tries=init_tries,
             opt_tries=opt_tries,
         )
-        return normalized_mixture.get_denormalized(scale_min, scale_max)
+        return normalized_mixture.denormalize(scale_min, scale_max)
 
     @classmethod
     def from_loss(
@@ -282,16 +282,14 @@ class LSMixture(Mixture):
         ]
         return np.array(list(itertools.chain.from_iterable(nested_params)))
 
-    def get_normalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
         normalized_components = [
-            component.get_normalized(scale_min, scale_max)
-            for component in self.components
+            component.normalize(scale_min, scale_max) for component in self.components
         ]
         return self.__class__(normalized_components, self.probs, self.component_type)
 
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale_min: float, scale_max: float):
         denormalized_components = [
-            component.get_denormalized(scale_min, scale_max)
-            for component in self.components
+            component.denormalize(scale_min, scale_max) for component in self.components
         ]
         return self.__class__(denormalized_components, self.probs, self.component_type)

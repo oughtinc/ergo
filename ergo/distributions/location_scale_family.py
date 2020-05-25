@@ -58,7 +58,7 @@ class LSDistribution(Distribution):
         # FIXME (#296): This needs to be compatible with ergo sampling
         return self.odist.rvs(loc=self.loc, scale=self.scale)
 
-    def get_normalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
         """
         Assume that the condition's true range is [scale_min, scale_max].
         Return the normalized condition.
@@ -72,7 +72,7 @@ class LSDistribution(Distribution):
         normalized_scale = self.scale / scale.range
         return self.__class__(normalized_loc, normalized_scale, self.metadata)
 
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale_min: float, scale_max: float):
         """
         Assume that the distribution has been normalized to be over [0,1].
         Return the distribution on the true scale of [scale_min, scale_max]

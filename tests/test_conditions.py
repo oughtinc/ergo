@@ -51,9 +51,9 @@ def test_normalization_interval_condition():
     def normalization_interval_condition_test(p, min, max, scale_min, scale_max):
         condition = IntervalCondition(p=p, min=min, max=max)
         assert (
-            condition.get_normalized(
+            condition.normalize(scale_min=scale_min, scale_max=scale_max).denormalize(
                 scale_min=scale_min, scale_max=scale_max
-            ).get_denormalized(scale_min=scale_min, scale_max=scale_max)
+            )
             == condition
         )
 
@@ -87,16 +87,14 @@ def test_normalization_interval_condition():
         p=1, min=0, max=1000, scale_min=10, scale_max=100
     )
 
-    assert IntervalCondition(p=0.5, min=0, max=5).get_normalized(
+    assert IntervalCondition(p=0.5, min=0, max=5).normalize(
         scale_min=0, scale_max=10
     ) == IntervalCondition(p=0.5, min=0, max=0.5)
 
 
 def test_normalization_histogram_condition(histogram):
     original = HistogramCondition(histogram)
-    normalized_denormalized = original.get_normalized(10, 1000).get_denormalized(
-        10, 1000
-    )
+    normalized_denormalized = original.normalize(10, 1000).denormalize(10, 1000)
     for entry in normalized_denormalized.histogram:
         assert entry["x"] == pytest.approx(
             [
@@ -109,7 +107,7 @@ def test_normalization_histogram_condition(histogram):
 
     # half-assed test that xs and densities are at least
     # getting transformed in the right direction
-    normalized = original.get_normalized(1, 4)
+    normalized = original.normalize(1, 4)
     for idx, normalized_entry in enumerate(normalized.histogram):
         orig_entry = original.histogram[idx]
         assert orig_entry["x"] > normalized_entry["x"]
@@ -118,20 +116,20 @@ def test_normalization_histogram_condition(histogram):
 
 def test_normalization_scale_condition():
     original = ScalePriorCondition(weight=0.5, scale_mean=10)
-    assert original == original.get_denormalized(10, 1000).get_normalized(10, 1000)
+    assert original == original.denormalize(10, 1000).normalize(10, 1000)
 
-    assert original.get_normalized(scale_min=0, scale_max=100) == ScalePriorCondition(
+    assert original.normalize(scale_min=0, scale_max=100) == ScalePriorCondition(
         weight=0.5, scale_mean=0.1
     )
 
 
 def test_normalization_loc_condition():
     original = LocationPriorCondition(weight=0.5, loc_mean=100)
-    assert original == original.get_denormalized(10, 1000).get_normalized(10, 1000)
+    assert original == original.denormalize(10, 1000).normalize(10, 1000)
 
-    assert original.get_normalized(
-        scale_min=0, scale_max=1000
-    ) == LocationPriorCondition(weight=0.5, loc_mean=0.1)
+    assert original.normalize(scale_min=0, scale_max=1000) == LocationPriorCondition(
+        weight=0.5, loc_mean=0.1
+    )
 
 
 def test_mixture_from_percentile():

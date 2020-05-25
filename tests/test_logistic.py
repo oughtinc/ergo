@@ -114,13 +114,11 @@ def test_logistic_mixture_normalization():
 
     for scale_min, scale_max in [(0, 10), (10, 100), (-10, 10), (-100, -10)]:
         assert (
-            mixture.get_normalized(scale_min, scale_max).get_denormalized(
-                scale_min, scale_max
-            )
+            mixture.normalize(scale_min, scale_max).denormalize(scale_min, scale_max)
             == mixture
         )
 
-    normalized = mixture.get_normalized(-50, 50)
+    normalized = mixture.normalize(-50, 50)
     assert normalized == LogisticMixture(
         [Logistic(0.1, 0.01), Logistic(1, 0.1)], [0.5, 0.5]
     )
