@@ -38,10 +38,20 @@ You can run the model [here](https://colab.research.google.com/github/oughtinc/e
 
 ## Quickstart
 
+### In your browswer
 1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/build/quickstart.ipynb)
 2. Add your Metaculus username and password
 3. Select "Runtime > Run all" in the menu
 4. Edit the code to load other questions, improve the model, etc., and rerun
+
+
+### On your computer
+1. Fetch and open the repo: `git clone git@github.com:oughtinc/ergo.git; cd ergo`
+2. If you don't have it installed already, [install Poetry](https://python-poetry.org/docs/#installation). Ergo uses this to manage its dependencies and environments.
+3. Use poetry to setup a virtual environment, and download dependencies: `poetry install`
+	- If you get `Could not find a version that satisfies the requirement jaxlib ...` after using poetry to install, this is probably because your virtual environment has old version of pip due to how [poetry choses pip versions](https://github.com/python-poetry/poetry/issues/732). Try `poetry run pip install -U pip`, then try `poetry install` again.
+4. Open a notebook: `poetry run jupyter notebook notebooks/build/quickstart.ipynb`
+5. Follow the instructions in the "In your browser" section to run the notebook.
 
 ## Philosophy
 
