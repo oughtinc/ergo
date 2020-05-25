@@ -16,6 +16,7 @@ import scipy as oscipy
 
 from .conditions import Condition
 from .distribution import Distribution
+from .scale import Scale
 
 LSD = TypeVar("LSD", bound="LSDistribution")
 
@@ -57,7 +58,21 @@ class LSDistribution(Distribution):
         # FIXME (#296): This needs to be compatible with ergo sampling
         return self.odist.rvs(loc=self.loc, scale=self.scale)
 
-    def get_denormalized(self, scale_min: float, scale_max: float):
+    def normalize(self, scale_min: float, scale_max: float):
+        """
+        Assume that the condition's true range is [scale_min, scale_max].
+        Return the normalized condition.
+
+        :param scale_min: the true-scale minimum of the range
+        :param scale_max: the true-scale maximum of the range
+        :return: the condition normalized to [0,1]
+        """
+        scale = Scale(scale_min, scale_max)
+        normalized_loc = scale.normalize_point(self.loc)
+        normalized_scale = self.scale / scale.range
+        return self.__class__(normalized_loc, normalized_scale, self.metadata)
+
+    def denormalize(self, scale_min: float, scale_max: float):
         """
         Assume that the distribution has been normalized to be over [0,1].
         Return the distribution on the true scale of [scale_min, scale_max]
@@ -65,9 +80,9 @@ class LSDistribution(Distribution):
         :param scale_min: the true-scale minimum of the range
         :param scale_max: the true-scale maximum of the range
         """
-        scale_range = scale_max - scale_min
-        denormalized_loc = self.loc * scale_range + scale_min
-        denormalized_scale = self.scale * scale_range
+        scale = Scale(scale_min, scale_max)
+        denormalized_loc = scale.denormalize_point(self.loc)
+        denormalized_scale = self.scale * scale.range
         return self.__class__(denormalized_loc, denormalized_scale, self.metadata)
 
     @classmethod

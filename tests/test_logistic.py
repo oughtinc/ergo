@@ -107,3 +107,18 @@ def test_fit_samples(logistic_mixture):
         assert fitted_loc == pytest.approx(float(true_loc), rel=0.2)
     for (true_scale, fitted_scale) in zip(true_scales, fitted_scales):
         assert fitted_scale == pytest.approx(float(true_scale), rel=0.2)
+
+
+def test_logistic_mixture_normalization():
+    mixture = LogisticMixture([Logistic(-40, 1), Logistic(50, 10)], [0.5, 0.5])
+
+    for scale_min, scale_max in [(0, 10), (10, 100), (-10, 10), (-100, -10)]:
+        assert (
+            mixture.normalize(scale_min, scale_max).denormalize(scale_min, scale_max)
+            == mixture
+        )
+
+    normalized = mixture.normalize(-50, 50)
+    assert normalized == LogisticMixture(
+        [Logistic(0.1, 0.01), Logistic(1, 0.1)], [0.5, 0.5]
+    )
