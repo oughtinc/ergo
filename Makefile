@@ -28,7 +28,7 @@ scrub_src_only: FORCE  ## Scrub notebooks in notebooks/scrubbed (without updatin
 	poetry run python scripts/scrub_src.py notebooks notebooks/scrubbed
 
 run_nb: FORCE  ## scrub and run passed notebook
-	poetry run python scripts/run_nb.py notebooks/build notebooks/src $(XFILE)
+	poetry run python scripts/run_nb.py notebooks notebooks/src $(XFILE)
 
 .PHONY: help
 
