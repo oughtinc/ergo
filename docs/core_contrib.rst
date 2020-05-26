@@ -13,8 +13,12 @@ Ergo uses poetry to manage its dependencies and environments.
 
 Folow these_ directions to install poetry if you don't already have it.
 
-Troubleshooting: If you get `Could not find a version that satisfies the requirement jaxlib ...` after using poetry to install, this is probably because your virtual environment has old version of pip due to how poetry choses pip versions_.
-Try `poetry run pip install -U pip`, then try `poetry install` agai
+Troubleshooting: If you get ``Could not find a version that satisfies the requirement jaxlib ...`` after using poetry to install, this is probably because your virtual environment has old version of pip due to how poetry choses pip versions_.
+
+Try:
+
+1. ``poetry run pip install -U pip``
+2. ``poetry install`` again
 
 .. _these: https://python-poetry.org/docs/#installation
 .. _versions: https://github.com/python-poetry/poetry/issues/732

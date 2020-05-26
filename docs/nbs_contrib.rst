@@ -3,7 +3,7 @@ Contribute to ergo notebooks
 
 How to change a notebook and make a PR
 --------------------------------------
-1. Open the `notebook`_ in JupyterLab or Colab (instructions)
+1. Open the `notebook`_ in JupyterLab or Colab (:doc:`jupyter_colab`)
 2. Make your changes
 3. Follow our :doc:`notebook_style` 
 4. Run the notebook in Colab. Save the .ipynb file (with output) in ``ergo/notebooks``
