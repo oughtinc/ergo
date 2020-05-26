@@ -170,7 +170,7 @@ class ContinuousQuestion(MetaculusQuestion):
             }
             for v in self.prediction_histogram
         ]
-        return dist.HistogramDist(histogram)
+        return dist.HistogramDist.from_pairs(histogram)
 
     @memoized_method(None)
     def community_dist_in_range(self):

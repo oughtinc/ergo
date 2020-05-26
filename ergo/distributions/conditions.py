@@ -5,8 +5,8 @@ from typing import Any, Dict, Optional
 from jax import vmap
 import jax.numpy as np
 
-from .types import Histogram
 from .scale import Scale
+from .types import Histogram
 
 
 class Condition(ABC):
@@ -21,7 +21,6 @@ class Condition(ABC):
         :param dist: A probability distribution
         """
 
-    @abstractmethod
     def normalize(self, scale_min: float, scale_max: float):
         """
         Assume that the condition's true range is [scale_min, scale_max].
@@ -31,8 +30,8 @@ class Condition(ABC):
         :param scale_max: the true-scale maximum of the range
         :return: the condition normalized to [0,1]
         """
+        return self
 
-    @abstractmethod
     def denormalize(self, scale_min: float, scale_max: float):
         """
         Assume that the condition has been normalized to be over [0,1].
@@ -42,6 +41,7 @@ class Condition(ABC):
         :param scale_max: the true-scale maximum of the range
         :return: the condition on the true scale of [scale_min, scale_max]
         """
+        return self
 
     def describe_fit(self, dist) -> Dict[str, Any]:
         """
@@ -54,6 +54,49 @@ class Condition(ABC):
 
         # convert to float for easy serialization
         return {"loss": float(self.loss(dist))}
+
+
+@dataclass
+class SmoothnessCondition(Condition):
+    weight: float
+
+    def __init__(self, weight=1.0):
+        self.weight = weight
+
+    def loss(self, dist) -> float:
+        return self.weight * np.sum(np.square(dist.ps - np.roll(dist.ps, 1)))
+
+    def __str__(self):
+        return "Minimize rough edges in the distribution"
+
+
+@dataclass
+class MinEntropyCondition(Condition):
+    weight: float
+
+    def __init__(self, weight=1.0):
+        self.weight = weight
+
+    def loss(self, dist) -> float:
+        return self.weight * dist.entropy()
+
+    def __str__(self):
+        return "Minimize the entropy of the distribution"
+
+
+@dataclass
+class CrossEntropyCondition(Condition):
+    weight: float
+
+    def __init__(self, p_dist, weight=1.0):
+        self.weight = weight
+        self.p_dist = p_dist
+
+    def loss(self, q_dist) -> float:
+        return self.weight * self.p_dist.cross_entropy(q_dist)
+
+    def __str__(self):
+        return "Minimize the cross-entropy of the two distributions"
 
 
 @dataclass
@@ -162,59 +205,3 @@ class HistogramCondition(Condition):
 
     def __str__(self):
         return "The probability density function looks similar to the provided density function."
-
-
-@dataclass
-class ScalePriorCondition(Condition):
-    """
-    Condition that enforces prior on scales for mixture distributions
-    """
-
-    weight: float = 1.0
-    scale_mean: float = 1.0
-
-    def loss(self, dist):
-        total_loss = 0.0
-        for component in dist.components:
-            scale_penalty = (self.scale_mean - component.scale) ** 2
-            total_loss += scale_penalty
-        return self.weight * total_loss
-
-    def normalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
-        return self.__class__(self.weight, self.scale_mean / scale.range)
-
-    def denormalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
-        return self.__class__(self.weight, self.scale_mean * scale.range)
-
-    def __str__(self):
-        return f"The scale is normally distributed around {self.scale_mean}"
-
-
-@dataclass
-class LocationPriorCondition(Condition):
-    """
-    Condition that enforces prior on scales for mixture distributions
-    """
-
-    weight: float = 1.0
-    loc_mean: float = 0.0
-
-    def loss(self, dist):
-        total_loss = 0.0
-        for component in dist.components:
-            loc_penalty = (self.loc_mean - component.loc) ** 2
-            total_loss += loc_penalty
-        return self.weight * total_loss
-
-    def normalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
-        return self.__class__(self.weight, scale.normalize_point(self.loc_mean))
-
-    def denormalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
-        return self.__class__(self.weight, scale.denormalize_point(self.loc_mean))
-
-    def __str__(self):
-        return f"The location is normally distributed around {self.loc_mean}"
