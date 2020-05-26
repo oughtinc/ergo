@@ -26,7 +26,7 @@ class HistogramDist(Distribution):
         return -np.dot(self.ps, self.logps)
 
     def cross_entropy(self, q_dist):
-        assert self.scale_min == q_dist.scale_min
+        assert self.scale_min == q_dist.scale_min, (self.scale_min, q_dist.scale_min)
         assert self.scale_max == q_dist.scale_max
         assert self.size == q_dist.size, (self.size, q_dist.size)
         return -np.dot(self.ps, q_dist.logps)
@@ -46,7 +46,7 @@ class HistogramDist(Distribution):
     def rv(self):
         raise NotImplementedError
 
-    def normalize(self, scale_min, scale_max):
+    def normalize(self):
         return HistogramDist(self.logps, 0, 1)
 
     def denormalize(self, scale_min, scale_max):

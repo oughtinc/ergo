@@ -71,17 +71,17 @@ class SmoothnessCondition(Condition):
 
 
 @dataclass
-class MinEntropyCondition(Condition):
+class MaxEntropyCondition(Condition):
     weight: float
 
     def __init__(self, weight=1.0):
         self.weight = weight
 
     def loss(self, dist) -> float:
-        return self.weight * dist.entropy()
+        return -self.weight * dist.entropy()
 
     def __str__(self):
-        return "Minimize the entropy of the distribution"
+        return "Maximize the entropy of the distribution"
 
 
 @dataclass
