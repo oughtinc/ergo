@@ -2,8 +2,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from jax import vmap
+from jax import jit, vmap
 import jax.numpy as np
+
+from ergo.utils import shift
 
 from . import histogram
 from .scale import Scale
@@ -60,9 +62,15 @@ class Condition(ABC):
 @dataclass
 class SmoothnessCondition(Condition):
     weight: float = 1.0
+    window_size: int = 1
 
     def loss(self, dist) -> float:
-        return self.weight * np.sum(np.square(dist.ps - np.roll(dist.ps, 1)))
+        squared_distance = 0.0
+        for i in range(1, self.window_size + 1):
+            squared_distance += (1 / i) * np.sum(
+                np.square(dist.ps - shift(dist.ps, 1, dist.ps[0]))
+            )
+        return self.weight * np.exp(squared_distance)
 
     def __str__(self):
         return "Minimize rough edges in the distribution"
@@ -89,6 +97,25 @@ class CrossEntropyCondition(Condition):
 
     def __str__(self):
         return "Minimize the cross-entropy of the two distributions"
+
+
+@jit
+def wasserstein_distance(xs, ys):
+    diffs = np.cumsum(xs - ys)
+    abs_diffs = np.abs(diffs)
+    return np.sum(abs_diffs)
+
+
+@dataclass
+class WassersteinCondition(Condition):
+    p_dist: "histogram.HistogramDist"
+    weight: float = 1.0
+
+    def loss(self, q_dist) -> float:
+        return self.weight * wasserstein_distance(self.p_dist.ps, q_dist.ps)
+
+    def __str__(self):
+        return "Minimize the Wasserstein distance between the two distributions"
 
 
 @dataclass
