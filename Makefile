@@ -21,11 +21,11 @@ docs: FORCE  ## Build docs
 serve: FORCE  ## Run Jupyter notebook server
 	poetry run python -m jupyter lab
 
-scrub: FORCE  ## Create scrubbed notebooks in notebooks/src/ from notebooks/build/
-	poetry run python scripts/scrub_notebooks.py notebooks/build notebooks/src
+scrub: FORCE  ## Create scrubbed notebooks in notebooks/scrubbed from notebooks
+	poetry run python scripts/scrub_notebooks.py notebooks notebooks/scrubbed
 
-scrub_src_only: FORCE  ## Scrub notebooks in notebooks/src/ (without updating from notebooks/build/)
-	poetry run python scripts/scrub_src.py notebooks/build notebooks/src
+scrub_src_only: FORCE  ## Scrub notebooks in notebooks/scrubbed (without updating from notebooks)
+	poetry run python scripts/scrub_src.py notebooks notebooks/scrubbed
 
 run_nb: FORCE  ## scrub and run passed notebook
 	poetry run python scripts/run_nb.py notebooks/build notebooks/src $(XFILE)
