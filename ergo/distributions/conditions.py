@@ -67,7 +67,9 @@ class SmoothnessCondition(Condition):
     def loss(self, dist) -> float:
         squared_distance = 0.0
         for i in range(1, self.window_size + 1):
-            squared_distance += (1/i) * np.sum(np.square(dist.ps - shift(dist.ps, 1, dist.ps[0])))
+            squared_distance += (1 / i) * np.sum(
+                np.square(dist.ps - shift(dist.ps, 1, dist.ps[0]))
+            )
         return self.weight * np.exp(squared_distance)
 
     def __str__(self):
