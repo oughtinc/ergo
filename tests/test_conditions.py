@@ -219,15 +219,15 @@ def test_mixed_2(histogram):
     assert dist.pdf1(6) == pytest.approx(0, abs=0.1)
 
 
-# def compare_runtimes():
-#     from tests.conftest import make_histogram
+def compare_runtimes():
+    from tests.conftest import make_histogram
 
-#     histogram = make_histogram()
-#     import time
+    histogram = make_histogram()
+    import time
 
-#     start = time.time()
-#     test_mixed_1(histogram)
-#     mid = time.time()
-#     print(f"Total time (1): {mid - start:.2f}s")
-#     test_mixed_2(histogram)
-#     print(f"Total time (2): {time.time() - mid:.2f}s")
+    start = time.time()
+    test_mixed_1(histogram)
+    mid = time.time()
+    print(f"Total time (1): {mid - start:.2f}s")
+    test_mixed_2(histogram)
+    print(f"Total time (2): {time.time() - mid:.2f}s")
