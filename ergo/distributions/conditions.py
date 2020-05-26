@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from jax import vmap
+from jax import jit, vmap
 import jax.numpy as np
 
 from . import histogram
@@ -89,6 +89,25 @@ class CrossEntropyCondition(Condition):
 
     def __str__(self):
         return "Minimize the cross-entropy of the two distributions"
+
+
+@jit
+def wasserstein_distance(xs, ys):
+    diffs = np.cumsum(xs - ys)
+    abs_diffs = np.abs(diffs)
+    return np.sum(abs_diffs)
+
+
+@dataclass
+class WassersteinCondition(Condition):
+    p_dist: "histogram.HistogramDist"
+    weight: float = 1.0
+
+    def loss(self, q_dist) -> float:
+        return self.weight * wasserstein_distance(self.p_dist.ps, q_dist.ps)
+
+    def __str__(self):
+        return "Minimize the Wasserstein distance between the two distributions"
 
 
 @dataclass
