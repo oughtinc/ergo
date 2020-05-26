@@ -41,7 +41,7 @@ Ergo documentation
    :maxdepth: 2
    :caption: Contribute to ergo notebooks
 
-   contribute_to_nbs
+   nbs_contrib
    jupyter_colab
    notebook_style
    contrib_folder

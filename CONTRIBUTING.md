@@ -9,7 +9,7 @@ You can help the ergo project by:
 1. Making your own innovative Colab/Jupyter Notebook using ergo
 2. Improving one of our [existing notebooks](/notebooks)
 
-If you'd like to improve one of our existing notebooks or submit your own notebook for inclusion in this repo, please follow [these insructions](file:///Users/brachbach/ought/ergo/docs/build/html/contribute_to_nbs.html).
+If you'd like to improve one of our existing notebooks or submit your own notebook for inclusion in this repo, please follow [these insructions](https://ergo.ought.org/nbs_contrib.html).
 
 Even if you'd just like to make your own notebook, we'd love to see it!
 
@@ -17,4 +17,4 @@ You can share it with us at ergo@ought.org.
 
 ## I want to contribute to ergo core
 
-Read about how to get set up and make PRs [here](file:///Users/brachbach/ought/ergo/docs/build/html/workflow.html).
+Read about how to get set up and make PRs [here](fhttps://ergo.ought.org/core_contrib.html).
