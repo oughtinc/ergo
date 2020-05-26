@@ -1,5 +1,5 @@
-Contrib
-=======
+Notebook contrib folder
+=======================
 
 Adding new packages
 -------------------

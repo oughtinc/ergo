@@ -1,7 +1,7 @@
-Notebooks
-=========
+Notebook Style
+==============
 
-How to clean up a notebook for us to feature in the README:
+How to clean up a notebook for us to feature:
 
 1. Make sure that the notebook meets a high standard in general:
 
@@ -15,9 +15,7 @@ How to clean up a notebook for us to feature in the README:
 
 2. Do the following specific things to clean up:
    
-   1. Make sure the notebook is saved without output in the ``notebooks/src/``
-      repo. This can be accomplished by running ``make scrub``
-   2. as much as possible, avoid showing extraneous output from cells
+   1. as much as possible, avoid showing extraneous output from cells
       
       1. you can use the ``%%capture`` magic to suppress all output
          from a cell (helpful if a function in the cell prints
@@ -32,17 +30,10 @@ How to clean up a notebook for us to feature in the README:
    4. make sure that any secrets like passwords are removed from the
       notebook
    5. Pull out any code not central to the main point of the model
-      into a module in ``ergo/contrib/``. See :doc:`contrib` for
-      details.
-      
-3. "Deploy" the notebook
-   
-    1. Run the notebook start to finish in a public runtime
-       environment like Colab. Do not rely on running it on a local
-       runtime. Save the notebook with output in ``notebooks/build/``
-   
+      into a module in ``ergo/contrib/``. See :doc:`contrib_folder` for
+      details. 
 
-All of the featured notebooks in our README should be exemplars of the
+The featured notebooks in our README should be exemplars of the
 above, so refer to those to see what this looks like in practice.
 
 .. _random style guide: https://github.com/spacetelescope/style-guides/blob/master/guides/jupyter-notebooks.md
