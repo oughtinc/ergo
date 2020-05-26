@@ -147,9 +147,9 @@ class ContinuousQuestion(MetaculusQuestion):
     def community_dist(self) -> dist.HistogramDist:
         """
         Get the community distribution for this question
+        NB: currently missing the part of the distribtion outside the question range
 
         :return: the (true-scale) community distribution as a histogram.
-        NB: currently missing the part of the distribtion outside the question range
         """
         # TODO (#306): Unify distributions interface
         # TODO (#307): Account for values out of range in
