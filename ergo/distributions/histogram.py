@@ -107,7 +107,8 @@ class HistogramDist(distribution.Distribution):
         pairs = []
         for i, bin in enumerate(self.bins[:-1]):
             x = float((bin + self.bins[i + 1]) / 2.0)
-            density = float(self.ps[i])
+            bin_size = float(self.bins[i + 1] - bin)
+            density = float(self.ps[i]) / bin_size
             pairs.append({"x": x, "density": density})
         return pairs
 
