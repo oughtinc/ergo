@@ -5,6 +5,8 @@ from typing import Any, Dict, Optional
 from jax import jit, vmap
 import jax.numpy as np
 
+from ergo.utils import shift
+
 from . import histogram
 from .scale import Scale
 from .types import Histogram
@@ -60,9 +62,13 @@ class Condition(ABC):
 @dataclass
 class SmoothnessCondition(Condition):
     weight: float = 1.0
+    window_size: int = 1
 
     def loss(self, dist) -> float:
-        return self.weight * np.sum(np.square(dist.ps - np.roll(dist.ps, 1)))
+        squared_distance = 0.0
+        for i in range(1, self.window_size + 1):
+            squared_distance += (1/i) * np.sum(np.square(dist.ps - shift(dist.ps, 1, dist.ps[0])))
+        return self.weight * np.exp(squared_distance)
 
     def __str__(self):
         return "Minimize rough edges in the distribution"

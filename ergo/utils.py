@@ -63,3 +63,7 @@ def minimize(fun, *args, init=None, init_tries=1, opt_tries=1, verbose=False, **
         if opt_tries == 0:
             break
     return best_results
+
+
+def shift(xs, k, fill_value):
+    return np.concatenate((np.full(k, fill_value), xs[:-k]))
