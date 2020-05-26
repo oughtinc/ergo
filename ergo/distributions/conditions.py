@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from jax import vmap
 import jax.numpy as np
 
+from . import histogram
 from .scale import Scale
 from .types import Histogram
 
@@ -58,10 +59,7 @@ class Condition(ABC):
 
 @dataclass
 class SmoothnessCondition(Condition):
-    weight: float
-
-    def __init__(self, weight=1.0):
-        self.weight = weight
+    weight: float = 1.0
 
     def loss(self, dist) -> float:
         return self.weight * np.sum(np.square(dist.ps - np.roll(dist.ps, 1)))
@@ -72,10 +70,7 @@ class SmoothnessCondition(Condition):
 
 @dataclass
 class MaxEntropyCondition(Condition):
-    weight: float
-
-    def __init__(self, weight=1.0):
-        self.weight = weight
+    weight: float = 1.0
 
     def loss(self, dist) -> float:
         return -self.weight * dist.entropy()
@@ -86,11 +81,8 @@ class MaxEntropyCondition(Condition):
 
 @dataclass
 class CrossEntropyCondition(Condition):
-    weight: float
-
-    def __init__(self, p_dist, weight=1.0):
-        self.weight = weight
-        self.p_dist = p_dist
+    p_dist: "histogram.HistogramDist"
+    weight: float = 1.0
 
     def loss(self, q_dist) -> float:
         return self.weight * self.p_dist.cross_entropy(q_dist)

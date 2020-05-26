@@ -5,16 +5,15 @@ from jax import grad, jit, nn
 import jax.numpy as np
 import scipy as oscipy
 
-from .conditions import Condition
-from .distribution import Distribution
+from . import conditions, distribution
 
 
 @dataclass
-class HistogramDist(Distribution):
+class HistogramDist(distribution.Distribution):
     logps: np.DeviceArray
 
     def __init__(self, logps, scale_min=0, scale_max=1):
-        self.logps = logps  # probability of each bin..
+        self.logps = logps
         self.ps = np.exp(logps)
         self.cum_ps = np.cumsum(self.ps)
         self.bins = np.linspace(scale_min, scale_max, logps.size + 1)
@@ -55,7 +54,7 @@ class HistogramDist(Distribution):
     @classmethod
     def from_conditions(
         cls,
-        conditions: List[Condition],
+        conditions: List["conditions.Condition"],
         scale_min=0,
         scale_max=1,
         num_bins=100,
