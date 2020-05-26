@@ -31,8 +31,8 @@ Before submitting a PR
       our ``oughttest`` account. If you don't have it, you can ask us for it, 
       or rely on Travis CI to run those tests for you.
 
-5. Generate docs using ``make docs``, review
-   ``docs/build/html/index.html``
+5. Generate docs using ``make docs``, load
+   ``docs/build/html/index.html`` and review the generated docs
 6. Or run all of the above using ``make all``
    
 .. _Poetry: https://github.com/python-poetry/poetry
