@@ -1,4 +1,4 @@
-Contribute to ergo notebooks
+Contribute to Ergo notebooks
 ============================
 
 How to change a notebook and make a PR
