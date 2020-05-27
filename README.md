@@ -87,7 +87,7 @@ Outdated Ergo notebooks:
 
 Ergo is an open source project and we love contributions!
 
-See our [instructions for contributers](CONTRIBUTING.md) for more.
+See our [instructions for contributors](CONTRIBUTING.md) for more.
 
 ## Philosophy
 
