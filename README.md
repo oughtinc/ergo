@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/oughtinc/ergo.svg?branch=master)](https://travis-ci.org/oughtinc/ergo) [![Documentation Status](https://readthedocs.com/projects/ought-ergo/badge/?version=latest&token=259162a0cd579e231ba0828410ff8b8f813f5eac663dcc8882b1244decdc97ae)](https://ergo.ought.org) [![Codecov Status](https://codecov.io/gh/oughtinc/ergo/branch/master/graph/badge.svg)](https://codecov.io/gh/oughtinc/ergo)
+[![Build Status](https://travis-ci.org/oughtinc/ergo.svg?branch=master)](https://travis-ci.org/oughtinc/ergo) [![Documentation Status](https://readthedocs.org/projects/ergo/badge/?version=latest)](https://ergo.ought.org/) [![Codecov Status](https://codecov.io/gh/oughtinc/ergo/branch/master/graph/badge.svg)](https://codecov.io/gh/oughtinc/ergo)
 
 # Ergo
 
