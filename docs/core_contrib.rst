@@ -1,4 +1,4 @@
-Contribute to ergo core
+Contribute to Ergo core
 =======================
 
 To get started:
@@ -11,7 +11,7 @@ To get started:
 ----------
 Ergo uses poetry to manage its dependencies and environments.
 
-Folow these directions_ to install poetry if you don't already have it.
+Follow these directions_ to install poetry if you don't already have it.
 
 Troubleshooting: If you get ``Could not find a version that satisfies the requirement jaxlib ...`` after using poetry to install, this is probably because your virtual environment has old version of pip due to how poetry choses pip versions_.
 
