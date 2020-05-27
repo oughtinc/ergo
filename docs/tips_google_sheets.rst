@@ -1,4 +1,4 @@
-Loading Data from Google Sheets
+Loading data from Google Sheets
 ===============================
 Three methods for loading data from google sheets into a Colab Notebook
 

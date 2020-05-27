@@ -34,14 +34,60 @@ samples = ergo.run(deaths_from_infections, num_samples=5000)
 q_deaths.submit_from_samples(samples)
 ```
 
-You can run the model [here](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/build/community-distributions.ipynb).
+You can run the model [here](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/community-distributions.ipynb).
 
-## Quickstart
+## Get started using ergo
 
-1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/build/quickstart.ipynb)
+1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/quickstart.ipynb)
 2. Add your Metaculus username and password
 3. Select "Runtime > Run all" in the menu
 4. Edit the code to load other questions, improve the model, etc., and rerun
+
+## Notebooks using Ergo
+
+This notebook is closest to a tutorial right now:
+
+- [El Paso workflow](notebooks/el-paso-workflow.ipynb)
+  - This notebook shows multi-level decomposition, Metaculus community distributions, ensembling, and beta-binomial and log-normal distributions using part of the [El Paso Covid-19 model](notebooks/el-paso.ipynb).
+
+The notebooks below have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
+
+1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
+    - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
+
+2. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
+   - End-to-end example: 
+     1. Load multiple questions from Metaculus
+     2. Compute model predictions based on assumptions and external data
+     3. Submit predictions to Metaculus
+
+3. [Model-based predictions of Covid-19 spread using inference from observed cases](notebooks/covid-19-inference.ipynb)
+   - A version of the previous notebook that infers growth rates before and after lockdown decisions
+
+4. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
+   - Show Metaculus prediction results as a dataframe
+   - Filter Metaculus questions by date and status.
+
+5. [El Paso questions](notebooks/el-paso.ipynb)
+   - Illustrates how to load all questions for a Metaculus category (in this case for the [El Paso series](https://pandemic.metaculus.com/questions/4161/el-paso-series-supporting-covid-19-response-planning-in-a-mid-sized-city/))
+
+Outdated Ergo notebooks:
+
+1. [Generative models in Ergo](notebooks/generative-models.ipynb)
+
+2. [Predicting how long lockdowns will last in multiple locations](notebooks/covid-19-lockdowns.ipynb)
+
+3. [Estimating the number of active Covid-19 infections in each country using multiple sources](notebooks/covid-19-active.ipynb)
+
+4. [How long will the average American spend under lockdown?](notebooks/covid-19-average-lockdown.ipynb)
+
+5. [Assorted COVID predictions](notebooks/assorted-predictions.ipynb)
+
+## Contribute
+
+Ergo is an open source project and we love contributions!
+
+See our [instructions for contributers](CONTRIBUTING.md) for more.
 
 ## Philosophy
 
@@ -109,55 +155,3 @@ Planned:
   - Think [Forest](http://forestdb.org) + Github
 
 If there's something you want Ergo to do, [let us know](https://github.com/oughtinc/ergo/issues)!
-
-
-## Notebooks using Ergo
-
-This notebook is closest to a tutorial right now:
-
-- [El Paso workflow](notebooks/build/el-paso-workflow.ipynb)
-  - This notebook shows multi-level decomposition, Metaculus community distributions, ensembling, and beta-binomial and log-normal distributions using part of the [El Paso Covid-19 model](notebooks/build/el-paso.ipynb).
-
-The notebooks below have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
-
-1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/build/community-distributions.ipynb)
-    - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
-
-2. [Model-based predictions of Covid-19 spread](notebooks/build/covid-19-metaculus.ipynb)
-   - End-to-end example: 
-     1. Load multiple questions from Metaculus
-     2. Compute model predictions based on assumptions and external data
-     3. Submit predictions to Metaculus
-
-3. [Model-based predictions of Covid-19 spread using inference from observed cases](notebooks/build/covid-19-inference.ipynb)
-   - A version of the previous notebook that infers growth rates before and after lockdown decisions
-
-4. [Prediction dashboard](notebooks/build/prediction-dashboard.ipynb)
-   - Show Metaculus prediction results as a dataframe
-   - Filter Metaculus questions by date and status.
-
-5. [El Paso questions](notebooks/build/el-paso.ipynb)
-   - Illustrates how to load all questions for a Metaculus category (in this case for the [El Paso series](https://pandemic.metaculus.com/questions/4161/el-paso-series-supporting-covid-19-response-planning-in-a-mid-sized-city/))
-
-Outdated Ergo notebooks:
-
-1. [Generative models in Ergo](notebooks/build/generative-models.ipynb)
-
-2. [Predicting how long lockdowns will last in multiple locations](notebooks/build/covid-19-lockdowns.ipynb)
-
-3. [Estimating the number of active Covid-19 infections in each country using multiple sources](notebooks/build/covid-19-active.ipynb)
-
-4. [How long will the average American spend under lockdown?](notebooks/build/covid-19-average-lockdown.ipynb)
-
-5. [Assorted COVID predictions](notebooks/build/assorted-predictions.ipynb)
-
-
-## Contributing
-
-Ergo is an open source project and we love contributions!
-
-There are [many open issues](https://github.com/oughtinc/ergo/projects/1), including plenty that are [good for newcomers](https://github.com/oughtinc/ergo/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
-
-Read more about Ergo development [in the docs](https://ergo.ought.org/en/latest/workflow.html).
-
-Before you start implementation, make a new issue or comment on an existing one to let us know what you're planning to do. You can also ping us at ergo@ought.org first.

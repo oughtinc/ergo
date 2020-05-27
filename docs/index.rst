@@ -32,11 +32,19 @@ Ergo documentation
 .. toctree::
    :glob:
    :maxdepth: 2
-   :caption: Development
+   :caption: Contribute to ergo core
 
-   workflow
-   notebooks
-   contrib
+   core_contrib
+   
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Contribute to ergo notebooks
+
+   nbs_contrib
+   jupyter_colab
+   notebook_style
+   contrib_folder
 
 .. toctree::
    :glob:

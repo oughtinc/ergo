@@ -1,6 +1,6 @@
 """
 Invoke with `make scrub`. Will Create scrubbed notebooks in notebooks/src/ from
-notebooks/build/.
+notebooks/.
 """
 
 import argparse
