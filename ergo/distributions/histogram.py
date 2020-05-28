@@ -75,7 +75,9 @@ class HistogramDist(distribution.Distribution):
         num_bins=100,
         verbose=False,
     ):
-        normalized_conditions =  [condition.normalize(scale_min, scale_max) for condition in conditions]
+        normalized_conditions = [
+            condition.normalize(scale_min, scale_max) for condition in conditions
+        ]
 
         cond_data = [condition.destructure() for condition in normalized_conditions]
         if cond_data:

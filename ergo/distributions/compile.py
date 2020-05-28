@@ -1,9 +1,6 @@
-from typing import Iterator, List
-
 import jax.numpy as np
 
 from ergo.distributions.conditions import (
-    Condition,
     CrossEntropyCondition,
     IntervalCondition,
     MaxEntropyCondition,
