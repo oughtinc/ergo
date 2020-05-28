@@ -7,7 +7,7 @@ import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
-from . import conditions, distribution
+from . import conditions, distribution, scale
 
 
 @dataclass
@@ -34,6 +34,7 @@ class HistogramDist(distribution.Distribution):
             self.size = logps.size
             self.scale_min = scale_min
             self.scale_max = scale_max
+        self.scale = scale.Scale(scale_min, scale_max)
 
     def entropy(self):
         return -np.dot(self.ps, self.logps)
@@ -46,13 +47,15 @@ class HistogramDist(distribution.Distribution):
         return -np.dot(self.ps, q_dist.logps)
 
     def pdf(self, x):
-        return self.ps[np.argmax(self.bins >= x)]
+        return self.ps[np.argmax(self.bins >= self.scale.normalize_point(x))]
 
     def cdf(self, x):
-        return self.cum_ps[np.argmax(self.bins >= x)]
+        return self.cum_ps[np.argmax(self.bins >= self.scale.normalize_point(x))]
 
     def ppf(self, q):
-        return np.where(self.cum_ps >= q)[0][0] / self.cum_ps.size
+        return self.scale.denormalize_point(
+            np.where(self.cum_ps >= q)[0][0] / self.cum_ps.size
+        )
 
     def sample(self):
         raise NotImplementedError
