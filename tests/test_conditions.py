@@ -12,13 +12,18 @@ class Uniform:
     max: float = 1
 
     def cdf(self, value):
-        if value < self.min:
-            return 0
+        lt_min = value < self.min
+        gt_max = value > self.max
+        in_range = 1 - lt_min * gt_max
+        range_val = (value - self.min) / (self.max - self.min)
+        return lt_min * 0 + in_range * range_val + gt_max * 1
 
-        if value > self.max:
-            return 1
+    def destructure(self):
+        return (Uniform, (self.min, self.max))
 
-        return (value - self.min) / (self.max - self.min)
+    @classmethod
+    def structure(self, params):
+        return Uniform(params[0], params[1])
 
 
 def test_interval_condition():

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from functools import partial
+from typing import Any, Dict, Optional, Sequence, Tuple, TypeVar
 
 from jax import jit, vmap
 import jax.numpy as np
@@ -10,6 +11,8 @@ from ergo.utils import shift
 from . import histogram
 from .scale import Scale
 from .types import Histogram
+
+ConditionClass = TypeVar("ConditionClass", bound="Condition")
 
 
 class Condition(ABC):
@@ -46,7 +49,7 @@ class Condition(ABC):
         """
         return self
 
-    def describe_fit(self, dist) -> Dict[str, Any]:
+    def describe_fit(self, dist) -> Dict[str, float]:
         """
         Describe how well the distribution meets the condition
 
@@ -54,23 +57,40 @@ class Condition(ABC):
         :return: A description of various aspects of how well
         the distribution meets the condition
         """
+        result = static_describe_fit(*dist.destructure(), *self.destructure())
+        return {k: float(v) for (k, v) in result.items()}
 
+    def _describe_fit(self, dist) -> Dict[str, Any]:
         # convert to float for easy serialization
-        return {"loss": float(self.loss(dist))}
+        return {"loss": self.loss(dist)}
+
+    def shape_key(self):
+        return (self.__class__.__name__,)
+
+    @abstractmethod
+    def destructure(self) -> Tuple[ConditionClass, Sequence[Any]]:
+        ...
+
+    @classmethod
+    def structure(cls, params) -> "Condition":
+        return cls(*params)
 
 
 @dataclass
 class SmoothnessCondition(Condition):
     weight: float = 1.0
-    window_size: int = 1
 
     def loss(self, dist) -> float:
+        window_size = 5
         squared_distance = 0.0
-        for i in range(1, self.window_size + 1):
+        for i in range(1, window_size + 1):
             squared_distance += (1 / i) * np.sum(
                 np.square(dist.ps - shift(dist.ps, 1, dist.ps[0]))
             )
         return self.weight * np.exp(squared_distance)
+
+    def destructure(self):
+        return (SmoothnessCondition, (self.weight,))
 
     def __str__(self):
         return "Minimize rough edges in the distribution"
@@ -83,6 +103,9 @@ class MaxEntropyCondition(Condition):
     def loss(self, dist) -> float:
         return -self.weight * dist.entropy()
 
+    def destructure(self):
+        return (MaxEntropyCondition, (self.weight,))
+
     def __str__(self):
         return "Maximize the entropy of the distribution"
 
@@ -94,6 +117,13 @@ class CrossEntropyCondition(Condition):
 
     def loss(self, q_dist) -> float:
         return self.weight * self.p_dist.cross_entropy(q_dist)
+
+    def destructure(self):
+        return (CrossEntropyCondition, (np.array(self.p_dist.logps), self.weight))
+
+    @classmethod
+    def structure(cls, params):
+        return cls(histogram.HistogramDist(params[0], traceable=True), params[1])
 
     def __str__(self):
         return "Minimize the cross-entropy of the two distributions"
@@ -114,6 +144,13 @@ class WassersteinCondition(Condition):
     def loss(self, q_dist) -> float:
         return self.weight * wasserstein_distance(self.p_dist.ps, q_dist.ps)
 
+    def destructure(self):
+        return (WassersteinCondition, (np.array(self.p_dist.logprobs), self.weight))
+
+    @classmethod
+    def structure(cls, params):
+        return cls(histogram.HistogramDist(params[0]), params[1], traceable=True)
+
     def __str__(self):
         return "Minimize the Wasserstein distance between the two distributions"
 
@@ -121,8 +158,8 @@ class WassersteinCondition(Condition):
 @dataclass
 class IntervalCondition(Condition):
     """
-    Condition that the specified interval should include
-    as close to the specified probability mass as possible
+    The specified interval should include as close to the specified
+    probability mass as possible
 
     :raises ValueError: max must be strictly greater than min
     """
@@ -133,11 +170,6 @@ class IntervalCondition(Condition):
     weight: float
 
     def __init__(self, p, min=None, max=None, weight=1.0):
-        if min is not None and max is not None and max <= min:
-            raise ValueError(
-                f"max must be strictly greater than min, got max: {max}, min: {min}"
-            )
-
         self.p = p
         self.min = min
         self.max = max
@@ -152,11 +184,9 @@ class IntervalCondition(Condition):
         actual_p = self.actual_p(dist)
         return self.weight * (actual_p - self.p) ** 2
 
-    def describe_fit(self, dist):
-        description = super().describe_fit(dist)
-
-        # report the actual probability mass in the interval
-        description["p_in_interval"] = float(self.actual_p(dist))
+    def _describe_fit(self, dist):
+        description = super()._describe_fit(dist)
+        description["p_in_interval"] = self.actual_p(dist)
         return description
 
     def normalize(self, scale_min: float, scale_max: float):
@@ -171,6 +201,12 @@ class IntervalCondition(Condition):
         denormalized_max = scale.denormalize_point(self.max)
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
 
+    def destructure(self):
+        return (IntervalCondition, (self.p, self.min, self.max, self.weight))
+
+    def shape_key(self):
+        return (self.__class__.__name__, self.min is None, self.max is None)
+
     def __str__(self):
         return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"
 
@@ -178,8 +214,8 @@ class IntervalCondition(Condition):
 @dataclass
 class HistogramCondition(Condition):
     """
-    Condition that the distribution should fit the specified histogram
-    as closely as possible
+    The distribution should fit the specified histogram as closely as
+    possible
     """
 
     histogram: Histogram
@@ -222,5 +258,15 @@ class HistogramCondition(Condition):
         ]
         return self.__class__(denormalized_histogram, self.weight)
 
+    def destructure(self):
+        return (HistogramCondition, (self.histogram, self.weight))
+
     def __str__(self):
         return "The probability density function looks similar to the provided density function."
+
+
+@partial(jit, static_argnums=(0, 2))
+def static_describe_fit(dist_class, dist_params, cond_class, cond_params):
+    dist = dist_class.structure(dist_params)
+    condition = cond_class.structure(cond_params)
+    return condition._describe_fit(dist)
