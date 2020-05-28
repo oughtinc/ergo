@@ -40,13 +40,29 @@ class ContinuousQuestion(MetaculusQuestion):
     what's your distribution on this event?
     """
 
+    def side_open(self, side) -> bool:
+        try:
+            return self.possibilities[side] == "tail"
+
+        # The Metaculus API is inconsistent about how open sides are expressed.
+        # Many questions express it explicitly via possibilities[side],
+        # e.g. https://www.metaculus.com/questions/3992.
+        # Other questions (I think only older ones)
+        # do not seem to explicitly state whether the sides are open,
+        # e.g. https://www.metaculus.com/questions/605.
+        # My current guess (reflected in the code below)
+        # is that both sides are always closed
+        # on questions where possibilities[side] is missing.
+        except KeyError:
+            return False
+
     @property
     def low_open(self) -> bool:
         """
         Are you allowed to place probability mass below the bottom
         of this question's range?
         """
-        return self.possibilities["low"] == "tail"
+        return self.side_open("low")
 
     @property
     def high_open(self) -> bool:
@@ -54,7 +70,7 @@ class ContinuousQuestion(MetaculusQuestion):
         Are you allowed to place probability mass
         above the top of this question's range?
         """
-        return self.possibilities["high"] == "tail"
+        return self.side_open("high")
 
     @property
     def has_predictions(self):
