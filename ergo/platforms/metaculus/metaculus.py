@@ -85,6 +85,8 @@ class Metaculus:
             data=json.dumps({"username": username, "password": password}),
         )
 
+        r.raise_for_status()
+
         self.user_id = r.json()["user_id"]
 
     def post(self, url: str, data: Dict) -> requests.Response:
