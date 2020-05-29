@@ -36,6 +36,17 @@ class HistogramDist(distribution.Distribution):
             self.scale_max = scale_max
         self.scale = scale.Scale(scale_min, scale_max)
 
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        if isinstance(other, conditions.Condition):
+            return self.__key() == other.__key()
+        return NotImplemented
+
+    def __key(self):
+        return tuple(self.logps)
+
     def entropy(self):
         return -np.dot(self.ps, self.logps)
 

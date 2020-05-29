@@ -188,7 +188,7 @@ def test_weights_mixture():
 
 
 def test_mixed_1(histogram):
-    conditions = [
+    conditions = (
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
         IntervalCondition(p=0.47, max=1.3),
@@ -196,14 +196,27 @@ def test_mixed_1(histogram):
         IntervalCondition(p=0.8, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
         HistogramCondition(histogram["xs"], histogram["densities"]),
-    ]
+    )
     dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
     assert dist.pdf1(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf1(6) == pytest.approx(0, abs=0.1)
+    my_cache = {}
+    my_cache[conditions] = 2
+    conditions_2 = (
+        IntervalCondition(p=0.4, max=1),
+        IntervalCondition(p=0.45, max=1.2),
+        IntervalCondition(p=0.47, max=1.3),
+        IntervalCondition(p=0.5, max=2),
+        IntervalCondition(p=0.8, max=2.2),
+        IntervalCondition(p=0.9, max=2.3),
+        HistogramCondition(histogram["xs"], histogram["densities"]),
+    )
+    assert hash(conditions) == hash(conditions_2)
+    assert my_cache[conditions_2] == 2
 
 
 def test_mixed_2(histogram):
-    conditions = [
+    conditions = (
         HistogramCondition(histogram["xs"], histogram["densities"]),
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
@@ -211,10 +224,23 @@ def test_mixed_2(histogram):
         IntervalCondition(p=0.5, max=2),
         IntervalCondition(p=0.7, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
-    ]
+    )
     dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
     assert dist.pdf1(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf1(6) == pytest.approx(0, abs=0.1)
+    my_cache = {}
+    my_cache[conditions] = 3
+    conditions_2 = (
+        HistogramCondition(histogram["xs"], histogram["densities"]),
+        IntervalCondition(p=0.4, max=1),
+        IntervalCondition(p=0.45, max=1.2),
+        IntervalCondition(p=0.48, max=1.3),
+        IntervalCondition(p=0.5, max=2),
+        IntervalCondition(p=0.7, max=2.2),
+        IntervalCondition(p=0.9, max=2.3),
+    )
+    assert hash(conditions) == hash(conditions_2)
+    assert my_cache[conditions_2] == 3
 
 
 def compare_runtimes():
