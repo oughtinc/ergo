@@ -93,25 +93,25 @@ def test_normalization_interval_condition():
 
 
 def test_normalization_histogram_condition(histogram):
-    original = HistogramCondition(histogram)
+    original = HistogramCondition(histogram["xs"], histogram["densities"])
     normalized_denormalized = original.normalize(10, 1000).denormalize(10, 1000)
-    for entry in normalized_denormalized.histogram:
-        assert entry["x"] == pytest.approx(
-            [
-                original_entry["x"]
-                for original_entry in original.histogram
-                if original_entry["density"] == entry["density"]
-            ][0],
-            rel=0.001,
-        )
+    for (density, norm_denorm_density) in zip(
+        histogram["densities"], normalized_denormalized.densities
+    ):
+        assert density == pytest.approx(norm_denorm_density, rel=0.001,)
+    for (x, norm_denorm_x) in zip(histogram["xs"], normalized_denormalized.xs):
+        assert x == pytest.approx(norm_denorm_x, rel=0.001,)
 
     # half-assed test that xs and densities are at least
     # getting transformed in the right direction
     normalized = original.normalize(1, 4)
-    for idx, normalized_entry in enumerate(normalized.histogram):
-        orig_entry = original.histogram[idx]
-        assert orig_entry["x"] > normalized_entry["x"]
-        assert orig_entry["density"] < normalized_entry["density"]
+    for idx, (normalized_x, normalized_density) in enumerate(
+        zip(normalized.xs, normalized.densities)
+    ):
+        orig_x = histogram["xs"][idx]
+        orig_density = histogram["densities"][idx]
+        assert orig_x > normalized_x
+        assert orig_density < normalized_density
 
 
 def test_mixture_from_percentile():
@@ -168,12 +168,12 @@ def test_percentile_roundtrip():
 
 
 def test_mixture_from_histogram(histogram):
-    conditions = [HistogramCondition(histogram)]
+    conditions = [HistogramCondition(histogram["xs"], histogram["densities"])]
     mixture = LogisticMixture.from_conditions(
         conditions, num_components=3, verbose=True
     )
-    for entry in histogram:
-        assert mixture.pdf1(entry["x"]) == pytest.approx(entry["density"], abs=0.2)
+    for (x, density) in zip(histogram["xs"], histogram["densities"]):
+        assert mixture.pdf1(x) == pytest.approx(density, abs=0.2)
 
 
 def test_weights_mixture():
@@ -187,13 +187,6 @@ def test_weights_mixture():
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
 
 
-def test_histogram_condition(histogram, normalized_logistic_mixture):
-    condition = HistogramCondition(histogram)
-    vectorized_loss = float(condition.loss(normalized_logistic_mixture))
-    loop_loss = float(condition._loss_loop(normalized_logistic_mixture))
-    assert vectorized_loss == pytest.approx(loop_loss, rel=0.0001)
-
-
 def test_mixed_1(histogram):
     conditions = [
         IntervalCondition(p=0.4, max=1),
@@ -202,7 +195,7 @@ def test_mixed_1(histogram):
         IntervalCondition(p=0.5, max=2),
         IntervalCondition(p=0.8, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
-        HistogramCondition(histogram),
+        HistogramCondition(histogram["xs"], histogram["densities"]),
     ]
     dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
     assert dist.pdf1(-5) == pytest.approx(0, abs=0.1)
@@ -211,7 +204,7 @@ def test_mixed_1(histogram):
 
 def test_mixed_2(histogram):
     conditions = [
-        HistogramCondition(histogram),
+        HistogramCondition(histogram["xs"], histogram["densities"]),
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
         IntervalCondition(p=0.48, max=1.3),

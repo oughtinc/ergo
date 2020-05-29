@@ -10,7 +10,6 @@ from ergo.utils import shift
 
 from . import histogram
 from .scale import Scale
-from .types import Histogram
 
 ConditionClass = TypeVar("ConditionClass", bound="Condition")
 
@@ -218,48 +217,33 @@ class HistogramCondition(Condition):
     possible
     """
 
-    histogram: Histogram
+    xs: np.DeviceArray
+    densities: np.DeviceArray
     weight: float = 1.0
 
-    def _loss_loop(self, dist):
-        total_loss = 0.0
-        for entry in self.histogram:
-            target_density = entry["density"]
-            actual_density = dist.pdf1(entry["x"])
-            total_loss += (actual_density - target_density) ** 2
-        return self.weight * total_loss / len(self.histogram)
-
     def loss(self, dist):
-        xs = np.array([entry["x"] for entry in self.histogram])
-        densities = np.array([entry["density"] for entry in self.histogram])
         entry_loss_fn = lambda x, density: (density - dist.pdf1(x)) ** 2  # noqa: E731
-        total_loss = np.sum(vmap(entry_loss_fn)(xs, densities))
-        return self.weight * total_loss / len(self.histogram)
+        total_loss = np.sum(vmap(entry_loss_fn)(self.xs, self.densities))
+        return self.weight * total_loss / self.xs.size
 
     def normalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
-        normalized_histogram: Histogram = [
-            {
-                "x": scale.normalize_point(entry["x"]),
-                "density": entry["density"] * scale.range,
-            }
-            for entry in self.histogram
-        ]
-        return self.__class__(normalized_histogram, self.weight)
+        normalized_xs = np.array([scale.normalize_point(x) for x in self.xs])
+        normalized_densities = np.array(
+            [density * scale.range for density in self.densities]
+        )
+        return self.__class__(normalized_xs, normalized_densities, self.weight)
 
     def denormalize(self, scale_min: float, scale_max: float):
         scale = Scale(scale_min, scale_max)
-        denormalized_histogram: Histogram = [
-            {
-                "x": scale.denormalize_point(entry["x"]),
-                "density": entry["density"] / scale.range,
-            }
-            for entry in self.histogram
-        ]
-        return self.__class__(denormalized_histogram, self.weight)
+        denormalized_xs = np.array([scale.denormalize_point(x) for x in self.xs])
+        denormalized_densities = np.array(
+            [density / scale.range for density in self.densities]
+        )
+        return self.__class__(denormalized_xs, denormalized_densities, self.weight)
 
     def destructure(self):
-        return (HistogramCondition, (self.histogram, self.weight))
+        return (HistogramCondition, (self.xs, self.densities, self.weight))
 
     def __str__(self):
         return "The probability density function looks similar to the provided density function."
