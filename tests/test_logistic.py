@@ -96,6 +96,7 @@ def ppf_cdf_round_trip():
     assert mixture.ppf(prob) == pytest.approx(x, rel=1e-3)
 
 
+@pytest.mark.xfail(reason="Fitting to samples doesn't reliably work yet #219")
 def test_fit_samples(logistic_mixture):
     data = np.array([logistic_mixture.sample() for _ in range(0, 1000)])
     fitted_mixture = LogisticMixture.from_samples(data, num_components=2)

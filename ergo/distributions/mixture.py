@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from functools import partial
 import itertools
 from typing import List, Optional, Sequence, Type, TypeVar
-import warnings
 
 from jax import grad, jit, nn, scipy
 import jax.numpy as np
@@ -18,9 +17,10 @@ import scipy as oscipy
 from ergo.utils import minimize
 
 from .base import categorical
-from .conditions import Condition, IntervalCondition
+from .conditions import Condition
 from .distribution import Distribution
 from .location_scale_family import LSDistribution
+from .scale import Scale
 
 M = TypeVar("M", bound="Mixture")
 
@@ -74,6 +74,8 @@ class Mixture(Distribution):
         raise NotImplementedError("This should be implemented by a subclass")
 
     def to_params(self):
+        # This is like destructure, but from_params transforms probs using softmax,
+        # so x != from_params(to_params(x))
         raise NotImplementedError("This should be implemented by a subclass")
 
     def denormalize(self, scale_min, scale_max):
@@ -97,48 +99,28 @@ class Mixture(Distribution):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def to_conditions(self, verbose=False):
-        """
-        Convert mixture to a set of percentile statements that
-        determines the mixture.
-        """
-        warnings.warn(
-            "to_conditions is a proof-of-concept for finding parameterized"
-            " conditions using optimization. It's not ready to be used!"
-        )
-
-        def condition_from_params(params):
-            percentile = nn.softmax(np.array([params[0], 1]))[0]
-            return IntervalCondition(p=percentile, value=params[1])
-
-        def loss(params):
-            condition = condition_from_params(params)
-            return condition.loss(self)
-
-        jac = grad(loss)
-        init_params = np.array([0.1, 0.1])  # percentile, value
-        fit_results = minimize(loss, x0=init_params, jac=jac, tries=5, verbose=verbose)
-        if not fit_results.success and verbose:
-            print(fit_results)
-        final_params = fit_results.x
-        return condition_from_params(final_params)
-
     @classmethod
-    def from_samples(
-        cls, data, initial_dist: Optional[M] = None, num_components=3, verbose=False,
-    ) -> M:
+    def from_samples(cls, data, num_components=3, verbose=False) -> M:
         data = np.array(data)
-        z = float(np.mean(data))
-        normalized_data = data / z
+        scale = Scale(scale_min=min(data), scale_max=max(data))
+        normalized_data = np.array([scale.normalize_point(datum) for datum in data])
 
+        # FIXME (#219): This is pretty inefficient
+
+        @jit
         def loss(params):
-            return -cls.params_logpdf(params, normalized_data)
+            dist = cls.from_params(params)
+            normed_params = dist.to_params()
+            return -cls.params_logpdf(normed_params, normalized_data)
 
+        @jit
         def jac(params):
-            return -cls.params_gradlogpdf(params, normalized_data)
+            dist = cls.from_params(params)
+            normed_params = dist.to_params()
+            return -cls.params_gradlogpdf(normed_params, normalized_data)
 
-        dist = cls.from_loss(loss, jac, initial_dist, num_components, verbose)
-        return dist * z
+        normalized_mixture: M = cls.from_loss(loss, jac, num_components, verbose)
+        return normalized_mixture.denormalize(scale.scale_min, scale.scale_max)
 
     @classmethod
     def from_params(cls, params):
@@ -148,7 +130,6 @@ class Mixture(Distribution):
     def from_conditions(
         cls,
         conditions: Sequence[Condition],
-        initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
         scale_min=0,
@@ -160,12 +141,10 @@ class Mixture(Distribution):
         Fit a mixture distribution from Conditions
 
         :param conditions: conditions to fit
-        :param initial_dist: mixture distribution to start from
-        (should be normalizes, i.e. on [0,1]).
-        Takes precedence over num_components
         :param num_components: number of components to include in the mixture.
-        initial_dist take precedence
-        :param tries:
+        :param init_tries:
+        :param opt_tries:
+        :param verbose:
         :param scale_min: the true-scale minimum of the range to fit over.
         :param scale_max: the true-scale maximum of the range to fit over.
         :return: the fitted mixture
@@ -187,10 +166,9 @@ class Mixture(Distribution):
             cls, params, cond_classes, cond_params
         )
 
-        normalized_mixture = cls.from_loss(
+        normalized_mixture: M = cls.from_loss(
             loss=loss,
             jac=jac,
-            initial_dist=initial_dist,
             num_components=num_components,
             verbose=verbose,
             init_tries=init_tries,
@@ -203,7 +181,6 @@ class Mixture(Distribution):
         cls,
         loss,
         jac,
-        initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
         init_tries=100,
@@ -211,12 +188,7 @@ class Mixture(Distribution):
     ) -> M:
         onp.random.seed(0)
 
-        if initial_dist:
-            init = lambda: initial_dist.to_params()  # noqa: E731
-        elif num_components:
-            init = lambda: cls.initialize_params(num_components)  # noqa: E731
-        else:
-            raise ValueError("Need to provide either num_components or initial_dist")
+        init = lambda: cls.initialize_params(num_components)  # noqa: E731
 
         fit_results = minimize(
             loss,
