@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from functools import partial
 from typing import Any, Dict, Optional, Sequence, Tuple, TypeVar
 
 from jax import jit, vmap
 import jax.numpy as np
+import numpy as onp
 
 from ergo.utils import shift
 
@@ -14,17 +14,34 @@ from .scale import Scale
 ConditionClass = TypeVar("ConditionClass", bound="Condition")
 
 
+def static_value(v):
+    if isinstance(v, np.DeviceArray) or isinstance(v, onp.ndarray):
+        return tuple(v)
+    else:
+        return v
+
+
 class Condition(ABC):
-    @abstractmethod
-    def loss(self, dist):
-        """
-        Loss function for this condition when fitting a distribution.
+    weight: float = 1.0
 
-        Should have max loss = 1 without considering weight
-        Should multiply loss * weight
+    def __init__(self, weight=1.0):
+        self.weight = weight
 
-        :param dist: A probability distribution
-        """
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        if isinstance(other, Condition):
+            return self.__key() == other.__key()
+        return NotImplemented
+
+    def __key(self):
+        cls, params = self.destructure()
+        return (cls, tuple(static_value(param) for param in params))
+
+    def _describe_fit(self, dist) -> Dict[str, Any]:
+        # convert to float for easy serialization
+        return {"loss": self.loss(dist)}
 
     def normalize(self, scale_min: float, scale_max: float):
         """
@@ -59,9 +76,16 @@ class Condition(ABC):
         result = static_describe_fit(*dist.destructure(), *self.destructure())
         return {k: float(v) for (k, v) in result.items()}
 
-    def _describe_fit(self, dist) -> Dict[str, Any]:
-        # convert to float for easy serialization
-        return {"loss": self.loss(dist)}
+    @abstractmethod
+    def loss(self, dist):
+        """
+        Loss function for this condition when fitting a distribution.
+
+        Should have max loss = 1 without considering weight
+        Should multiply loss * weight
+
+        :param dist: A probability distribution
+        """
 
     def shape_key(self):
         return (self.__class__.__name__,)
@@ -75,10 +99,7 @@ class Condition(ABC):
         return cls(*params)
 
 
-@dataclass
 class SmoothnessCondition(Condition):
-    weight: float = 1.0
-
     def loss(self, dist) -> float:
         window_size = 5
         squared_distance = 0.0
@@ -95,10 +116,7 @@ class SmoothnessCondition(Condition):
         return "Minimize rough edges in the distribution"
 
 
-@dataclass
 class MaxEntropyCondition(Condition):
-    weight: float = 1.0
-
     def loss(self, dist) -> float:
         return -self.weight * dist.entropy()
 
@@ -109,10 +127,13 @@ class MaxEntropyCondition(Condition):
         return "Maximize the entropy of the distribution"
 
 
-@dataclass
 class CrossEntropyCondition(Condition):
     p_dist: "histogram.HistogramDist"
     weight: float = 1.0
+
+    def __init__(self, p_dist, weight=1.0):
+        self.p_dist = p_dist
+        super().__init__(weight)
 
     def loss(self, q_dist) -> float:
         return self.weight * self.p_dist.cross_entropy(q_dist)
@@ -135,10 +156,13 @@ def wasserstein_distance(xs, ys):
     return np.sum(abs_diffs)
 
 
-@dataclass
 class WassersteinCondition(Condition):
     p_dist: "histogram.HistogramDist"
     weight: float = 1.0
+
+    def __init__(self, p_dist, weight=1.0):
+        self.p_dist = p_dist
+        super().__init__(weight)
 
     def loss(self, q_dist) -> float:
         return self.weight * wasserstein_distance(self.p_dist.ps, q_dist.ps)
@@ -154,7 +178,6 @@ class WassersteinCondition(Condition):
         return "Minimize the Wasserstein distance between the two distributions"
 
 
-@dataclass
 class IntervalCondition(Condition):
     """
     The specified interval should include as close to the specified
@@ -172,7 +195,7 @@ class IntervalCondition(Condition):
         self.p = p
         self.min = min
         self.max = max
-        self.weight = weight
+        super().__init__(weight)
 
     def actual_p(self, dist) -> float:
         cdf_at_min = dist.cdf(self.min) if self.min is not None else 0
@@ -210,7 +233,6 @@ class IntervalCondition(Condition):
         return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"
 
 
-@dataclass
 class HistogramCondition(Condition):
     """
     The distribution should fit the specified histogram as closely as
@@ -220,6 +242,11 @@ class HistogramCondition(Condition):
     xs: np.DeviceArray
     densities: np.DeviceArray
     weight: float = 1.0
+
+    def __init__(self, xs, densities, weight=1.0):
+        self.xs = xs
+        self.densities = densities
+        super().__init__(weight)
 
     def loss(self, dist):
         entry_loss_fn = lambda x, density: (density - dist.pdf1(x)) ** 2  # noqa: E731
@@ -244,6 +271,12 @@ class HistogramCondition(Condition):
 
     def destructure(self):
         return (HistogramCondition, (self.xs, self.densities, self.weight))
+
+    def __key(self):
+        return (
+            HistogramCondition,
+            (tuple(self.xs), tuple(self.densities), self.weight),
+        )
 
     def __str__(self):
         return "The probability density function looks similar to the provided density function."
