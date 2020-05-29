@@ -164,6 +164,24 @@ class HistogramDist(distribution.Distribution):
             pairs.append({"x": x, "density": density})
         return pairs
 
+    def to_lists(self):
+        xs = []
+        densities = []
+        bins = onp.array(self.bins)
+        ps = onp.array(self.ps)
+        for i, bin in enumerate(bins[:-1]):
+            x = float((bin + bins[i + 1]) / 2.0)
+            bin_size = float(bins[i + 1] - bin)
+            density = float(ps[i]) / bin_size
+            xs.append(x)
+            densities.append(density)
+        return xs, densities
+
+    def to_arrays(self):
+        # TODO: vectorize
+        xs, densities = self.to_lists()
+        return np.array(xs), np.array(densities)
+
     @staticmethod
     def initialize_params(num_bins):
         return onp.full(num_bins, -num_bins)

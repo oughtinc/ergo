@@ -5,6 +5,7 @@ This module contains both the base Mixture Class as well as the Location-Scale F
 Mixture Subclass.
 """
 from dataclasses import dataclass, field
+from functools import partial
 import itertools
 from typing import List, Optional, Sequence, Type, TypeVar
 import warnings
@@ -146,7 +147,7 @@ class Mixture(Distribution):
     @classmethod
     def from_conditions(
         cls,
-        conditions: List[Condition],
+        conditions: Sequence[Condition],
         initial_dist: Optional[M] = None,
         num_components: Optional[int] = None,
         verbose=False,
@@ -173,15 +174,19 @@ class Mixture(Distribution):
             condition.normalize(scale_min, scale_max) for condition in conditions
         ]
 
-        def loss(params):
-            dist = cls.from_params(params)
-            total_loss = sum(
-                condition.loss(dist) for condition in normalized_conditions
-            )
-            return total_loss * 100
+        cond_data = [condition.destructure() for condition in normalized_conditions]
+        if cond_data:
+            cond_classes, cond_params = zip(*cond_data)
+        else:
+            cond_classes, cond_params = [], []
 
-        loss = jit(loss)
-        jac = jit(grad(loss))
+        loss = lambda params: static_loss(  # noqa: E731
+            cls, params, cond_classes, cond_params
+        )
+        jac = lambda params: static_loss_grad(  # noqa: E731
+            cls, params, cond_classes, cond_params
+        )
+
         normalized_mixture = cls.from_loss(
             loss=loss,
             jac=jac,
@@ -293,3 +298,19 @@ class LSMixture(Mixture):
             component.denormalize(scale_min, scale_max) for component in self.components
         ]
         return self.__class__(denormalized_components, self.probs, self.component_type)
+
+
+@partial(jit, static_argnums=(0, 2))
+def static_loss(dist_class, dist_params, cond_classes, cond_params):
+    print(
+        f"Tracing {dist_class.__name__} loss for {[c.__name__ for c in cond_classes]}"
+    )
+    dist = dist_class.from_params(dist_params)
+    total_loss = 0.0
+    for (cond_class, cond_param) in zip(cond_classes, cond_params):
+        condition = cond_class.structure(cond_param)
+        total_loss += condition.loss(dist)
+    return total_loss * 100
+
+
+static_loss_grad = jit(grad(static_loss, argnums=1), static_argnums=(0, 2))

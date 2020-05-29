@@ -2,11 +2,13 @@ import jax.numpy as np
 
 from ergo.distributions.conditions import (
     CrossEntropyCondition,
+    HistogramCondition,
     IntervalCondition,
     MaxEntropyCondition,
     SmoothnessCondition,
 )
 from ergo.distributions.histogram import HistogramDist
+from ergo.distributions.logistic_mixture import LogisticMixture
 
 
 def single_interval_condition_cases():
@@ -16,10 +18,10 @@ def single_interval_condition_cases():
 
 
 def compile_histogram_loss_functions(num_bins: int = 201):
-    print("Compiling loss functions...")
-    dist = HistogramDist(np.array([-float(num_bins)] * num_bins))
+    print("Compiling histogram loss functions")
+    target_dist = HistogramDist(np.array([-float(num_bins)] * num_bins))
     conditions = list(single_interval_condition_cases()) + [
-        CrossEntropyCondition(dist),
+        CrossEntropyCondition(target_dist),
         MaxEntropyCondition(),
         SmoothnessCondition(weight=10.0),
     ]
@@ -28,8 +30,17 @@ def compile_histogram_loss_functions(num_bins: int = 201):
             [condition], scale_min=0, scale_max=1, num_bins=num_bins
         )
         condition.describe_fit(dist)
-    print("Compilation done!")
+
+
+def compile_mixture_loss_functions(num_bins: int = 201):
+    print("Compiling mixture loss functions")
+    target_dist = HistogramDist(np.array([-float(num_bins)] * num_bins))
+    condition = HistogramCondition(*target_dist.to_arrays())
+    LogisticMixture.from_conditions([condition], num_components=3)
 
 
 def compile():
+    print("Compiling loss functions...")
     compile_histogram_loss_functions()
+    compile_mixture_loss_functions()
+    print("Compilation done!")
