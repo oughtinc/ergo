@@ -2,7 +2,8 @@ import jax.numpy as np
 import numpy as onp
 import pytest
 
-from ergo import Logistic, LogisticMixture
+from ergo import Logistic, LogisticMixture, HistogramDist
+from ergo.distributions.conditions import HistogramCondition
 
 
 def test_cdf():
@@ -123,3 +124,43 @@ def test_logistic_mixture_normalization():
     assert normalized == LogisticMixture(
         [Logistic(0.1, 0.01), Logistic(1, 0.1)], [0.5, 0.5]
     )
+
+
+def make_histogram(rv, xmin, xmax, num_bins):
+    """
+    Make a histogram based on a random variable and a range
+
+    :param rv: random variable to sample the histogram from
+    :param xmin: range minimum
+    :param xmax: range maximum
+    :param num_bins: number of bins in the histogram
+    :return: histogram bins
+    """
+    xs = np.linspace(xmin, xmax, num_bins)
+    ys = [float(rv.pdf1(x)) for x in xs]
+    return [{"x": x, "density": y} for (x, y) in zip(xs, ys)]
+
+
+def test_fit_hist_with_p_on_edge():
+    scale_min = 0
+    scale_max = 10
+    num_bins = 100
+    xs = onp.linspace(scale_min, scale_max, num_bins)
+    densities = ([1] * 10) + ([0] * 90)
+    test_hist_condition = HistogramCondition(xs, densities)
+
+    mixture = LogisticMixture.from_conditions(
+        [test_hist_condition],
+        scale_min=scale_min,
+        scale_max=scale_max,
+        num_components=5,
+        verbose=True,
+        init_tries=100,
+        opt_tries=2,
+    )
+
+    mixture_hist_bins = make_histogram(mixture, scale_min, scale_max, num_bins)
+    mixture_hist = HistogramDist.from_pairs(mixture_hist_bins)
+
+    fit = test_hist_condition.describe_fit(mixture_hist)
+    print(fit)
