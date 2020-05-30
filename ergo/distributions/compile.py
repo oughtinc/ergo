@@ -36,7 +36,7 @@ def compile_mixture_loss_functions(num_bins: int = 201):
     print("Compiling mixture loss functions")
     target_dist = HistogramDist(np.array([-float(num_bins)] * num_bins))
     condition = HistogramCondition(*target_dist.to_arrays())
-    LogisticMixture.from_conditions([condition], num_components=3)
+    LogisticMixture.from_conditions([condition], num_components=5)
 
 
 def compile():
