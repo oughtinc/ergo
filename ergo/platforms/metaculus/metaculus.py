@@ -132,9 +132,7 @@ class Metaculus:
         if data["possibilities"]["type"] == "continuous":
             if data["possibilities"]["scale"]["deriv_ratio"] != 1:
                 if data["possibilities"].get("format") == "date":
-                    raise NotImplementedError(
-                        "Logarithmic date-valued questions are not currently supported"
-                    )
+                    return None
                 else:
                     return LogQuestion(data["id"], self, data, name)
             if data["possibilities"].get("format") == "date":
