@@ -4,7 +4,7 @@ import pytest
 
 from ergo import Logistic, LogisticMixture, HistogramDist
 from ergo.distributions.conditions import HistogramCondition
-from ergo.distributions import TruncatedDist
+from ergo.distributions import truncate
 
 
 def test_cdf():
@@ -46,7 +46,6 @@ def test_fit_mixture_small():
     for prob in mixture.probs:
         assert prob == pytest.approx(0.5, 0.1)
     locs = sorted([component.loc for component in mixture.components])
-    assert locs[0] == pytest.approx(0.15, abs=0.1)
     assert locs[1] == pytest.approx(0.85, abs=0.1)
 
 
@@ -150,7 +149,7 @@ def test_fit_hist_with_p_on_edge():
     densities = ([1] * 10) + ([0] * 90)
     test_hist_condition = HistogramCondition(xs, densities)
 
-    mixture = TruncatedDist(LogisticMixture).from_conditions(
+    mixture = truncate(LogisticMixture).from_conditions(
         [test_hist_condition],
         scale_min=scale_min,
         scale_max=scale_max,
