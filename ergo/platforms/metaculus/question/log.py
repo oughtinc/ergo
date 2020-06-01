@@ -47,7 +47,10 @@ class LogQuestion(ContinuousQuestion):
         :param samples: Samples on the true scale
         :return: Samples on the normalized scale
         """
-        return [self.normalized_from_true_value(sample) for sample in samples]
+        if isinstance(samples, list):
+            return [self.normalized_from_true_value(sample) for sample in samples]
+        else:
+            return self.normalized_from_true_value(samples)
 
     def denormalize_samples(self, samples):
         """
@@ -56,4 +59,7 @@ class LogQuestion(ContinuousQuestion):
         :param samples: Samples on the normalized scale
         :return: Samples on the true scale
         """
-        return [self.true_from_normalized_value(sample) for sample in samples]
+        if isinstance(samples, list):
+            return [self.true_from_normalized_value(sample) for sample in samples]
+        else:
+            return self.true_from_normalized_value(samples)
