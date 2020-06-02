@@ -156,20 +156,20 @@ def make_histogram(rv, xmin, xmax, num_bins):
     return [{"x": x, "density": y} for (x, y) in zip(xs, ys)]
 
 
-def test_fit_hist_with_p_on_edge():
+def test_fit_hist_with_p_on_edge(compiled, verbose=True):
     scale_min = 0
     scale_max = 10
     num_bins = 100
     xs = onp.linspace(scale_min, scale_max, num_bins)
     densities = ([1] * 10) + ([0] * 90)
     test_hist_condition = HistogramCondition(xs, densities)
-
+    
     mixture = truncate(
         LogisticMixture, floor=scale_min, ceiling=scale_max
     ).from_conditions(
         conditions=[test_hist_condition],
         num_components=3,
-        verbose=True,
+        verbose=verbose,
         init_tries=100,
         opt_tries=2,
     )
@@ -184,10 +184,32 @@ def test_fit_hist_with_p_on_edge():
         for idx, bin in enumerate(mixture_hist_bins)
     ]
 
-    print(density_diff)
+    # print(density_diff)
 
-    print(max(density_diff))
+    # print(max(density_diff))
 
     loss = sum([bin_fit ** 2 for bin_fit in density_diff]) / len(density_diff)
 
     assert loss < 0.1
+
+
+def run_speed_test():
+    from ergo.distributions.compile import compile
+    import cProfile
+    import time
+    
+    compiled = compile()
+    cProfile.runctx(
+        "test_fit_hist_with_p_on_edge(compiled)", {
+            "test_fit_hist_with_p_on_edge": test_fit_hist_with_p_on_edge,
+            "compiled": compiled
+        }, {}, "test_truncated_logistic.prof"
+    )
+    
+    start = time.time()
+    test_fit_hist_with_p_on_edge(compiled, verbose=False)
+    print(f"Runtime: {time.time() - start}s")
+
+
+if __name__ == "__main__":
+    run_speed_test()

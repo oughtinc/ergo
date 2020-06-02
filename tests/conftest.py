@@ -9,6 +9,7 @@ import pytest
 
 import ergo
 from ergo.distributions import Logistic, LogisticMixture
+from ergo.distributions.compile import compile
 
 
 @pytest.fixture(scope="module")
@@ -114,3 +115,8 @@ def make_histogram():
         ]
     )
     return {"xs": xs, "densities": densities}
+
+
+@pytest.fixture(scope="module")
+def compiled():
+    return compile()
