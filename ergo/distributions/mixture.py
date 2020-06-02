@@ -101,6 +101,27 @@ class Mixture(Distribution):
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
+    @staticmethod
+    def loss_jac(clas, scale_min, scale_max, conditions):
+        normalized_conditions = [
+            condition.normalize(scale_min, scale_max) for condition in conditions
+        ]
+
+        cond_data = [condition.destructure() for condition in normalized_conditions]
+        if cond_data:
+            cond_classes, cond_params = zip(*cond_data)
+        else:
+            cond_classes, cond_params = [], []
+
+        loss = lambda params: static_loss(  # noqa: E731
+            clas, params, cond_classes, cond_params
+        )
+        jac = lambda params: static_loss_grad(  # noqa: E731
+            clas, params, cond_classes, cond_params
+        )
+
+        return loss, jac
+
     @classmethod
     def from_samples(cls, data, num_components=3, verbose=False) -> M:
         data = np.array(data)
@@ -151,22 +172,7 @@ class Mixture(Distribution):
         :param scale_max: the true-scale maximum of the range to fit over.
         :return: the fitted mixture
         """
-        normalized_conditions = [
-            condition.normalize(scale_min, scale_max) for condition in conditions
-        ]
-
-        cond_data = [condition.destructure() for condition in normalized_conditions]
-        if cond_data:
-            cond_classes, cond_params = zip(*cond_data)
-        else:
-            cond_classes, cond_params = [], []
-
-        loss = lambda params: static_loss(  # noqa: E731
-            cls, params, cond_classes, cond_params
-        )
-        jac = lambda params: static_loss_grad(  # noqa: E731
-            cls, params, cond_classes, cond_params
-        )
+        loss, jac = cls.loss_jac(cls, scale_min, scale_max, conditions)
 
         normalized_mixture: M = cls.from_loss(
             loss=loss,

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from .distribution import Distribution
-from .mixture import static_loss, static_loss_grad
 import jax.numpy as np
 from .conditions import Condition
 from typing import Sequence, Optional
@@ -39,21 +38,8 @@ def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
             init_tries=100,
             opt_tries=10,
         ):
-            normalized_conditions = [
-                condition.normalize(scale_min, scale_max) for condition in conditions
-            ]
-
-            cond_data = [condition.destructure() for condition in normalized_conditions]
-            if cond_data:
-                cond_classes, cond_params = zip(*cond_data)
-            else:
-                cond_classes, cond_params = [], []
-
-            loss = lambda params: static_loss(  # noqa: E731
-                cls, params, cond_classes, cond_params
-            )
-            jac = lambda params: static_loss_grad(  # noqa: E731
-                cls, params, cond_classes, cond_params
+            loss, jac = underlying_dist_class.loss_jac(
+                cls, scale_min, scale_max, conditions
             )
 
             normalized_dist = underlying_dist_class.from_loss(  # type: ignore
@@ -64,6 +50,6 @@ def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
                 init_tries=init_tries,
                 opt_tries=opt_tries,
             )
-            return normalized_dist.denormalize(scale_min, scale_max)
+            return cls(normalized_dist.denormalize(scale_min, scale_max))
 
     return TruncatedDist
