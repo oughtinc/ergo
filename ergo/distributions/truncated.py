@@ -37,6 +37,8 @@ def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
 
             p_at_x = self.underlying_dist.pdf1(x) * (1 / p_inside)
 
+            # this line shouldn't be necessary: in practice, we don't
+            # expect to encounter xs outside the range.
             return np.where(x < floor, 0, np.where(x > ceiling, 0, p_at_x))
 
         def normalize(self, scale_min: float, scale_max: float):
