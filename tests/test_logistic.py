@@ -4,7 +4,7 @@ import pytest
 
 from ergo import Logistic, LogisticMixture
 from ergo.distributions.conditions import HistogramCondition
-from ergo.distributions import TruncatedDist
+from ergo.distributions import truncate
 
 
 def test_cdf():
@@ -163,11 +163,10 @@ def test_fit_hist_with_p_on_edge():
     densities = ([1] * 10) + ([0] * 90)
     test_hist_condition = HistogramCondition(xs, densities)
 
-    mixture = TruncatedDist.from_conditions(
-        underlying_dist_class=LogisticMixture,
+    mixture = truncate(
+        LogisticMixture, floor=scale_min, ceiling=scale_max
+    ).from_conditions(
         conditions=[test_hist_condition],
-        floor=scale_min,
-        ceiling=scale_max,
         num_components=3,
         verbose=True,
         init_tries=100,
