@@ -4,6 +4,17 @@ import jax.numpy as np
 
 
 def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
+    """
+    Get a version of the distribution passed in
+    that's truncated to the given floor and ceiling
+
+    :param underlying_dist_class: the distribution class to truncate
+    :param floor: throw out probability mass below this value
+    :param ceiling: throw out probability mass above this value
+    :return: a truncated version of the distribution class
+    that was passed in
+    """
+
     @dataclass
     class TruncatedDist(Distribution):
         underlying_dist: Distribution
