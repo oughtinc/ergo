@@ -2,7 +2,7 @@ import jax.numpy as np
 import numpy as onp
 import pytest
 
-from ergo import Logistic, LogisticMixture, HistogramDist
+from ergo import Logistic, LogisticMixture
 from ergo.distributions.conditions import HistogramCondition
 from ergo.distributions import truncate
 
