@@ -22,9 +22,10 @@ class TruncatedDist(Distribution):
 
         return np.where(x < self.floor, 0, np.where(x > self.ceiling, 0, p_at_x))
 
-    def from_params(self, params):
-        underlying_dist = self.underlying_dist.from_params(params)
-        return self.__class(underlying_dist)
+    @classmethod
+    def from_params(cls, params):
+        underlying_dist = params.underlying_dist.from_params(params)
+        return cls(underlying_dist, **params)
 
     @classmethod
     def from_conditions(cls, underlying_dist_class, floor, ceiling, **kwargs):
