@@ -19,7 +19,7 @@ def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
     class TruncatedDist(Distribution):
         """
         A wrapper around the underlying distribution that throws out
-        probabiliy mass outside the range defined by the floor/ceiling
+        probability mass outside the range defined by the floor/ceiling
         and then renormalizes
 
         :param Distribution: the underlying distribution to truncate
