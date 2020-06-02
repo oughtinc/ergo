@@ -197,18 +197,19 @@ def run_speed_test():
     from ergo.distributions.compile import compile
     import cProfile
     import time
+
+    compiled = compile()    
+
+    start = time.time()
+    test_fit_hist_with_p_on_edge(compiled, verbose=False)
+    print(f"Runtime: {time.time() - start}s")    
     
-    compiled = compile()
     cProfile.runctx(
         "test_fit_hist_with_p_on_edge(compiled)", {
             "test_fit_hist_with_p_on_edge": test_fit_hist_with_p_on_edge,
             "compiled": compiled
         }, {}, "test_truncated_logistic.prof"
     )
-    
-    start = time.time()
-    test_fit_hist_with_p_on_edge(compiled, verbose=False)
-    print(f"Runtime: {time.time() - start}s")
 
 
 if __name__ == "__main__":
