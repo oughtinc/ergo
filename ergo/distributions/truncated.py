@@ -20,15 +20,22 @@ def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
 
             return np.where(x < floor, 0, np.where(x > ceiling, 0, p_at_x))
 
+        def normalize(self, scale_min: float, scale_max: float):
+            return self.underlying_dist.normalize(scale_min, scale_max)  # type: ignore
+
         @classmethod
         def from_params(cls, params):
             underlying_dist = underlying_dist_class.from_params(params)
             return cls(underlying_dist)
 
         @classmethod
-        def from_conditions(cls, **kwargs):
+        def from_conditions(cls, conditions, **kwargs):
             underlying_dist = underlying_dist_class.from_conditions(  # type: ignore
-                containing_class=cls, scale_min=floor, scale_max=ceiling, **kwargs
+                containing_class=cls,
+                scale_min=floor,
+                scale_max=ceiling,
+                conditions=conditions,
+                **kwargs
             )
             return cls(underlying_dist)
 
