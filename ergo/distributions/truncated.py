@@ -1,26 +1,15 @@
 from dataclasses import dataclass
 from .distribution import Distribution
-from .scale import Scale
-from typing import List, Optional, Sequence, Type, TypeVar
 from .mixture import static_loss, static_loss_grad
 import jax.numpy as np
 from .conditions import Condition
-from ergo.utils import minimize
+from typing import Sequence, Optional
 
 
 def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
     @dataclass
     class TruncatedDist(Distribution):
         underlying_dist: Distribution
-
-        def rv(self):
-            raise NotImplementedError
-
-        def sample(self):
-            raise NotImplementedError
-
-        def cdf(self, x):
-            raise NotImplementedError
 
         def ppf(self, q):
             raise NotImplementedError

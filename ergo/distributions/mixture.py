@@ -35,9 +35,6 @@ class Mixture(Distribution):
             [component * x for component in self.components], self.probs
         )
 
-    def rv(self,):
-        raise NotImplementedError("No access to mixture rv at this time")
-
     def cdf(self, x):
         return np.sum([c.cdf(x) * p for c, p in zip(self.components, self.probs)])
 

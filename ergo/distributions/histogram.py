@@ -68,12 +68,6 @@ class HistogramDist(distribution.Distribution):
             np.where(self.cum_ps >= q)[0][0] / self.cum_ps.size
         )
 
-    def sample(self):
-        raise NotImplementedError
-
-    def rv(self):
-        raise NotImplementedError
-
     def normalize(self):
         return HistogramDist(self.logps, 0, 1)
 

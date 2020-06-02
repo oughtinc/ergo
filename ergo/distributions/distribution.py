@@ -9,19 +9,7 @@ from abc import ABC, abstractmethod
 
 class Distribution(ABC):
     @abstractmethod
-    def rv(self,):
-        ...
-
-    @abstractmethod
-    def cdf(self, x):
-        ...
-
-    @abstractmethod
     def ppf(self, q):
-        ...
-
-    @abstractmethod
-    def sample(self):
         ...
 
     def percentiles(self, percentiles=None):
