@@ -4,7 +4,7 @@
 
 A Python library for integrating model-based and judgmental forecasting
 
-[Quickstart](#quickstart) | [Docs](https://ergo.ought.org) | [Examples](#notebooks-using-ergo)
+[Quickstart](#get-started-using-ergo) | [Docs](https://ergo.ought.org) | [Examples](#notebooks-using-ergo)
 
 ## Example
 
@@ -36,7 +36,7 @@ q_deaths.submit_from_samples(samples)
 
 You can run the model [here](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/community-distributions.ipynb).
 
-## Get started using ergo
+## Get started using Ergo
 
 1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/quickstart.ipynb)
 2. Add your Metaculus username and password
