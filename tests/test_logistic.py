@@ -160,7 +160,7 @@ def test_fit_hist_with_p_on_edge():
     )
 
     mixture_hist_bins = make_histogram(mixture, scale_min, scale_max, num_bins)
-    # there's some sort of off-by-one error with
+    # there's some sort of off-by-one-type error with
     # the xs for the mixture hist and the test_hist,
     # ignoring for now
 
