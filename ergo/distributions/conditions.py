@@ -282,6 +282,46 @@ class HistogramCondition(Condition):
         return "The probability density function looks similar to the provided density function."
 
 
+class MostLikelyOutcomeCondition(Condition):
+    """
+    The specified outcome should be as close to being the most likely as possible.
+    """
+
+    outcome: float
+    weight: float = 1.0
+
+    def __init__(self, outcome, weight=1.0):
+        self.outcome = outcome
+        super().__init__(weight)
+
+    def loss(self, dist) -> float:
+        p_outcome = dist.pdf(self.outcome)
+        p_highest = np.max(dist.ps)
+        return self.weight * (p_highest - p_outcome) ** 2
+
+    def _describe_fit(self, dist):
+        description = super()._describe_fit(dist)
+        description["p_outcome"] = dist.pdf(self.outcome)
+        description["p_highest"] = np.max(dist.ps)
+        return description
+
+    def normalize(self, scale_min: float, scale_max: float):
+        scale = Scale(scale_min, scale_max)
+        normalized_outcome = scale.normalize_point(self.outcome)
+        return self.__class__(normalized_outcome, self.weight)
+
+    def denormalize(self, scale_min: float, scale_max: float):
+        scale = Scale(scale_min, scale_max)
+        denormalized_outcome = scale.denormalize_point(self.outcome)
+        return self.__class__(denormalized_outcome, self.weight)
+
+    def destructure(self):
+        return (MostLikelyOutcomeCondition, (self.outcome, self.weight))
+
+    def __str__(self):
+        return f"The most likely outcome is {self.outcome}."
+
+
 @partial(jit, static_argnums=(0, 2))
 def static_describe_fit(dist_class, dist_params, cond_class, cond_params):
     dist = dist_class.structure(dist_params)

@@ -2,8 +2,12 @@ from dataclasses import dataclass
 
 import pytest
 
-from ergo import Logistic, LogisticMixture
-from ergo.distributions.conditions import HistogramCondition, IntervalCondition
+from ergo import HistogramDist, Logistic, LogisticMixture
+from ergo.distributions.conditions import (
+    HistogramCondition,
+    IntervalCondition,
+    MostLikelyOutcomeCondition,
+)
 
 
 @dataclass
@@ -185,6 +189,22 @@ def test_weights_mixture():
     ]
     dist = LogisticMixture.from_conditions(conditions, num_components=1, verbose=True)
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
+
+
+def test_most_likely_outcome_condition():
+    base_conditions = [IntervalCondition(p=0.4, max=0.5)]
+    base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
+
+    outcome_conditions = base_conditions + [MostLikelyOutcomeCondition(outcome=0.25)]
+    outcome_dist = HistogramDist.from_conditions(outcome_conditions, verbose=True)
+    assert outcome_dist.pdf(0.25) > base_dist.pdf(0.25)
+
+    strong_condition = MostLikelyOutcomeCondition(outcome=0.25, weight=1000)
+    strong_outcome_conditions = base_conditions + [strong_condition]
+    strong_outcome_dist = HistogramDist.from_conditions(
+        strong_outcome_conditions, verbose=True
+    )
+    assert strong_condition.loss(strong_outcome_dist) == 0
 
 
 def test_mixed_1(histogram):
