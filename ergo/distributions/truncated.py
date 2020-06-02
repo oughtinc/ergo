@@ -8,7 +8,7 @@ from .conditions import Condition
 from ergo.utils import minimize
 
 
-def truncate(underlying_dist_class: Distribution):
+def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
     @dataclass
     class TruncatedDist(Distribution):
         underlying_dist: Distribution
@@ -25,8 +25,17 @@ def truncate(underlying_dist_class: Distribution):
         def ppf(self, q):
             raise NotImplementedError
 
-        def pdf1(self):
-            p_below = underlying_dist.cdf(scale_min)
+        def pdf1(self, x):
+            # jit needs this as purely functional code
+            # use np.where
+            # if x < floor or x > ceiling:
+            #     return 0
+
+            p_below = self.underlying_dist.cdf(floor)
+            p_above = 1 - self.underlying_dist.cdf(ceiling)
+            p_inside = 1 - (p_below + p_above)
+
+            return self.underlying_dist.pdf1(x) * (1 / p_inside)
 
         @classmethod
         def from_params(cls, params):

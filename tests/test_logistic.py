@@ -149,7 +149,7 @@ def test_fit_hist_with_p_on_edge():
     densities = ([1] * 10) + ([0] * 90)
     test_hist_condition = HistogramCondition(xs, densities)
 
-    mixture = truncate(LogisticMixture).from_conditions(
+    mixture = truncate(LogisticMixture, scale_min, scale_max).from_conditions(
         [test_hist_condition],
         scale_min=scale_min,
         scale_max=scale_max,
