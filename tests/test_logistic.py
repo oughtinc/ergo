@@ -46,6 +46,7 @@ def test_fit_mixture_small():
     for prob in mixture.probs:
         assert prob == pytest.approx(0.5, 0.1)
     locs = sorted([component.loc for component in mixture.components])
+    assert locs[0] == pytest.approx(0.15, abs=0.1)
     assert locs[1] == pytest.approx(0.85, abs=0.1)
 
 
