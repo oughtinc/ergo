@@ -54,12 +54,17 @@ class Mixture(Distribution):
         if len(self.components) == 1:
             return self.components[0].ppf(q)
         ppfs = [c.ppf(q) for c in self.components]
-        return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q,
-            np.min(ppfs) - 0.01,
-            np.max(ppfs) + 0.01,
-            maxiter=1000,
-        )
+        cmin = np.min(ppfs)
+        cmax = np.max(ppfs)
+        try:
+            return oscipy.optimize.bisect(
+                lambda x: self.cdf(x) - q,
+                cmin - abs(cmin / 100),
+                cmax + abs(cmax / 100),
+                maxiter=1000,
+            )
+        except ValueError:
+            return (cmax + cmin) / 2
 
     def sample(self):
         i = categorical(np.array(self.probs))
