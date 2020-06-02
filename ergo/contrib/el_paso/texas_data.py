@@ -1,6 +1,7 @@
 from datetime import date
 
 import pandas as pd
+import re
 
 
 def get_el_paso_data():
@@ -24,7 +25,7 @@ def get_el_paso_data():
     el_paso_cases.columns = ["Cases so far"]
 
     def get_date(column_name):
-        date_str = column_name.split("\n")[-1]
+        date_str = re.search("[0-9]{1,2}-[0-9]{1,2}", column_name).group(0)
         month_str, day_str = date_str.split("-")
         return date(2020, int(month_str), int(day_str))
 

@@ -15,7 +15,7 @@ def get_onlyasith_results():
 
     projected_cases = projected_cases.dropna()
     projected_cases["Cases so far"] = projected_cases["Cases so far"].apply(
-        lambda str: int(str.replace(",", ""))
+        lambda str: int(str) if str != " " else None
     )
     projected_cases["New cases"] = projected_cases["Cases so far"].diff()
 
