@@ -38,7 +38,11 @@ def truncate(BaseDistClass):
             p_below = base_dist.cdf(floor)
             p_above = 1 - base_dist.cdf(ceiling)
             self.p_inside = 1 - (p_below + p_above)
-            return super().__init__(*args, **kwargs)
+
+            # my best guess for why mypy doesn't like this
+            # is that it can't do type inference through the
+            # "type" function
+            return super().__init__(*args, **kwargs)  # type: ignore
 
         def pdf1(self, x):
             p_at_x = self.base_dist.pdf1(x) * (1 / self.p_inside)
