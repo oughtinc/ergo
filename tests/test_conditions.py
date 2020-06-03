@@ -200,7 +200,7 @@ def test_most_likely_outcome_condition():
     outcome_dist = HistogramDist.from_conditions(outcome_conditions, verbose=True)
     assert outcome_dist.pdf(0.25) > base_dist.pdf(0.25)
 
-    # Highly weighted most likely condition should make specified outcome the most likely
+    # Highly weighted most likely condition should make specified outcome most likely
     strong_condition = MostLikelyOutcomeCondition(outcome=0.25, weight=1000)
     strong_outcome_conditions = base_conditions + [strong_condition]
     strong_outcome_dist = HistogramDist.from_conditions(
