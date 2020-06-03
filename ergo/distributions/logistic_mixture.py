@@ -59,6 +59,17 @@ def static_mixture_params_logpdf1(params, datum):
 
 static_mixture_params_gradlogpdf = jit(grad(static_mixture_params_logpdf, argnums=0))
 
+
 @dataclass
 class TruncatedLogisticMixture(LogisticMixture):
-    
+    floor: float = 0
+    ceiling: float = 1
+
+    def pdf1(self, x):
+        p_below = super().cdf(self.floor)
+        p_above = 1 - super().cdf(self.ceiling)
+        p_inside = 1 - (p_below + p_above)
+        p_at_x = super().pdf1(x) * (1 / p_inside)
+        # this line shouldn't be necessary: in practice, we don't
+        # expect to encounter xs outside the range.
+        return np.where(x < self.floor, 0, np.where(x > self.ceiling, 0, p_at_x))

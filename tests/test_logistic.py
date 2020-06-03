@@ -3,7 +3,7 @@ import numpy as onp
 import pytest
 
 from ergo import Logistic, LogisticMixture
-from ergo.distributions import truncate
+from ergo.distributions import TruncatedLogisticMixture
 from ergo.distributions.conditions import HistogramCondition
 
 
@@ -164,7 +164,7 @@ def test_fit_hist_with_p_on_edge(verbose=True):
     densities = ([1] * 10) + ([0] * 90)
     test_hist_condition = HistogramCondition(xs, densities)
 
-    mixture = truncate(LogisticMixture).from_conditions(
+    mixture = TruncatedLogisticMixture.from_conditions(
         conditions=[test_hist_condition],
         scale_min=scale_min,
         scale_max=scale_max,
@@ -190,7 +190,7 @@ def test_fit_hist_with_p_on_edge(verbose=True):
 
     loss = sum([bin_fit ** 2 for bin_fit in density_diff]) / len(density_diff)
 
-    assert loss < 0.001
+    assert loss < 0.1
 
 
 def test_speed():

@@ -21,5 +21,4 @@ from .base import (
 from .distribution import Distribution
 from .histogram import HistogramDist
 from .location_scale_family import Logistic, Normal
-from .logistic_mixture import LogisticMixture
-from .truncated import truncate
+from .logistic_mixture import LogisticMixture, TruncatedLogisticMixture
