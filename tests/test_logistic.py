@@ -184,9 +184,9 @@ def test_fit_hist_with_p_on_edge(verbose=True):
         for idx, bin in enumerate(mixture_hist_bins)
     ]
 
-    # print(density_diff)
+    print(density_diff)
 
-    # print(max(density_diff))
+    print(max(density_diff))
 
     loss = sum([bin_fit ** 2 for bin_fit in density_diff]) / len(density_diff)
 
