@@ -190,7 +190,7 @@ def test_fit_hist_with_p_on_edge(verbose=True):
 
     loss = sum([bin_fit ** 2 for bin_fit in density_diff]) / len(density_diff)
 
-    assert loss < 0.1
+    assert loss < 0.001
 
 
 def test_speed():
