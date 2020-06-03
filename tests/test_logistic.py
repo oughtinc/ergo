@@ -156,14 +156,14 @@ def make_histogram(rv, xmin, xmax, num_bins):
     return [{"x": x, "density": y} for (x, y) in zip(xs, ys)]
 
 
-def test_fit_hist_with_p_on_edge(compiled, verbose=True):
+def test_fit_hist_with_p_on_edge(verbose=True):
     scale_min = 0
     scale_max = 10
     num_bins = 100
     xs = onp.linspace(scale_min, scale_max, num_bins)
     densities = ([1] * 10) + ([0] * 90)
     test_hist_condition = HistogramCondition(xs, densities)
-    
+
     mixture = truncate(
         LogisticMixture, floor=scale_min, ceiling=scale_max
     ).from_conditions(
@@ -198,19 +198,22 @@ def run_speed_test():
     import cProfile
     import time
 
-    compiled = compile()    
+    compiled = compile()
 
     start = time.time()
     test_fit_hist_with_p_on_edge(compiled, verbose=False)
-    print(f"Runtime: {time.time() - start}s")    
-    
+    print(f"Runtime: {time.time() - start}s")
+
     cProfile.runctx(
-        "test_fit_hist_with_p_on_edge(compiled)", {
+        "test_fit_hist_with_p_on_edge(compiled)",
+        {
             "test_fit_hist_with_p_on_edge": test_fit_hist_with_p_on_edge,
-            "compiled": compiled
-        }, {}, "test_truncated_logistic.prof"
+            "compiled": compiled,
+        },
+        {},
+        "test_truncated_logistic.prof",
     )
 
 
-if __name__ == "__main__":
-    run_speed_test()
+# if __name__ == "__main__":
+#     run_speed_test()
