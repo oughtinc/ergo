@@ -193,7 +193,7 @@ def test_fit_hist_with_p_on_edge(verbose=True):
     assert loss < 0.1
 
 
-def run_speed_test():
+def test_speed():
     from ergo.distributions.compile import compile
     import cProfile
     import time
@@ -201,7 +201,7 @@ def run_speed_test():
     compiled = compile()
 
     start = time.time()
-    test_fit_hist_with_p_on_edge(compiled, verbose=False)
+    test_fit_hist_with_p_on_edge(verbose=False)
     print(f"Runtime: {time.time() - start}s")
 
     cProfile.runctx(
@@ -213,7 +213,3 @@ def run_speed_test():
         {},
         "test_truncated_logistic.prof",
     )
-
-
-# if __name__ == "__main__":
-#     run_speed_test()
