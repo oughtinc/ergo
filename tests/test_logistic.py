@@ -3,8 +3,8 @@ import numpy as onp
 import pytest
 
 from ergo import Logistic, LogisticMixture
-from ergo.distributions.conditions import HistogramCondition
 from ergo.distributions import truncate
+from ergo.distributions.conditions import HistogramCondition
 
 
 def test_cdf():

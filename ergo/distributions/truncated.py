@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from .distribution import Distribution
+
 import jax.numpy as np
+
+from .distribution import Distribution
 
 
 def truncate(underlying_dist_class: Distribution, floor: float, ceiling: float):
