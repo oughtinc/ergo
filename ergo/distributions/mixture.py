@@ -138,7 +138,6 @@ class Mixture(Distribution):
         scale_max=1,
         init_tries=100,
         opt_tries=10,
-        containing_class=None,
     ) -> M:
         """
         Fit a mixture distribution from Conditions
@@ -152,8 +151,6 @@ class Mixture(Distribution):
         :param scale_max: the true-scale maximum of the range to fit over.
         :return: the fitted mixture
         """
-
-        optimization_class = cls if containing_class is None else containing_class
         normalized_conditions = [
             condition.normalize(scale_min, scale_max) for condition in conditions
         ]
@@ -165,10 +162,10 @@ class Mixture(Distribution):
             cond_classes, cond_params = [], []
 
         loss = lambda params: static_loss(  # noqa: E731
-            optimization_class, params, cond_classes, cond_params
+            cls, params, cond_classes, cond_params
         )
         jac = lambda params: static_loss_grad(  # noqa: E731
-            optimization_class, params, cond_classes, cond_params
+            cls, params, cond_classes, cond_params
         )
 
         normalized_mixture: M = cls.from_loss(
@@ -179,7 +176,6 @@ class Mixture(Distribution):
             init_tries=init_tries,
             opt_tries=opt_tries,
         )
-
         return normalized_mixture.denormalize(scale_min, scale_max)
 
     @classmethod
