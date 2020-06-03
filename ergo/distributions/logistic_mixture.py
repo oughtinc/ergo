@@ -58,3 +58,7 @@ def static_mixture_params_logpdf1(params, datum):
 
 
 static_mixture_params_gradlogpdf = jit(grad(static_mixture_params_logpdf, argnums=0))
+
+@dataclass
+class TruncatedLogisticMixture(LogisticMixture):
+    
