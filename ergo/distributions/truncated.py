@@ -50,4 +50,4 @@ def truncate(BaseDistClass):
             # expect to encounter xs outside the range.
             return np.where(x < self.floor, 0, np.where(x > self.ceiling, 0, p_at_x))
 
-    return type("TruncatedDist", (BaseDistClass, GenericTruncatedDist), {})
+    return type("TruncatedDist", (GenericTruncatedDist, BaseDistClass), {})
