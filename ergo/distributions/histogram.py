@@ -58,10 +58,18 @@ class HistogramDist(distribution.Distribution):
         return -np.dot(self.ps, q_dist.logps)
 
     def pdf(self, x):
-        return self.ps[np.argmax(self.bins >= self.scale.normalize_point(x))]
+        return np.where(
+            (x < self.scale_min) | (x > self.scale_max),
+            0, 
+            self.ps[np.argmax(self.bins >= x) - 1],
+        )
 
     def cdf(self, x):
-        return self.cum_ps[np.argmax(self.bins >= self.scale.normalize_point(x))]
+        return np.where(
+            x < self.scale_min,
+            0,
+            np.where(x > self.scale_max, 1, self.cum_ps[np.argmax(self.bins >= x) - 1]),
+        )
 
     def ppf(self, q):
         return self.scale.denormalize_point(
