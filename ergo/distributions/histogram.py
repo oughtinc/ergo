@@ -78,18 +78,19 @@ class HistogramDist(distribution.Distribution):
         """
         Normalize the histogram onto [0,1]
 
-        Setting a scale_min and scale_max allows you
-        to express that the histogram to be normalized
+        Setting a scale_min and scale_max allows you to express that the histogram to be normalized
         did not cover the entire scale of interest.
-        E.g. my histogram to be normalized only goes
-        from 2 to 5, but I'm interested in p over
-        [0,10]. In that case scale_min = 0, scale_max=10
 
-        :param scale_min: min of the scale of interest
-        :param scale_max: max of the scale of interest
+        E.g. -- imagine my histogram only has probability mass from 2 to 5,
+        but I'm interested in p over [0,10].
+        So I'll use Scale(0,10), and I'll get back a histogram with additional
+        bins with 0 probability to cover the area from 0 to 2 and 5 to 10
+        where my histogram doesn't place any probability.
+
+        :param true_scale: the full scale that I'm interested in probability over.
         """
-        # assume that the histogram has entries over
-        # the entire scale of interest
+        # if not true_scale is provided, assume that the histogram has
+        # entries over the entire scale of interest
         if not true_scale:
             return HistogramDist(self.logps, 0, 1)
 
