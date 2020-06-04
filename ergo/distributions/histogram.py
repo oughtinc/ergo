@@ -240,14 +240,31 @@ class HistogramDist(distribution.Distribution):
         logps = onp.log(onp.array(densities) / sum(densities))
         return cls(logps, scale_min=scale_min, scale_max=scale_max)
 
-    def to_pairs(self):
+    def to_pairs(self, total_p: float = 1.0):
+        """
+        Represent the distribution as a list of pairs.
+
+        Sometimes we use a histogram to represent just part of a probability distribution
+        (if the rest will be represented by some other distribution)
+
+        In this case, when converting to pairs,
+        downscale the p in this distribution to some amount of total p.
+
+        :total_p: the amount of p to keep in this distribution
+        :return: a list of pairs representing the distribution
+        """
+        if total_p > 1:
+            raise ValueError(
+                "Can only scale down the distribution below total p of 1. Doesn't make sense for total p to be more than 1."
+            )
+
         pairs = []
         bins = onp.array(self.bins)
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
             bin_size = float(bins[i + 1] - bin)
-            density = float(ps[i]) / bin_size
+            density = (float(ps[i]) * total_p) / bin_size
             pairs.append({"x": x, "density": density})
         return pairs
 
