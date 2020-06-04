@@ -1,7 +1,7 @@
 import pytest
 
 import ergo
-from ergo.distributions.conditions import IntervalCondition
+from ergo.distributions.conditions import IntervalCondition, MaxEntropyCondition
 from ergo.distributions.histogram import HistogramDist
 
 
@@ -27,7 +27,7 @@ def test_hist_from_percentile():
 
 
 def test_hist_pdf():
-    uniform_dist = HistogramDist.from_conditions([])
+    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()])
 
     # Off of scale
     assert uniform_dist.pdf(-0.5) == 0
@@ -40,7 +40,7 @@ def test_hist_pdf():
 
 
 def test_hist_cdf():
-    uniform_dist = HistogramDist.from_conditions([])
+    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()])
 
     # Off of scale
     assert uniform_dist.cdf(-0.5) == 0

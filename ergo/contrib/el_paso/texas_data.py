@@ -1,7 +1,7 @@
 from datetime import date
+import re
 
 import pandas as pd
-import re
 
 
 def get_el_paso_data():

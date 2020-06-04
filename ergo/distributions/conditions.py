@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Any, Dict, Optional, Sequence, Tuple, TypeVar
 
 from jax import jit, vmap
@@ -8,7 +7,7 @@ import numpy as onp
 
 from ergo.utils import shift
 
-from . import histogram
+from . import histogram, static
 from .scale import Scale
 
 ConditionClass = TypeVar("ConditionClass", bound="Condition")
@@ -73,7 +72,7 @@ class Condition(ABC):
         :return: A description of various aspects of how well
         the distribution meets the condition
         """
-        result = static_describe_fit(*dist.destructure(), *self.destructure())
+        result = static.describe_fit(*dist.destructure(), *self.destructure())
         return {k: float(v) for (k, v) in result.items()}
 
     @abstractmethod
@@ -249,7 +248,7 @@ class HistogramCondition(Condition):
         super().__init__(weight)
 
     def loss(self, dist):
-        entry_loss_fn = lambda x, density: (density - dist.pdf1(x)) ** 2  # noqa: E731
+        entry_loss_fn = lambda x, density: (density - dist.pdf(x)) ** 2  # noqa: E731
         total_loss = np.sum(vmap(entry_loss_fn)(self.xs, self.densities))
         return self.weight * total_loss / self.xs.size
 
@@ -320,10 +319,3 @@ class MostLikelyOutcomeCondition(Condition):
 
     def __str__(self):
         return f"The most likely outcome is {self.outcome}."
-
-
-@partial(jit, static_argnums=(0, 2))
-def static_describe_fit(dist_class, dist_params, cond_class, cond_params):
-    dist = dist_class.structure(dist_params)
-    condition = cond_class.structure(cond_params)
-    return condition._describe_fit(dist)
