@@ -3,11 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from ergo import HistogramDist, Logistic, LogisticMixture
-from ergo.distributions.conditions import (
-    HistogramCondition,
-    IntervalCondition,
-    MostLikelyOutcomeCondition,
-)
+from ergo.conditions import HistogramCondition, IntervalCondition, ModeCondition
 
 
 @dataclass
@@ -191,17 +187,17 @@ def test_weights_mixture():
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
 
 
-def test_most_likely_outcome_condition():
+def test_mode_condition():
     base_conditions = [IntervalCondition(p=0.4, max=0.5)]
     base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
 
     # Most likely condition should increase chance of specified outcome
-    outcome_conditions = base_conditions + [MostLikelyOutcomeCondition(outcome=0.25)]
+    outcome_conditions = base_conditions + [ModeCondition(outcome=0.25)]
     outcome_dist = HistogramDist.from_conditions(outcome_conditions, verbose=True)
     assert outcome_dist.pdf(0.25) > base_dist.pdf(0.25)
 
     # Highly weighted most likely condition should make specified outcome most likely
-    strong_condition = MostLikelyOutcomeCondition(outcome=0.25, weight=1000)
+    strong_condition = ModeCondition(outcome=0.25, weight=1000)
     strong_outcome_conditions = base_conditions + [strong_condition]
     strong_outcome_dist = HistogramDist.from_conditions(
         strong_outcome_conditions, verbose=True

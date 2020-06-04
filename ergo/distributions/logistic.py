@@ -9,9 +9,10 @@ from jax import scipy
 import jax.numpy as np
 import scipy as oscipy
 
-from . import static
+from ergo.scale import Scale
+import ergo.static as static
+
 from .distribution import Distribution
-from .scale import Scale
 
 
 @dataclass

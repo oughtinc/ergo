@@ -1,7 +1,7 @@
 import pytest
 
 import ergo
-from ergo.distributions.conditions import IntervalCondition, MaxEntropyCondition
+from ergo.conditions import IntervalCondition, MaxEntropyCondition
 from ergo.distributions.histogram import HistogramDist
 
 

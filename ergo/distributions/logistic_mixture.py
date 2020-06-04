@@ -9,13 +9,13 @@ from jax import nn
 import jax.numpy as np
 import numpy as onp
 
+from ergo.conditions import Condition
+from ergo.scale import Scale
+import ergo.static as static
 from ergo.utils import minimize
 
-from . import static
-from .conditions import Condition
 from .logistic import Logistic
 from .mixture import Mixture
-from .scale import Scale
 
 
 @dataclass
