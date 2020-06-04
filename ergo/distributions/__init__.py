@@ -22,3 +22,4 @@ from .distribution import Distribution
 from .histogram import HistogramDist
 from .location_scale_family import Logistic, Normal
 from .logistic_mixture import LogisticMixture
+from .scale import LogScale, Scale
