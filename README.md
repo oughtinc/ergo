@@ -83,6 +83,33 @@ Outdated Ergo notebooks:
 
 5. [Assorted COVID predictions](notebooks/assorted-predictions.ipynb)
 
+## Local installation
+
+To install Ergo and its dependencies, we recommend PyEnv and Poetry:
+
+1. Install [PyEnv](https://github.com/pyenv/pyenv-installer) for managing Python versions
+2. Install the [Poetry](https://python-poetry.org/docs/) package manager
+
+Then:
+
+```
+mkdir my-ergo-project && cd my-ergo-project
+pyenv install 3.6.9 && pyenv local 3.6.9
+poetry init -n
+# Edit pyproject.toml to set python = "~3.6.9"
+poetry add git+https://github.com/oughtinc/ergo.git
+poetry install
+```
+
+Now Ergo is available in your project:
+
+```
+poetry run python
+>>> import ergo
+>>> ergo.flip(.5)
+DeviceArray(True, dtype=bool)
+```
+
 ## Contribute
 
 Ergo is an open source project and we love contributions!
