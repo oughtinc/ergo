@@ -58,22 +58,40 @@ class HistogramDist(distribution.Distribution):
         return -np.dot(self.ps, q_dist.logps)
 
     def pdf(self, x):
+        """
+        If x is out of distribution range, returns 0. Otherwise returns the
+        density at the lowest bin for which the upper bound of the bin
+        is greater than or equal to x.
+
+        :param x: The point in the distribution to get the density at
+        """
         return np.where(
             (x < self.scale_min) | (x > self.scale_max),
-            0, 
-            self.ps[np.argmax(self.bins >= x) - 1],
+            0,
+            self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
         )
 
     def cdf(self, x):
+        """
+        If x is out of distribution range, returns 0/1. Otherwise returns the
+        cumulative density at the lowest bin for which the upper bound of the bin
+        is greater than or equal to x.
+
+        :param x: The point in the distribution to get the cumulative density at
+        """
         return np.where(
             x < self.scale_min,
             0,
-            np.where(x > self.scale_max, 1, self.cum_ps[np.argmax(self.bins >= x) - 1]),
+            np.where(
+                x > self.scale_max,
+                1,
+                self.cum_ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
+            ),
         )
 
     def ppf(self, q):
         return self.scale.denormalize_point(
-            np.where(self.cum_ps >= q)[0][0] / self.cum_ps.size
+            np.argmax(self.cum_ps >= np.minimum(q, self.cum_ps[-1])) / self.cum_ps.size
         )
 
     def sample(self):

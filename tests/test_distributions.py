@@ -24,3 +24,42 @@ def test_hist_from_percentile():
         conditions = [IntervalCondition(p=0.5, max=value)]
         dist = HistogramDist.from_conditions(conditions)
         assert dist.ppf(0.5) == pytest.approx(value, abs=0.1)
+
+
+def test_hist_pdf():
+    uniform_dist = HistogramDist.from_conditions([])
+
+    # Off of scale
+    assert uniform_dist.pdf(-0.5) == 0
+    assert uniform_dist.pdf(1.5) == 0
+
+    # Denormalized
+    denormalized_dist = uniform_dist.denormalize(scale_min=0, scale_max=2)
+    assert denormalized_dist.pdf(1.5) != 0
+    assert denormalized_dist.pdf(2.5) == 0
+
+
+def test_hist_cdf():
+    uniform_dist = HistogramDist.from_conditions([])
+
+    # Off of scale
+    assert uniform_dist.cdf(-0.5) == 0
+    assert uniform_dist.cdf(1.5) == 1
+
+    # Edges of scale
+    assert uniform_dist.cdf(0.005) != uniform_dist.cdf(0.015)
+    assert uniform_dist.cdf(0.985) != uniform_dist.cdf(0.995)
+
+    # Denormalized
+    denormalized_dist = uniform_dist.denormalize(scale_min=0, scale_max=2)
+    assert denormalized_dist.cdf(1) == pytest.approx(0.5, abs=0.01)
+    assert denormalized_dist.cdf(1.5) != 0
+    assert denormalized_dist.cdf(2.5) == 1
+
+
+def test_hist_ppf():
+    uniform_dist = HistogramDist.from_conditions([])
+
+    # Ends of scale; second is approx since implemented as start of last bin
+    assert uniform_dist.ppf(0) == 0
+    assert uniform_dist.ppf(1) == pytest.approx(1, abs=0.01)
