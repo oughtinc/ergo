@@ -7,7 +7,8 @@ import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
-from . import conditions, distribution, scale
+from . import conditions, distribution
+from .scale import Scale, ScaleClass, ScaleFactory
 
 
 @dataclass
@@ -15,7 +16,7 @@ class HistogramDist(distribution.Distribution):
     logps: np.DeviceArray
 
     def __init__(
-        self, logps=None, scale_min=0, scale_max=1, traceable=False, direct_init=None
+        self, logps=None, scale=None, traceable=False, direct_init=None,
     ):
         if direct_init:
             self.logps = direct_init["logps"]
@@ -23,18 +24,16 @@ class HistogramDist(distribution.Distribution):
             self.cum_ps = direct_init["cum_ps"]
             self.bins = direct_init["bins"]
             self.size = direct_init["size"]
-            self.scale_min = direct_init["scale_min"]
-            self.scale_max = direct_init["scale_max"]
+            self.scale = direct_init["scale"]
         else:
             init_numpy = np if traceable else onp
             self.logps = logps
             self.ps = np.exp(logps)
             self.cum_ps = np.array(init_numpy.cumsum(self.ps))
-            self.bins = np.linspace(scale_min, scale_max, logps.size + 1)
+            self.bins = np.linspace(0, 1, logps.size + 1)
             self.size = logps.size
-            self.scale_min = scale_min
-            self.scale_max = scale_max
-        self.scale = scale.Scale(scale_min, scale_max)
+            self.scale = scale if scale else Scale(0, 1)
+        self.true_bins = self.scale.bins(self.logps.size + 1)
 
     def __hash__(self):
         return hash(self.__key())
@@ -75,23 +74,22 @@ class HistogramDist(distribution.Distribution):
         raise NotImplementedError
 
     def normalize(self):
-        return HistogramDist(self.logps, 0, 1)
+        raise NotImplementedError
+        # return HistogramDist(self.logps, Scale(0, 1))
 
-    def denormalize(self, scale_min, scale_max):
-        return HistogramDist(self.logps, scale_min, scale_max)
+    def denormalize(self, scale: ScaleClass):
+        return HistogramDist(self.logps, scale)
 
     @classmethod
     def from_conditions(
         cls,
         conditions: List["conditions.Condition"],
-        scale_min=0,
-        scale_max=1,
+        scale,
         num_bins=100,
         verbose=False,
     ):
-        normalized_conditions = [
-            condition.normalize(scale_min, scale_max) for condition in conditions
-        ]
+        scale = ScaleFactory(*scale)
+        normalized_conditions = [condition.normalize(scale) for condition in conditions]
 
         cond_data = [condition.destructure() for condition in normalized_conditions]
         if cond_data:
@@ -113,7 +111,7 @@ class HistogramDist(distribution.Distribution):
                 print(condition)
                 print(condition.describe_fit(normalized_dist))
 
-        return normalized_dist.denormalize(scale_min, scale_max)
+        return normalized_dist.denormalize(scale)
 
     @classmethod
     def from_loss(cls, loss, jac, num_bins=100):
@@ -129,19 +127,12 @@ class HistogramDist(distribution.Distribution):
     def destructure(self):
         return (
             HistogramDist,
-            (
-                self.logps,
-                self.ps,
-                self.cum_ps,
-                self.bins,
-                self.size,
-                self.scale_min,
-                self.scale_max,
-            ),
+            (self.logps, self.ps, self.cum_ps, self.bins, self.size,),
+            self.scale.destructure(),
         )
 
     @classmethod
-    def structure(cls, params):
+    def structure(cls, *params):
         return cls(
             direct_init={
                 "logps": params[0],
@@ -149,24 +140,31 @@ class HistogramDist(distribution.Distribution):
                 "cum_ps": params[2],
                 "bins": params[3],
                 "size": params[4],
-                "scale_min": params[5],
-                "scale_max": params[6],
+                "scale": ScaleFactory(*params[5]),
             }
         )
 
     @classmethod
-    def from_pairs(cls, pairs):
+    def from_pairs(cls, pairs, scale):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
-        xs = [x for (x, density) in sorted_pairs]
         densities = [density for (x, density) in sorted_pairs]
-        scale_min = xs[0]
-        scale_max = xs[-1]
         logps = onp.log(onp.array(densities) / sum(densities))
-        return cls(logps, scale_min=scale_min, scale_max=scale_max)
+        return cls(logps, scale)
+
+    def to_normalied_pairs(self):
+        pairs = []
+        bins = onp.array(self.bins)
+        ps = onp.array(self.ps)
+        for i, bin in enumerate(bins[:-1]):
+            x = float((bin + bins[i + 1]) / 2.0)
+            bin_size = float(bins[i + 1] - bin)
+            density = float(ps[i]) / bin_size
+            pairs.append({"x": x, "density": density})
+        return pairs
 
     def to_pairs(self):
         pairs = []
-        bins = onp.array(self.bins)
+        bins = onp.array(self.true_bins)
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
@@ -178,7 +176,7 @@ class HistogramDist(distribution.Distribution):
     def to_lists(self):
         xs = []
         densities = []
-        bins = onp.array(self.bins)
+        bins = onp.array(self.true_bins)
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)

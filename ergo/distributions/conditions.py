@@ -12,6 +12,7 @@ from . import histogram
 from .scale import Scale
 
 ConditionClass = TypeVar("ConditionClass", bound="Condition")
+ScaleClass = TypeVar("ScaleClass", bound=Scale)
 
 
 def static_value(v):
@@ -43,24 +44,22 @@ class Condition(ABC):
         # convert to float for easy serialization
         return {"loss": self.loss(dist)}
 
-    def normalize(self, scale_min: float, scale_max: float):
+    def normalize(self, scale: ScaleClass):
         """
         Assume that the condition's true range is [scale_min, scale_max].
         Return the normalized condition.
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale
         :return: the condition normalized to [0,1]
         """
         return self
 
-    def denormalize(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale: ScaleClass):
         """
         Assume that the condition has been normalized to be over [0,1].
         Return the condition on the true scale.
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale
         :return: the condition on the true scale of [scale_min, scale_max]
         """
         return self
@@ -73,6 +72,7 @@ class Condition(ABC):
         :return: A description of various aspects of how well
         the distribution meets the condition
         """
+
         result = static_describe_fit(*dist.destructure(), *self.destructure())
         return {k: float(v) for (k, v) in result.items()}
 
@@ -211,14 +211,12 @@ class IntervalCondition(Condition):
         description["p_in_interval"] = self.actual_p(dist)
         return description
 
-    def normalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def normalize(self, scale: ScaleClass):
         normalized_min = scale.normalize_point(self.min)
         normalized_max = scale.normalize_point(self.max)
         return self.__class__(self.p, normalized_min, normalized_max, self.weight)
 
-    def denormalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def denormalize(self, scale: ScaleClass):
         denormalized_min = scale.denormalize_point(self.min)
         denormalized_max = scale.denormalize_point(self.max)
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
@@ -253,19 +251,17 @@ class HistogramCondition(Condition):
         total_loss = np.sum(vmap(entry_loss_fn)(self.xs, self.densities))
         return self.weight * total_loss / self.xs.size
 
-    def normalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def normalize(self, scale: ScaleClass):
         normalized_xs = np.array([scale.normalize_point(x) for x in self.xs])
         normalized_densities = np.array(
-            [density * scale.range for density in self.densities]
+            [density * scale.scale_range for density in self.densities]
         )
         return self.__class__(normalized_xs, normalized_densities, self.weight)
 
-    def denormalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def denormalize(self, scale: ScaleClass):
         denormalized_xs = np.array([scale.denormalize_point(x) for x in self.xs])
         denormalized_densities = np.array(
-            [density / scale.range for density in self.densities]
+            [density / scale.scale_range for density in self.densities]
         )
         return self.__class__(denormalized_xs, denormalized_densities, self.weight)
 
@@ -282,8 +278,8 @@ class HistogramCondition(Condition):
         return "The probability density function looks similar to the provided density function."
 
 
-@partial(jit, static_argnums=(0, 2))
-def static_describe_fit(dist_class, dist_params, cond_class, cond_params):
-    dist = dist_class.structure(dist_params)
+@partial(jit, static_argnums=(0, 2, 3))
+def static_describe_fit(dist_class, dist_params, scale, cond_class, cond_params):
+    dist = dist_class.structure(*dist_params, scale)
     condition = cond_class.structure(cond_params)
     return condition._describe_fit(dist)
