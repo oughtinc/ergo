@@ -9,6 +9,7 @@ from ergo.distributions.conditions import (
 )
 from ergo.distributions.histogram import HistogramDist
 from ergo.distributions.logistic_mixture import LogisticMixture
+from ergo.distributions.scale import Scale
 
 
 def single_interval_condition_cases():
@@ -27,7 +28,7 @@ def compile_histogram_loss_functions(num_bins: int = 201):
     ]
     for condition in conditions:
         dist = HistogramDist.from_conditions(
-            [condition], scale_min=0, scale_max=1, num_bins=num_bins
+            [condition], scale=Scale(0, 1), num_bins=num_bins,
         )
         condition.describe_fit(dist)
 
