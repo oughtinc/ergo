@@ -1,8 +1,11 @@
 __version__ = "0.8.3"
 
+import ergo.conditions
 import ergo.distributions
 import ergo.platforms
 import ergo.ppl
+import ergo.scale
+import ergo.static
 import ergo.theme
 import ergo.utils
 
@@ -12,7 +15,6 @@ from .distributions import (
     Logistic,
     LogisticMixture,
     LogNormalFromInterval,
-    Normal,
     NormalFromInterval,
     bernoulli,
     beta,
