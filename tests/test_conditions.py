@@ -177,7 +177,7 @@ def test_mixture_from_histogram(histogram):
         conditions, num_components=3, verbose=True
     )
     for (x, density) in zip(histogram["xs"], histogram["densities"]):
-        assert mixture.pdf1(x) == pytest.approx(density, abs=0.2)
+        assert mixture.pdf(x) == pytest.approx(density, abs=0.2)
 
 
 def test_weights_mixture():
@@ -220,8 +220,8 @@ def test_mixed_1(histogram):
         HistogramCondition(histogram["xs"], histogram["densities"]),
     )
     dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
-    assert dist.pdf1(-5) == pytest.approx(0, abs=0.1)
-    assert dist.pdf1(6) == pytest.approx(0, abs=0.1)
+    assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
+    assert dist.pdf(6) == pytest.approx(0, abs=0.1)
     my_cache = {}
     my_cache[conditions] = 2
     conditions_2 = (
@@ -248,8 +248,8 @@ def test_mixed_2(histogram):
         IntervalCondition(p=0.9, max=2.3),
     )
     dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
-    assert dist.pdf1(-5) == pytest.approx(0, abs=0.1)
-    assert dist.pdf1(6) == pytest.approx(0, abs=0.1)
+    assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
+    assert dist.pdf(6) == pytest.approx(0, abs=0.1)
     my_cache = {}
     my_cache[conditions] = 3
     conditions_2 = (

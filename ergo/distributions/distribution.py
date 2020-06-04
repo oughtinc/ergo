@@ -6,10 +6,12 @@ Specifies interface for specific Distribution Classes
 
 from abc import ABC, abstractmethod
 
+import jax.numpy as np
+
 
 class Distribution(ABC):
     @abstractmethod
-    def rv(self,):
+    def logpdf(self, x):
         ...
 
     @abstractmethod
@@ -23,6 +25,17 @@ class Distribution(ABC):
     @abstractmethod
     def sample(self):
         ...
+
+    @abstractmethod
+    def normalize(self, scale_min: float, scale_max: float):
+        ...
+
+    @abstractmethod
+    def denormalize(self, scale_min: float, scale_max: float):
+        ...
+
+    def pdf(self, x):
+        return np.exp(self.logpdf(x))
 
     def percentiles(self, percentiles=None):
         from . import conditions
