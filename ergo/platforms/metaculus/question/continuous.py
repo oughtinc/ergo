@@ -97,15 +97,6 @@ class ContinuousQuestion(MetaculusQuestion):
     def plot_title(self):
         return "\n".join(textwrap.wrap(self.name or self.data["title"], 60))  # type: ignore
 
-    def normalize_samples(self, samples):
-        """
-        The Metaculus API accepts normalized predictions rather than predictions on
-        the true scale of the question. Normalize samples to fit that scale.
-
-        :param samples: samples from the true-scale prediction distribution
-        """
-        raise NotImplementedError("This should be implemented by a subclass")
-
     def prepare_logistic(self, normalized_dist: dist.Logistic) -> dist.Logistic:
         """
         Transform a single logistic distribution by clipping the
@@ -154,11 +145,26 @@ class ContinuousQuestion(MetaculusQuestion):
         transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
         return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
-    def denormalize_samples(self, samples) -> np.ndarray:
+    def normalize_samples(self, samples):
         """
-        Map normalized samples back to the true scale
+        Map samples from their true scale to the Metaculus normalized scale
+
+        :param samples: samples from a distribution answering the prediction question
+            (true scale)
+        :return: samples on the normalized scale
         """
-        raise NotImplementedError("This should be implemented by a subclass")
+        return [self.scale.denormalize_point(sample) for sample in samples]
+
+    def denormalize_samples(self, samples):
+        """
+        Map samples from the Metaculus normalized scale to the true scale
+
+        :param samples: samples on the normalized scale
+        :return: samples from a distribution answering the prediction question
+            (true scale)
+        """
+
+        return [self.scale.denormalize_point(sample) for sample in samples]
 
     def community_dist(self) -> dist.HistogramDist:
         """
@@ -170,23 +176,24 @@ class ContinuousQuestion(MetaculusQuestion):
         # TODO (#306): Unify distributions interface
         # TODO (#307): Account for values out of range in
         #   ContinuousQuestion.community_dist()
+        # import ipdb; ipdb.set_trace()
         denormalized_max = float(
-            self.denormalize_samples(self.prediction_histogram[-1][0])
+            self.scale.denormalize_point(self.prediction_histogram[-1][0])
         )
         denormalized_min = float(
-            self.denormalize_samples(self.prediction_histogram[0][0])
+            self.scale.denormalize_point(self.prediction_histogram[0][0])
         )
 
         denormalized_range = denormalized_max - denormalized_min
-
+        # import ipdb; ipdb.set_trace()
         histogram = [
             {
-                "x": float(self.denormalize_samples(v[0])),
+                "x": float(self.scale.denormalize_point(v[0])),
                 "density": v[2] / denormalized_range,
             }
             for v in self.prediction_histogram
         ]
-        return dist.HistogramDist.from_pairs(histogram)
+        return dist.HistogramDist.from_pairs(histogram, self.scale)
 
     @memoized_method(None)
     def community_dist_in_range(self):
