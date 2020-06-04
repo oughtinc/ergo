@@ -78,7 +78,7 @@ class HistogramDist(distribution.Distribution):
         """
         Normalize the histogram onto [0,1]
 
-        Setting a scale_min and scale_max allows you to express that the histogram to be normalized
+        Setting a true_scale allows you to express that the histogram to be normalized
         did not cover the entire scale of interest.
 
         E.g. -- imagine my histogram only has probability mass from 2 to 5,
