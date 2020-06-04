@@ -26,9 +26,6 @@ class LogisticMixture(Mixture):
     def logpdf(self, x):
         return static.logistic_mixture_logpdf(self.to_params(), x)
 
-    def grad_logpdf(self, x):
-        return static.logistic_mixture_grad_logpdf(self.to_params(), x)
-
     def to_params(self):
         nested_params = [
             [c.loc, c.scale, weight] for c, weight in zip(self.components, self.probs)

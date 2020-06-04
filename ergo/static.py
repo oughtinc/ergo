@@ -115,9 +115,6 @@ def logistic_mixture_logpdf1(params, datum):
     return scipy.special.logsumexp(np.array(component_scores))
 
 
-logistic_mixture_grad_logpdf = jit(grad(logistic_mixture_logpdf, argnums=0))
-
-
 # Wasserstein distance
 
 

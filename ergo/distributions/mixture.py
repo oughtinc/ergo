@@ -20,9 +20,6 @@ class Mixture(Distribution):
     def logpdf(self, x):
         raise NotImplementedError
 
-    def grad_logpdf(self, x):
-        raise NotImplementedError
-
     def cdf(self, x):
         # TODO: vectorize
         return np.sum([c.cdf(x) * p for c, p in zip(self.components, self.probs)])
