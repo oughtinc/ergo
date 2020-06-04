@@ -23,6 +23,7 @@ from .location_scale_family import LSDistribution
 from .scale import Scale
 
 M = TypeVar("M", bound="Mixture")
+ScaleClass = TypeVar("ScaleClass", bound=Scale)
 
 
 @dataclass
@@ -78,23 +79,20 @@ class Mixture(Distribution):
         # so x != from_params(to_params(x))
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def denormalize(self, scale_min, scale_max):
+    def denormalize(self, scale):
         """
-        Assume that the distribution has been normalized to be over [0,1].
-        Return the distribution on the true scale of [scale_min, scale_max]
+        Return the distribution on the true scale
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale of condition
+        :return: the condition in the true scale
         """
         raise NotImplementedError("This should be implemented by a subclass")
 
-    def normalize(self, scale_min, scale_max):
+    def normalize(self, scale):
         """
-        Assume that the distribution's true range is [scale_min, scale_max].
         Return the normalized condition.
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale of condition
         :return: the condition normalized to [0,1]
         """
         raise NotImplementedError("This should be implemented by a subclass")
@@ -120,7 +118,7 @@ class Mixture(Distribution):
             return -cls.params_gradlogpdf(normed_params, normalized_data)
 
         normalized_mixture: M = cls.from_loss(loss, jac, num_components, verbose)
-        return normalized_mixture.denormalize(scale.scale_min, scale.scale_max)
+        return normalized_mixture.denormalize(scale)
 
     @classmethod
     def from_params(cls, params):
@@ -132,8 +130,7 @@ class Mixture(Distribution):
         conditions: Sequence[Condition],
         num_components: Optional[int] = None,
         verbose=False,
-        scale_min=0,
-        scale_max=1,
+        scale=None,
         init_tries=100,
         opt_tries=10,
     ) -> M:
@@ -142,16 +139,15 @@ class Mixture(Distribution):
 
         :param conditions: conditions to fit
         :param num_components: number of components to include in the mixture.
+        :param verbose:
+        :param scale: the true-scale
         :param init_tries:
         :param opt_tries:
-        :param verbose:
-        :param scale_min: the true-scale minimum of the range to fit over.
-        :param scale_max: the true-scale maximum of the range to fit over.
         :return: the fitted mixture
         """
-        normalized_conditions = [
-            condition.normalize(scale_min, scale_max) for condition in conditions
-        ]
+        if scale is None:
+            scale = Scale(0, 1)  # assume a linear scale in [0,1]
+        normalized_conditions = [condition.normalize(scale) for condition in conditions]
 
         cond_data = [condition.destructure() for condition in normalized_conditions]
         if cond_data:
@@ -174,7 +170,7 @@ class Mixture(Distribution):
             init_tries=init_tries,
             opt_tries=opt_tries,
         )
-        return normalized_mixture.denormalize(scale_min, scale_max)
+        return normalized_mixture.denormalize(scale)
 
     @classmethod
     def from_loss(
@@ -259,15 +255,15 @@ class LSMixture(Mixture):
         ]
         return np.array(list(itertools.chain.from_iterable(nested_params)))
 
-    def normalize(self, scale_min: float, scale_max: float):
+    def normalize(self, scale: ScaleClass):
         normalized_components = [
-            component.normalize(scale_min, scale_max) for component in self.components
+            component.normalize(scale) for component in self.components
         ]
         return self.__class__(normalized_components, self.probs, self.component_type)
 
-    def denormalize(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale: ScaleClass):
         denormalized_components = [
-            component.denormalize(scale_min, scale_max) for component in self.components
+            component.denormalize(scale) for component in self.components
         ]
         return self.__class__(denormalized_components, self.probs, self.component_type)
 
