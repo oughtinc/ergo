@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import math
 from typing import TypeVar
 
 import jax.numpy as np
@@ -13,7 +12,6 @@ class Scale:
 
     def __post_init__(self):
         self.scale_range = self.scale_max - self.scale_min
-        self.bins = lambda size: np.linspace(self.scale_min, self.scale_max, size)
 
     def normalize_point(self, point, default=None):
         return (
@@ -29,6 +27,12 @@ class Scale:
             else default
         )
 
+    def denormalize_points(self, points):
+        return [self.denormalize_point(point) for point in points]
+
+    def normalize_points(self, points):
+        return [self.normalize_point(point) for point in points]
+
     def destructure(self):
         return (Scale, (self.scale_min, self.scale_max))
 
@@ -43,14 +47,12 @@ ScaleClass = TypeVar("ScaleClass", bound=Scale)
 @dataclass
 class LogScale(Scale):
     deriv_ratio: float
-    display_base: float = 10
+    # display_base: float = 10
 
     def __post_init__(self):
         self.scale_range = self.scale_max - self.scale_min
-        self.bins = lambda size: np.logspace(
-            self.scale_min, self.scale_max, size, base=self.display_base
-        )
 
+    # TODO do we still need this default?
     def normalize_point(self, point, default=None):
         """
         Get a prediciton sample value on the normalized scale from a true-scale value
@@ -62,11 +64,15 @@ class LogScale(Scale):
         numerator = shifted * (self.deriv_ratio - 1)
         scaled = numerator / self.scale_range
         timber = 1 + scaled
-        floored_timber = max(timber, 1e-9)
+        floored_timber = np.amax([timber, 1e-9])
+
         return (
-            math.log(floored_timber, self.deriv_ratio) if point is not None else default
+            np.log(floored_timber) / np.log(self.deriv_ratio)
+            if point is not None
+            else default
         )
 
+    # TODO do we still need this default?
     def denormalize_point(self, point, default=None):
         """
         Get a value on the true scale from a normalized-scale value

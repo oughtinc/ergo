@@ -58,7 +58,7 @@ class LinearDateQuestion(LinearQuestion):
                     raise ValueError("Could not process samples vector")
             return self.normalize_dates(samples)
         else:
-            return super().normalize_samples(samples)
+            return super().scale.normalize_points(samples)
 
     def normalize_dates(self, dates: pd.Series):
         """

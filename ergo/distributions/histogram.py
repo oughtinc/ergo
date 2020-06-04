@@ -8,7 +8,7 @@ import numpy as onp
 import scipy as oscipy
 
 from . import conditions, distribution
-from .scale import Scale, ScaleClass, ScaleFactory
+from .scale import Scale
 
 
 @dataclass
@@ -16,24 +16,42 @@ class HistogramDist(distribution.Distribution):
     logps: np.DeviceArray
 
     def __init__(
-        self, logps=None, scale=None, traceable=False, direct_init=None,
+        self,
+        logps=None,
+        scale=None,
+        normed_bins=None,
+        true_bins=None,
+        traceable=False,
+        direct_init=None,
     ):
         if direct_init:
             self.logps = direct_init["logps"]
             self.ps = direct_init["ps"]
             self.cum_ps = direct_init["cum_ps"]
-            self.bins = direct_init["bins"]
+            self.normed_bins = direct_init["normed_bins"]
             self.size = direct_init["size"]
             self.scale = direct_init["scale"]
+            self.true_bins = None  # self.scale.denormalize_points(self.normed_bins)
         else:
             init_numpy = np if traceable else onp
             self.logps = logps
             self.ps = np.exp(logps)
             self.cum_ps = np.array(init_numpy.cumsum(self.ps))
-            self.bins = np.linspace(0, 1, logps.size + 1)
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
-        self.true_bins = self.scale.bins(self.logps.size + 1)
+
+            if true_bins:
+                self.true_bins = true_bins
+                self.normed_bins = self.scale.normalize_points(self.true_bins)
+            elif normed_bins:
+                self.normed_bins = normed_bins
+                self.true_bins = self.scale.denormalize_points(self.normed_bins)
+            else:
+                print(
+                    "No bin information provided, assuming probabilities correspond to a linear spacing in [0,1]"
+                )
+                self.normed_bins = np.linspace(0, 1, self.logps.size)
+                self.true_bins = self.scale.denormalize_points(self.normed_bins)
 
     def __hash__(self):
         return hash(self.__key())
@@ -57,10 +75,10 @@ class HistogramDist(distribution.Distribution):
         return -np.dot(self.ps, q_dist.logps)
 
     def pdf(self, x):
-        return self.ps[np.argmax(self.bins >= self.scale.normalize_point(x))]
+        return self.ps[np.argmax(self.normed_bins >= self.scale.normalize_point(x))]
 
     def cdf(self, x):
-        return self.cum_ps[np.argmax(self.bins >= self.scale.normalize_point(x))]
+        return self.cum_ps[np.argmax(self.normed_bins >= self.scale.normalize_point(x))]
 
     def ppf(self, q):
         return self.scale.denormalize_point(
@@ -77,18 +95,19 @@ class HistogramDist(distribution.Distribution):
         raise NotImplementedError
         # return HistogramDist(self.logps, Scale(0, 1))
 
-    def denormalize(self, scale: ScaleClass):
+    def denormalize(self, scale: Scale):
         return HistogramDist(self.logps, scale)
 
     @classmethod
     def from_conditions(
         cls,
         conditions: List["conditions.Condition"],
-        scale,
+        scale_cls,
+        scale_params,
         num_bins=100,
         verbose=False,
     ):
-        scale = ScaleFactory(*scale)
+        scale = scale_cls(*scale_params)
         normalized_conditions = [condition.normalize(scale) for condition in conditions]
 
         cond_data = [condition.destructure() for condition in normalized_conditions]
@@ -127,33 +146,38 @@ class HistogramDist(distribution.Distribution):
     def destructure(self):
         return (
             HistogramDist,
-            (self.logps, self.ps, self.cum_ps, self.bins, self.size,),
-            self.scale.destructure(),
+            (self.logps, self.ps, self.cum_ps, self.normed_bins, self.size,),
+            *self.scale.destructure(),
         )
 
     @classmethod
     def structure(cls, *params):
+        print(f"direct init bins are:\n {params[3]}")
         return cls(
             direct_init={
                 "logps": params[0],
                 "ps": params[1],
                 "cum_ps": params[2],
-                "bins": params[3],
+                "normed_bins": params[3],
                 "size": params[4],
-                "scale": ScaleFactory(*params[5]),
+                "scale": params[5](*params[6]),
             }
         )
 
     @classmethod
-    def from_pairs(cls, pairs, scale):
+    def from_pairs(cls, pairs, scale: Scale, normalized=False):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
+        xs = [x for (x, density) in sorted_pairs]
         densities = [density for (x, density) in sorted_pairs]
         logps = onp.log(onp.array(densities) / sum(densities))
-        return cls(logps, scale)
+        if normalized:
+            return cls(logps, scale, normed_bins=xs)
+        else:
+            return cls(logps, scale, true_bins=xs)
 
-    def to_normalied_pairs(self):
+    def to_normalized_pairs(self):
         pairs = []
-        bins = onp.array(self.bins)
+        bins = onp.array(self.normed_bins)
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
@@ -221,3 +245,12 @@ def static_condition_loss(dist_params, cond_class, cond_param):
 static_condition_loss_grad = jit(
     grad(static_condition_loss, argnums=0), static_argnums=1
 )
+
+# class LogHistogramDist(HistogramDist):
+
+#     def change_base(new_base: float = 10):
+#         # self.scale =
+#         self.normed_bins = np.linspace(0, 1, logps.size + 1)
+#         self.true_bins = self.scale.denormalize_points(self.normed_bins)
+#         self.logps = logps
+#         return

@@ -278,8 +278,10 @@ class HistogramCondition(Condition):
         return "The probability density function looks similar to the provided density function."
 
 
-@partial(jit, static_argnums=(0, 2, 3))
-def static_describe_fit(dist_class, dist_params, scale, cond_class, cond_params):
-    dist = dist_class.structure(*dist_params, scale)
+@partial(jit, static_argnums=(0, 2, 4))
+def static_describe_fit(
+    dist_class, dist_params, scale_class, scale_params, cond_class, cond_params
+):
+    dist = dist_class.structure(*dist_params, scale_class, scale_params)
     condition = cond_class.structure(cond_params)
     return condition._describe_fit(dist)

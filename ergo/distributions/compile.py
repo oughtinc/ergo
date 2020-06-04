@@ -28,7 +28,7 @@ def compile_histogram_loss_functions(num_bins: int = 201):
     ]
     for condition in conditions:
         dist = HistogramDist.from_conditions(
-            [condition], scale=Scale(0, 1), num_bins=num_bins,
+            [condition], scale_cls=Scale, scale_params=(0, 1), num_bins=num_bins,
         )
         condition.describe_fit(dist)
 

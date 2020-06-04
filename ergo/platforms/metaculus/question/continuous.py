@@ -145,26 +145,55 @@ class ContinuousQuestion(MetaculusQuestion):
         transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
         return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
-    def normalize_samples(self, samples):
-        """
-        Map samples from their true scale to the Metaculus normalized scale
+    # def normalize_samples(self, samples):
+    #     """
+    #     Map samples from their true scale to the Metaculus normalized scale
 
-        :param samples: samples from a distribution answering the prediction question
-            (true scale)
-        :return: samples on the normalized scale
-        """
-        return [self.scale.denormalize_point(sample) for sample in samples]
+    #     :param samples: samples from a distribution answering the prediction question
+    #         (true scale)
+    #     :return: samples on the normalized scale
+    #     """
+    #     return [self.scale.normalize_point(sample) for sample in samples]
 
-    def denormalize_samples(self, samples):
-        """
-        Map samples from the Metaculus normalized scale to the true scale
+    # def denormalize_samples(self, samples):
+    #     """
+    #     Map samples from the Metaculus normalized scale to the true scale
 
-        :param samples: samples on the normalized scale
-        :return: samples from a distribution answering the prediction question
-            (true scale)
-        """
+    #     :param samples: samples on the normalized scale
+    #     :return: samples from a distribution answering the prediction question
+    #         (true scale)
+    #     """
 
-        return [self.scale.denormalize_point(sample) for sample in samples]
+    #     return [self.scale.denormalize_point(sample) for sample in samples]
+
+    def community_dist_old(self) -> dist.HistogramDist:
+        """
+        Get the community distribution for this question
+        NB: currently missing the part of the distribtion outside the question range
+
+        :return: the (true-scale) community distribution as a histogram.
+        """
+        # TODO (#306): Unify distributions interface
+        # TODO (#307): Account for values out of range in
+        #   ContinuousQuestion.community_dist()
+
+        denormalized_max = float(
+            self.scale.denormalize_point(self.prediction_histogram[-1][0])
+        )
+        denormalized_min = float(
+            self.scale.denormalize_point(self.prediction_histogram[0][0])
+        )
+
+        denormalized_range = denormalized_max - denormalized_min
+
+        histogram = [
+            {
+                "x": float(self.scale.denormalize_point(v[0])),
+                "density": v[2] / denormalized_range,
+            }
+            for v in self.prediction_histogram
+        ]
+        return dist.HistogramDist.from_pairs(histogram, self.scale)
 
     def community_dist(self) -> dist.HistogramDist:
         """
@@ -176,24 +205,12 @@ class ContinuousQuestion(MetaculusQuestion):
         # TODO (#306): Unify distributions interface
         # TODO (#307): Account for values out of range in
         #   ContinuousQuestion.community_dist()
-        # import ipdb; ipdb.set_trace()
-        denormalized_max = float(
-            self.scale.denormalize_point(self.prediction_histogram[-1][0])
-        )
-        denormalized_min = float(
-            self.scale.denormalize_point(self.prediction_histogram[0][0])
-        )
 
-        denormalized_range = denormalized_max - denormalized_min
-        # import ipdb; ipdb.set_trace()
         histogram = [
-            {
-                "x": float(self.scale.denormalize_point(v[0])),
-                "density": v[2] / denormalized_range,
-            }
+            {"x": float(v[0]), "density": v[2] / self.scale.scale_range}
             for v in self.prediction_histogram
         ]
-        return dist.HistogramDist.from_pairs(histogram, self.scale)
+        return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
 
     @memoized_method(None)
     def community_dist_in_range(self):
@@ -256,7 +273,7 @@ class ContinuousQuestion(MetaculusQuestion):
     ) -> dist.LogisticMixture:
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
-        normalized_samples = self.normalize_samples(samples)
+        normalized_samples = self.scale.normalize_points(samples)
         _dist: dist.LogisticMixture = dist.LogisticMixture.from_samples(
             normalized_samples, verbose=verbose
         )
@@ -385,9 +402,9 @@ class ContinuousQuestion(MetaculusQuestion):
                         "For multiple predictions comparisons, only samples can be compared (plot_fitted must be False)"
                     )
                 for col in samples:
-                    df[col] = self.normalize_samples(samples[col])
+                    df[col] = self.scale.normalize_points(samples[col])
             else:
-                df["samples"] = self.normalize_samples(samples)
+                df["samples"] = self.scale.normalize_points(samples)
 
         if plot_fitted:
             prediction = self.get_submission_from_samples(samples)
