@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from setuptools import find_packages
 from distutils.core import setup
 
 setup(
@@ -9,5 +9,5 @@ setup(
     author="Ought",
     author_email="ergo@ought.org",
     url="https://ought.org",
-    packages=["ergo"],
+    packages=find_packages(),
 )

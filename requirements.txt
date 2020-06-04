@@ -1,0 +1,8 @@
+jax
+jaxlib
+numpyro
+pandas
+plotnine
+requests
+seaborn
+typing_extensions
