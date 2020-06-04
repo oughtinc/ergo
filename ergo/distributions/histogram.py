@@ -6,7 +6,9 @@ import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
-from . import conditions, distribution, scale, static
+from ergo import conditions, scale, static
+
+from . import distribution
 
 
 @dataclass

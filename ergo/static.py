@@ -116,3 +116,13 @@ def logistic_mixture_logpdf1(params, datum):
 
 
 logistic_mixture_grad_logpdf = jit(grad(logistic_mixture_logpdf, argnums=0))
+
+
+# Wasserstein distance
+
+
+@jit
+def wasserstein_distance(xs, ys):
+    diffs = np.cumsum(xs - ys)
+    abs_diffs = np.abs(diffs)
+    return np.sum(abs_diffs)
