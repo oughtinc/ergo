@@ -1,14 +1,15 @@
 from dataclasses import dataclass
-from functools import partial
 from typing import List
 
-from jax import grad, jit, nn
+from jax import nn
 import jax.numpy as np
 import numpy as onp
 import scipy as oscipy
 
-from . import conditions, distribution
-from .scale import Scale
+from ergo import conditions, static
+from ergo.scale import Scale
+
+from . import distribution
 
 
 @dataclass
@@ -68,21 +69,52 @@ class HistogramDist(distribution.Distribution):
         return -np.dot(self.ps, self.logps)
 
     def cross_entropy(self, q_dist):
-        # Uncommented to support Jax tracing:
+        # Commented out to support Jax tracing:
         # assert self.scale_min == q_dist.scale_min, (self.scale_min, q_dist.scale_min)
         # assert self.scale_max == q_dist.scale_max
         # assert self.size == q_dist.size, (self.size, q_dist.size)
         return -np.dot(self.ps, q_dist.logps)
 
-    def pdf(self, x):
-        return self.ps[np.argmax(self.normed_bins >= self.scale.normalize_point(x))]
+    def logpdf(self, x):
+        return np.log(self.pdf(x))
 
-    def cdf(self, x):
-        return self.cum_ps[np.argmax(self.normed_bins >= self.scale.normalize_point(x))]
+    def pdf(self, true_x):
+        """
+        If x is out of distribution range, returns 0. Otherwise returns the
+        density at the lowest bin for which the upper bound of the bin
+        is greater than or equal to x.
+
+        :param x: The point in the distribution to get the density at
+        """
+        x = self.scale.normalize_point(true_x)
+        return np.where(
+            (x < 0) | (x > 1),
+            0,
+            self.ps[np.maximum(np.argmax(self.normed_bins >= x) - 1, 0)],
+        )
+
+    def cdf(self, true_x):
+        """
+        If x is out of distribution range, returns 0/1. Otherwise returns the
+        cumulative density at the lowest bin for which the upper bound of the bin
+        is greater than or equal to x.
+
+        :param x: The point in the distribution to get the cumulative density at
+        """
+        x = self.scale.normalize_point(true_x)
+        return np.where(
+            x < 0,
+            0,
+            np.where(
+                x > 1,
+                1,
+                self.cum_ps[np.maximum(np.argmax(self.normed_bins >= x) - 1, 0)],
+            ),
+        )
 
     def ppf(self, q):
         return self.scale.denormalize_point(
-            np.where(self.cum_ps >= q)[0][0] / self.cum_ps.size
+            np.argmax(self.cum_ps >= np.minimum(q, self.cum_ps[-1])) / self.cum_ps.size
         )
 
     def sample(self):
@@ -116,11 +148,11 @@ class HistogramDist(distribution.Distribution):
         else:
             cond_classes, cond_params = [], []
 
-        loss = lambda params: static_loss(  # noqa: E731
-            params, cond_classes, cond_params
+        loss = lambda params: static.condition_loss(  # noqa: E731
+            cls, params, cond_classes, cond_params
         )
-        jac = lambda params: static_loss_grad(  # noqa: E731
-            params, cond_classes, cond_params
+        jac = lambda params: static.condition_loss_grad(  # noqa: E731
+            cls, params, cond_classes, cond_params
         )
 
         normalized_dist = cls.from_loss(loss=loss, jac=jac, num_bins=num_bins)
@@ -218,39 +250,3 @@ class HistogramDist(distribution.Distribution):
     @staticmethod
     def initialize_params(num_bins):
         return onp.full(num_bins, -num_bins)
-
-
-def static_loss(dist_params, cond_classes, cond_params):
-    total_loss = 0.0
-    for (cond_class, cond_param) in zip(cond_classes, cond_params):
-        total_loss += static_condition_loss(dist_params, cond_class, cond_param)
-    return total_loss
-
-
-def static_loss_grad(dist_params, cond_classes, cond_params):
-    total_grad = 0.0
-    for (cond_class, cond_param) in zip(cond_classes, cond_params):
-        total_grad += static_condition_loss_grad(dist_params, cond_class, cond_param)
-    return total_grad
-
-
-@partial(jit, static_argnums=1)
-def static_condition_loss(dist_params, cond_class, cond_param):
-    print(f"Tracing condition loss for {cond_class.__name__} with params {cond_param}")
-    dist = HistogramDist.from_params(dist_params, traceable=True)
-    condition = cond_class.structure(cond_param)
-    return condition.loss(dist) * 100
-
-
-static_condition_loss_grad = jit(
-    grad(static_condition_loss, argnums=0), static_argnums=1
-)
-
-# class LogHistogramDist(HistogramDist):
-
-#     def change_base(new_base: float = 10):
-#         # self.scale =
-#         self.normed_bins = np.linspace(0, 1, logps.size + 1)
-#         self.true_bins = self.scale.denormalize_points(self.normed_bins)
-#         self.logps = logps
-#         return

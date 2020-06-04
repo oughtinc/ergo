@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from plotnine import scale_x_log10
 
-from ergo.distributions import LogScale
+from ergo.scale import LogScale
 
 from .continuous import ContinuousQuestion
 

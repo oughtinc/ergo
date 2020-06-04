@@ -4,7 +4,7 @@
 
 A Python library for integrating model-based and judgmental forecasting
 
-[Quickstart](#quickstart) | [Docs](https://ergo.ought.org) | [Examples](#notebooks-using-ergo)
+[Quickstart](#get-started-using-ergo) | [Docs](https://ergo.ought.org) | [Examples](#notebooks-using-ergo)
 
 ## Example
 
@@ -36,7 +36,7 @@ q_deaths.submit_from_samples(samples)
 
 You can run the model [here](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/community-distributions.ipynb).
 
-## Get started using ergo
+## Get started using Ergo
 
 1. Open [this Colab](https://colab.research.google.com/github/oughtinc/ergo/blob/master/notebooks/quickstart.ipynb)
 2. Add your Metaculus username and password
@@ -82,6 +82,33 @@ Outdated Ergo notebooks:
 4. [How long will the average American spend under lockdown?](notebooks/covid-19-average-lockdown.ipynb)
 
 5. [Assorted COVID predictions](notebooks/assorted-predictions.ipynb)
+
+## Local installation
+
+To install Ergo and its dependencies, we recommend PyEnv and Poetry:
+
+1. Install [PyEnv](https://github.com/pyenv/pyenv-installer) for managing Python versions
+2. Install the [Poetry](https://python-poetry.org/docs/) package manager
+
+Then:
+
+```
+mkdir my-ergo-project && cd my-ergo-project
+pyenv install 3.6.9 && pyenv local 3.6.9
+poetry init -n
+# Edit pyproject.toml to set python = "~3.6.9"
+poetry add git+https://github.com/oughtinc/ergo.git
+poetry install
+```
+
+Now Ergo is available in your project:
+
+```
+poetry run python
+>>> import ergo
+>>> ergo.flip(.5)
+DeviceArray(True, dtype=bool)
+```
 
 ## Contribute
 

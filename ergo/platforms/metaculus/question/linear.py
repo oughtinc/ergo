@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from ergo.distributions import Logistic, LogisticMixture, Scale
+from ergo.distributions import Logistic, LogisticMixture
+from ergo.scale import Scale
 
 from .continuous import ContinuousQuestion
 
