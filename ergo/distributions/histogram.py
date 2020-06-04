@@ -74,8 +74,53 @@ class HistogramDist(distribution.Distribution):
     def rv(self):
         raise NotImplementedError
 
-    def normalize(self):
-        return HistogramDist(self.logps, 0, 1)
+    def normalize(self, true_scale: scale.Scale = None):
+        """
+        Normalize the histogram onto [0,1]
+
+        Setting a scale_min and scale_max allows you
+        to express that the histogram to be normalized
+        did not cover the entire scale of interest.
+        E.g. my histogram to be normalized only goes
+        from 2 to 5, but I'm interested in p over
+        [0,10]. In that case scale_min = 0, scale_max=10
+
+        :param scale_min: min of the scale of interest
+        :param scale_max: max of the scale of interest
+        """
+        # assume that the histogram has entries over
+        # the entire scale of interest
+        if not true_scale:
+            return HistogramDist(self.logps, 0, 1)
+
+        if true_scale.scale_min is None or true_scale.scale_max is None:
+            raise ValueError(
+                "If you provide a true_scale, you must provide both a min and max"
+            )
+
+        if (
+            true_scale.scale_min > self.scale_min
+            or true_scale.scale_max < self.scale_max
+        ):
+            raise ValueError(
+                "Can only rescale hist to a scale that includes all of its current scale"
+            )
+
+        x_range_below = scale.Scale(true_scale.scale_min, self.scale_min)
+        x_range_below_per_hist_range = x_range_below.range / self.scale.range
+        num_x_bins_below = round(self.size * x_range_below_per_hist_range)
+
+        x_range_above = scale.Scale(self.scale_max, true_scale.scale_max)
+        x_range_above_per_hist_range = x_range_above.range / self.scale.range
+        num_x_bins_above = round(self.size * x_range_above_per_hist_range)
+
+        bins_below = onp.full(num_x_bins_below, float("-inf"))
+
+        bins_above = onp.full(num_x_bins_above, float("-inf"))
+
+        logps = onp.concatenate((bins_below, self.logps, bins_above))
+
+        return HistogramDist(logps, 0, 1)
 
     def denormalize(self, scale_min, scale_max):
         return HistogramDist(self.logps, scale_min, scale_max)
