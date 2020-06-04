@@ -2,6 +2,9 @@
 from setuptools import find_packages
 from distutils.core import setup
 
+with open('requirements.txt', 'r') as f:
+    install_requires = f.read().splitlines()
+
 setup(
     name="ergo",
     version="0.8.3",
@@ -10,4 +13,5 @@ setup(
     author_email="ergo@ought.org",
     url="https://ought.org",
     packages=find_packages(),
+    install_requires=install_requires,
 )
