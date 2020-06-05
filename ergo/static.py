@@ -4,15 +4,18 @@ from jax import grad, jit, vmap
 import jax.numpy as np
 import jax.scipy as scipy
 
-# Multi-condition loss, jitting entire function
+# Multi-condition loss, jitting entire function (used for logistic
+# mixture dist + histogram loss)
 
 
-@partial(jit, static_argnums=(0, 2))
-def jitted_condition_loss(dist_class, dist_params, cond_classes, cond_params):
+@partial(jit, static_argnums=(0, 3))
+def jitted_condition_loss(
+    dist_class, dist_fixed_params, dist_opt_params, cond_classes, cond_params
+):
     print(
-        f"Tracing {dist_class.__name__} loss for {[c.__name__ for c in cond_classes]}"
+        f"Tracing {dist_class.__name__} ({dist_fixed_params}) loss for {[c.__name__ for c in cond_classes]} ({str(cond_params)[:60]})"
     )
-    dist = dist_class.from_params(dist_params)
+    dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     total_loss = 0.0
     for (cond_class, cond_param) in zip(cond_classes, cond_params):
         condition = cond_class.structure(cond_param)
@@ -21,44 +24,51 @@ def jitted_condition_loss(dist_class, dist_params, cond_classes, cond_params):
 
 
 jitted_condition_loss_grad = jit(
-    grad(jitted_condition_loss, argnums=1), static_argnums=(0, 2)
+    grad(jitted_condition_loss, argnums=2), static_argnums=(0, 3)
 )
 
 
-# Multi-condition loss, jitting only individual condition losses
+# Multi-condition loss, jitting only individual condition losses (used
+# for histogram dist + arbitrary losses)
 
 
-def condition_loss(dist_class, dist_params, cond_classes, cond_params):
+def condition_loss(
+    dist_class, dist_fixed_params, dist_opt_params, cond_classes, cond_params
+):
     total_loss = 0.0
     for (cond_class, cond_param) in zip(cond_classes, cond_params):
         total_loss += single_condition_loss(
-            dist_class, dist_params, cond_class, cond_param
+            dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
         )
     return total_loss
 
 
-def condition_loss_grad(dist_class, dist_params, cond_classes, cond_params):
+def condition_loss_grad(
+    dist_class, dist_fixed_params, dist_opt_params, cond_classes, cond_params
+):
     total_grad = 0.0
     for (cond_class, cond_param) in zip(cond_classes, cond_params):
         total_grad += single_condition_loss_grad(
-            dist_class, dist_params, cond_class, cond_param
+            dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
         )
     return total_grad
 
 
-@partial(jit, static_argnums=(0, 2))
-def single_condition_loss(dist_class, dist_params, cond_class, cond_param):
+@partial(jit, static_argnums=(0, 3))
+def single_condition_loss(
+    dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
+):
     print(
         f"Tracing {dist_class.__name__} condition loss for"
         f" {cond_class.__name__} with params {cond_param}"
     )
-    dist = dist_class.from_params(dist_params, traceable=True)
+    dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     condition = cond_class.structure(cond_param)
     return condition.loss(dist) * 100
 
 
 single_condition_loss_grad = jit(
-    grad(single_condition_loss, argnums=1), static_argnums=(0, 2)
+    grad(single_condition_loss, argnums=2), static_argnums=(0, 3)
 )
 
 
@@ -76,12 +86,12 @@ def describe_fit(dist_class, dist_params, cond_class, cond_params):
 
 
 @partial(jit, static_argnums=0)
-def dist_logloss(dist_class, params, data):
-    dist = dist_class.from_params(params)
-    return -dist.logpdf(data)
+def dist_logloss(dist_class, fixed_params, opt_params, data):
+    dist = dist_class.from_params(fixed_params, opt_params, traceable=True)
+    return -np.sum(dist.logpdf(data))
 
 
-dist_grad_logloss = jit(grad(dist_logloss, argnums=1), static_argnums=0)
+dist_grad_logloss = jit(grad(dist_logloss, argnums=2), static_argnums=0)
 
 
 # Logistic mixture
@@ -113,6 +123,9 @@ def logistic_mixture_logpdf1(params, datum):
         scale = np.max([p[1], 0.01])  # Find a better solution?
         component_scores.append(logistic_logpdf(datum, loc, scale) + weight)
     return scipy.special.logsumexp(np.array(component_scores))
+
+
+logistic_mixture_grad_logpdf = jit(grad(logistic_mixture_logpdf, argnums=0))
 
 
 # Wasserstein distance
