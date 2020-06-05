@@ -33,6 +33,12 @@ class Scale:
     def normalize_points(self, points):
         return [self.normalize_point(point) for point in points]
 
+    def normalize_variance(self, variance, default=None):
+        return variance / (self.scale_range ** 2) if variance is not None else default
+
+    def denormalize_variance(self, variance, default=None):
+        return variance * (self.scale_range ** 2) if variance is not None else default
+
     def destructure(self):
         return (Scale, (self.scale_min, self.scale_max))
 

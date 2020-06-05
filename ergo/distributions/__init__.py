@@ -22,3 +22,4 @@ from .distribution import Distribution
 from .histogram import HistogramDist
 from .logistic import Logistic
 from .logistic_mixture import LogisticMixture
+from .truncated_logistic_mixture import TruncatedLogisticMixture
