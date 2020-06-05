@@ -104,7 +104,9 @@ class HistogramDist(distribution.Distribution):
     def rv(self):
         raise NotImplementedError
 
-    def normalize(self, true_scale: scale.Scale = None):
+    # type ignore here because I got ahead of the rest of the repo
+    # with refactoring to use a Scale rather than a scale_min/scale_max
+    def normalize(self, true_scale: scale.Scale = None):  # type: ignore
         """
         Normalize the histogram onto [0,1]
 
@@ -126,7 +128,7 @@ class HistogramDist(distribution.Distribution):
 
         if true_scale.scale_min is None or true_scale.scale_max is None:
             raise ValueError(
-                "If you provide a true_scale, you must provide both a min and max"
+                "If you provide a true_scale, you must provide both a scale_min and a scale_max"
             )
 
         if (
