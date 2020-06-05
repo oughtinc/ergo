@@ -87,8 +87,7 @@ class HistogramDist(Distribution, Optimizable):
         num_bins = fixed_params.get("num_bins", 100)
         return onp.full(num_bins, -num_bins)
 
-    def normalize(self, scale: Scale = None, scale_min=None, scale_max=None):
-        scale = Scale(scale_min, scale_max) if scale_min and scale_max else None
+    def normalize(self, scale: Scale = None):
         scale = scale if scale else Scale(0, 1)
         return HistogramDist(self.logps, scale=scale)
 
@@ -166,38 +165,65 @@ class HistogramDist(Distribution, Optimizable):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         densities = [density for (x, density) in sorted_pairs]
-        logps = onp.log(onp.array(densities) / sum(densities))
+        logps = onp.log(
+            onp.array(densities) / sum(densities)
+        )  # TODO investigate why scale the densities with /sum(densities?)
         if normalized:
             return cls(logps, scale, normed_bins=xs)
         else:
             return cls(logps, scale, true_bins=xs)
 
-    def to_normalized_pairs(self):
+    def to_pairs(self, normalized=False):
         pairs = []
-        bins = onp.array(self.normed_bins)
+        bins = self.normed_bins if normalized else self.true_bins
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
-            bin_size = float(bins[i + 1] - bin)
-            density = float(ps[i]) / bin_size
+            density = float(ps[i])
             pairs.append({"x": x, "density": density})
         return pairs
 
-    def to_pairs(self):
+    def to_pairs_normed(self, normalized=False):
         pairs = []
-        bins = onp.array(self.true_bins)
+        bins = self.normed_bins if normalized else self.true_bins
         ps = onp.array(self.ps)
+        auc = 0
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
             bin_size = float(bins[i + 1] - bin)
-            density = float(ps[i]) / bin_size
+            density = float(ps[i])
+            auc += density * bin_size
             pairs.append({"x": x, "density": density})
+        auc_norm = auc / len(self.ps)
+        pairs = [{"x": x["x"], "density": x["density"] / auc_norm} for x in pairs]
+
+    def to_pairs_points(self, normalized=False):
+        pairs = []
+        xs = self.normed_bins if normalized else self.true_bins
+        ps = onp.array(self.ps)
+        auc = 0
+        from scipy.integrate import trapz  # type: ignore
+
+        auc = trapz(ps, xs)
+        auc_norm = auc / len(ps)
+
+        for i, xs in enumerate(xs):
+            pairs.append({"x": xs, "density": float(ps[i]) / auc_norm})
+
+        import pandas as pd
+        from scipy.integrate import trapz
+
+        df = pd.DataFrame.from_records(pairs)
+        print(df.iloc[:, 1].sum())
+        inte = trapz(df.iloc[:, 1], df.iloc[:, 0])
+        print(inte)
+
         return pairs
 
-    def to_lists(self):
+    def to_lists(self, normalized=False):
         xs = []
         densities = []
-        bins = onp.array(self.true_bins)
+        bins = self.normed_bins if normalized else self.true_bins
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
@@ -207,7 +233,7 @@ class HistogramDist(Distribution, Optimizable):
             densities.append(density)
         return xs, densities
 
-    def to_arrays(self):
+    def to_arrays(self, normalized=False):
         # TODO: vectorize
-        xs, densities = self.to_lists()
+        xs, densities = self.to_lists(normalized)
         return np.array(xs), np.array(densities)

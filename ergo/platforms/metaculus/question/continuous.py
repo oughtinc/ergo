@@ -145,56 +145,6 @@ class ContinuousQuestion(MetaculusQuestion):
         transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
         return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
-    # def normalize_samples(self, samples):
-    #     """
-    #     Map samples from their true scale to the Metaculus normalized scale
-
-    #     :param samples: samples from a distribution answering the prediction question
-    #         (true scale)
-    #     :return: samples on the normalized scale
-    #     """
-    #     return [self.scale.normalize_point(sample) for sample in samples]
-
-    # def denormalize_samples(self, samples):
-    #     """
-    #     Map samples from the Metaculus normalized scale to the true scale
-
-    #     :param samples: samples on the normalized scale
-    #     :return: samples from a distribution answering the prediction question
-    #         (true scale)
-    #     """
-
-    #     return [self.scale.denormalize_point(sample) for sample in samples]
-
-    def community_dist_old(self) -> dist.HistogramDist:
-        """
-        Get the community distribution for this question
-        NB: currently missing the part of the distribtion outside the question range
-
-        :return: the (true-scale) community distribution as a histogram.
-        """
-        # TODO (#306): Unify distributions interface
-        # TODO (#307): Account for values out of range in
-        #   ContinuousQuestion.community_dist()
-
-        denormalized_max = float(
-            self.scale.denormalize_point(self.prediction_histogram[-1][0])
-        )
-        denormalized_min = float(
-            self.scale.denormalize_point(self.prediction_histogram[0][0])
-        )
-
-        denormalized_range = denormalized_max - denormalized_min
-
-        histogram = [
-            {
-                "x": float(self.scale.denormalize_point(v[0])),
-                "density": v[2] / denormalized_range,
-            }
-            for v in self.prediction_histogram
-        ]
-        return dist.HistogramDist.from_pairs(histogram, self.scale)
-
     def community_dist(self) -> dist.HistogramDist:
         """
         Get the community distribution for this question
@@ -207,9 +157,14 @@ class ContinuousQuestion(MetaculusQuestion):
         #   ContinuousQuestion.community_dist()
 
         histogram = [
-            {"x": float(v[0]), "density": v[2] / self.scale.scale_range}
-            for v in self.prediction_histogram
+            {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
         ]
+        # from scipy.integrate import trapz
+        # df = pd.DataFrame.from_records(histogram)
+        # print(df.iloc[:,1].sum())
+        # inte = trapz(df.iloc[:,1], df.iloc[:,0])
+        # print(inte)
+        # import ipdb; ipdb.set_trace()
         return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
 
     @memoized_method(None)

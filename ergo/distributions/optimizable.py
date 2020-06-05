@@ -67,7 +67,8 @@ class Optimizable(ABC):
         conditions: Sequence[Condition],
         fixed_params=None,
         verbose=False,
-        scale=None,
+        scale_cls=None,
+        scale_params=None,
         init_tries=1,
         opt_tries=1,
         jit_all=False,
@@ -75,8 +76,10 @@ class Optimizable(ABC):
         if fixed_params is None:
             fixed_params = {}
 
-        if scale is None:
+        if scale_params is None:
             scale = Scale(0, 1)  # assume a linear scale in [0,1]
+        else:
+            scale = scale_cls(*scale_params)
 
         fixed_params = cls.normalize_fixed_params(fixed_params, scale)
 
@@ -110,7 +113,6 @@ class Optimizable(ABC):
             init_tries=init_tries,
             opt_tries=opt_tries,
         )
-
         return normalized_dist.denormalize(scale)
 
     @classmethod
@@ -146,5 +148,6 @@ class Optimizable(ABC):
 
     @classmethod
     def normalize_fixed_params(self, fixed_params, scale):
-        # TODO looks like it should actually be normalized
+        # TODO this should do more
+        print(f"fixed params are: {fixed_params}")
         return fixed_params

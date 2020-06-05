@@ -39,7 +39,7 @@ class Condition(ABC):
 
     def normalize(self, scale: Scale):
         """
-        Assume that the condition's true range is [scale_min, scale_max].
+        Assume that the condition's true range is scale.
         Return the normalized condition.
 
         :param scale: the true-scale
