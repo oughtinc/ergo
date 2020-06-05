@@ -15,3 +15,9 @@ class Scale:
 
     def denormalize_point(self, point, default=None):
         return (point * self.range) + self.scale_min if point is not None else default
+
+    def normalize_variance(self, variance, default=None):
+        return variance / (self.range ** 2) if variance is not None else default
+
+    def denormalize_variance(self, variance, default=None):
+        return variance * (self.range ** 2) if variance is not None else default
