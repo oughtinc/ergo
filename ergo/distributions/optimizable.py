@@ -73,6 +73,7 @@ class Optimizable(ABC):
         scale_max=1,
         init_tries=1,
         opt_tries=1,
+        jit_all=False,
     ) -> T:
         if fixed_params is None:
             fixed_params = {}
@@ -89,10 +90,17 @@ class Optimizable(ABC):
         else:
             cond_classes, cond_params = [], []
 
-        loss = lambda opt_params: static.jitted_condition_loss(  # noqa: E731
+        if jit_all:
+            jitted_loss = static.jitted_condition_loss
+            jitted_jac = static.jitted_condition_loss_grad
+        else:
+            jitted_loss = static.condition_loss
+            jitted_jac = static.condition_loss_grad
+
+        loss = lambda opt_params: jitted_loss(  # noqa: E731
             cls, fixed_params, opt_params, cond_classes, cond_params
         )
-        jac = lambda opt_params: static.jitted_condition_loss_grad(  # noqa: E731
+        jac = lambda opt_params: jitted_jac(  # noqa: E731
             cls, fixed_params, opt_params, cond_classes, cond_params
         )
 
