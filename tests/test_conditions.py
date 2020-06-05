@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import jax.numpy as np
 import pytest
 
-from ergo import HistogramDist, Logistic, LogisticMixture
+from ergo import HistogramDist, Logistic, LogisticMixture, TruncatedLogisticMixture
 from ergo.conditions import (
     HistogramCondition,
     IntervalCondition,
@@ -127,7 +127,7 @@ def test_mixture_from_percentile():
     for value in [0.01, 0.1, 1, 3]:
         conditions = [IntervalCondition(p=0.5, max=value)]
         dist = LogisticMixture.from_conditions(
-            conditions, num_components=1, verbose=True
+            conditions, {"num_components": 1}, verbose=True
         )
         loc = dist.components[0].loc
         assert loc == pytest.approx(value, rel=0.1), loc
@@ -139,7 +139,9 @@ def test_mixture_from_percentiles():
         IntervalCondition(p=0.5, max=2),
         IntervalCondition(p=0.6, max=3),
     ]
-    dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
+    dist = LogisticMixture.from_conditions(
+        conditions, {"num_components": 3}, verbose=True
+    )
     for condition in conditions:
         assert dist.cdf(condition.max) == pytest.approx(condition.p, rel=0.1)
 
@@ -156,7 +158,10 @@ def test_percentiles_from_mixture():
     return conditions
 
 
-def test_percentile_roundtrip():
+@pytest.mark.parametrize(
+    "LogisticMixtureClass", [LogisticMixture, TruncatedLogisticMixture]
+)
+def test_percentile_roundtrip(LogisticMixtureClass):
     conditions = [
         IntervalCondition(p=0.01, max=0.61081324517545),
         IntervalCondition(p=0.1, max=0.8613634657212543),
@@ -166,8 +171,8 @@ def test_percentile_roundtrip():
         IntervalCondition(p=0.9, max=2.1386364698410034),
         IntervalCondition(p=0.99, max=2.3891870975494385),
     ]
-    mixture = LogisticMixture.from_conditions(
-        conditions, num_components=3, verbose=True
+    mixture = LogisticMixtureClass.from_conditions(
+        conditions, {"num_components": 3, "floor": 0, "ceiling": 4}, verbose=True
     )
     recovered_conditions = mixture.percentiles(
         percentiles=[condition.p for condition in conditions]
@@ -179,7 +184,7 @@ def test_percentile_roundtrip():
 def test_mixture_from_histogram(histogram):
     conditions = [HistogramCondition(histogram["xs"], histogram["densities"])]
     mixture = LogisticMixture.from_conditions(
-        conditions, num_components=3, verbose=True
+        conditions, {"num_components": 3}, verbose=True
     )
     for (x, density) in zip(histogram["xs"], histogram["densities"]):
         assert mixture.pdf(x) == pytest.approx(density, abs=0.2)
@@ -192,7 +197,9 @@ def test_weights_mixture():
         IntervalCondition(p=0.8, max=2.2, weight=0.01),
         IntervalCondition(p=0.9, max=2.3, weight=0.01),
     ]
-    dist = LogisticMixture.from_conditions(conditions, num_components=1, verbose=True)
+    dist = LogisticMixture.from_conditions(
+        conditions, {"num_components": 1}, verbose=True
+    )
     assert dist.components[0].loc == pytest.approx(2, rel=0.1)
 
 
@@ -277,7 +284,9 @@ def test_mixed_1(histogram):
         IntervalCondition(p=0.9, max=2.3),
         HistogramCondition(histogram["xs"], histogram["densities"]),
     )
-    dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
+    dist = LogisticMixture.from_conditions(
+        conditions, {"num_components": 3}, verbose=True
+    )
     assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf(6) == pytest.approx(0, abs=0.1)
     my_cache = {}
@@ -305,7 +314,9 @@ def test_mixed_2(histogram):
         IntervalCondition(p=0.7, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
     )
-    dist = LogisticMixture.from_conditions(conditions, num_components=3, verbose=True)
+    dist = LogisticMixture.from_conditions(
+        conditions, {"num_components": 3}, verbose=True
+    )
     assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf(6) == pytest.approx(0, abs=0.1)
     my_cache = {}

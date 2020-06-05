@@ -250,8 +250,8 @@ class ContinuousQuestion(MetaculusQuestion):
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
         normalized_samples = self.normalize_samples(samples)
-        _dist: dist.LogisticMixture = dist.LogisticMixture.from_samples(
-            normalized_samples, verbose=verbose
+        _dist = dist.LogisticMixture.from_samples(
+            normalized_samples, fixed_params={"num_components": 3}, verbose=verbose
         )
         return self.prepare_logistic_mixture(_dist)
 

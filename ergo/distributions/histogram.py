@@ -1,18 +1,17 @@
 from dataclasses import dataclass
-from typing import List
 
 from jax import nn
 import jax.numpy as np
 import numpy as onp
-import scipy as oscipy
 
-from ergo import conditions, scale, static
+from ergo import conditions, scale
 
-from . import distribution
+from .distribution import Distribution
+from .optimizable import Optimizable
 
 
 @dataclass
-class HistogramDist(distribution.Distribution):
+class HistogramDist(Distribution, Optimizable):
     logps: np.DeviceArray
 
     def __init__(
@@ -61,6 +60,22 @@ class HistogramDist(distribution.Distribution):
     def logpdf(self, x):
         return np.log(self.pdf(x))
 
+    @classmethod
+    def from_params(cls, fixed_params, opt_params, traceable=False):
+        logps = nn.log_softmax(opt_params)
+        return cls(logps, traceable=traceable)
+
+    @staticmethod
+    def initialize_optimizable_params(fixed_params):
+        num_bins = fixed_params.get("num_bins", 100)
+        return onp.full(num_bins, -num_bins)
+
+    def normalize(self):
+        return HistogramDist(self.logps, 0, 1)
+
+    def denormalize(self, scale_min, scale_max):
+        return HistogramDist(self.logps, scale_min, scale_max)
+
     def pdf(self, x):
         """
         If x is out of distribution range, returns 0. Otherwise returns the
@@ -103,58 +118,6 @@ class HistogramDist(distribution.Distribution):
 
     def rv(self):
         raise NotImplementedError
-
-    def normalize(self):
-        return HistogramDist(self.logps, 0, 1)
-
-    def denormalize(self, scale_min, scale_max):
-        return HistogramDist(self.logps, scale_min, scale_max)
-
-    @classmethod
-    def from_conditions(
-        cls,
-        conditions: List["conditions.Condition"],
-        scale_min=0,
-        scale_max=1,
-        num_bins=100,
-        verbose=False,
-    ):
-        normalized_conditions = [
-            condition.normalize(scale_min, scale_max) for condition in conditions
-        ]
-
-        cond_data = [condition.destructure() for condition in normalized_conditions]
-        if cond_data:
-            cond_classes, cond_params = zip(*cond_data)
-        else:
-            cond_classes, cond_params = [], []
-
-        loss = lambda params: static.condition_loss(  # noqa: E731
-            cls, params, cond_classes, cond_params
-        )
-        jac = lambda params: static.condition_loss_grad(  # noqa: E731
-            cls, params, cond_classes, cond_params
-        )
-
-        normalized_dist = cls.from_loss(loss=loss, jac=jac, num_bins=num_bins)
-
-        if verbose:
-            for condition in normalized_conditions:
-                print(condition)
-                print(condition.describe_fit(normalized_dist))
-
-        return normalized_dist.denormalize(scale_min, scale_max)
-
-    @classmethod
-    def from_loss(cls, loss, jac, num_bins=100):
-        x0 = cls.initialize_params(num_bins)
-        results = oscipy.optimize.minimize(loss, jac=jac, x0=x0)
-        return cls.from_params(results.x)
-
-    @classmethod
-    def from_params(cls, params, traceable=False):
-        logps = nn.log_softmax(params)
-        return cls(logps, traceable=traceable)
 
     def destructure(self):
         return (
@@ -222,7 +185,3 @@ class HistogramDist(distribution.Distribution):
         # TODO: vectorize
         xs, densities = self.to_lists()
         return np.array(xs), np.array(densities)
-
-    @staticmethod
-    def initialize_params(num_bins):
-        return onp.full(num_bins, -num_bins)
