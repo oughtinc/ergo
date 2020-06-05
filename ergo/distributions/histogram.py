@@ -244,7 +244,8 @@ class HistogramDist(distribution.Distribution):
         """
         Represent the distribution as a list of pairs.
 
-        Sometimes we use a histogram to represent just part of a probability distribution
+        Sometimes we use a histogram to represent
+        just part of a probability distribution
         (if the rest will be represented by some other distribution)
 
         In this case, when converting to pairs,
