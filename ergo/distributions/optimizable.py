@@ -148,6 +148,6 @@ class Optimizable(ABC):
 
     @classmethod
     def normalize_fixed_params(self, fixed_params, scale):
-        # TODO this should do more
-        print(f"fixed params are: {fixed_params}")
+        # TODO this should do something
+        # print(f"fixed params are: {fixed_params}")
         return fixed_params

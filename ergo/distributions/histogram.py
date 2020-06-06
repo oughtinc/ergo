@@ -180,8 +180,6 @@ class HistogramDist(Distribution, Optimizable):
 
         if verbose:
             import pandas as pd
-            from scipy.integrate import trapz
-
             df = pd.DataFrame.from_records(pairs)
             auc = trapz(df["density"], df["x"])
             print(f"AUC is {auc}")

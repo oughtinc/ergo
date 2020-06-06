@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import jax.numpy as np
 import pytest
 
+from ergo.scale import Scale
 from ergo import HistogramDist, Logistic, LogisticMixture, TruncatedLogisticMixture
 from ergo.conditions import (
     HistogramCondition,
@@ -55,15 +56,12 @@ def test_interval_condition():
         IntervalCondition(p=1, min=-1, max=0).describe_fit(dist)["p_in_interval"] == 0.5
     )
 
-
 def test_normalization_interval_condition():
     def normalization_interval_condition_test(p, min, max, scale_min, scale_max):
         condition = IntervalCondition(p=p, min=min, max=max)
+        scale= Scale(scale_min, scale_max)
         assert (
-            condition.normalize(scale_min=scale_min, scale_max=scale_max).denormalize(
-                scale_min=scale_min, scale_max=scale_max
-            )
-            == condition
+            condition.normalize(scale).denormalize(scale) == condition
         )
 
     # straightforward scenario
@@ -97,13 +95,12 @@ def test_normalization_interval_condition():
     )
 
     assert IntervalCondition(p=0.5, min=0, max=5).normalize(
-        scale_min=0, scale_max=10
+        Scale(0,10)
     ) == IntervalCondition(p=0.5, min=0, max=0.5)
-
 
 def test_normalization_histogram_condition(histogram):
     original = HistogramCondition(histogram["xs"], histogram["densities"])
-    normalized_denormalized = original.normalize(10, 1000).denormalize(10, 1000)
+    normalized_denormalized = original.normalize(Scale(10, 1000)).denormalize(Scale(10, 1000))
     for (density, norm_denorm_density) in zip(
         histogram["densities"], normalized_denormalized.densities
     ):
@@ -113,7 +110,7 @@ def test_normalization_histogram_condition(histogram):
 
     # half-assed test that xs and densities are at least
     # getting transformed in the right direction
-    normalized = original.normalize(1, 4)
+    normalized = original.normalize(Scale(1, 4))
     for idx, (normalized_x, normalized_density) in enumerate(
         zip(normalized.xs, normalized.densities)
     ):
@@ -223,7 +220,7 @@ def test_mode_condition():
 
 def test_mean_condition():
     def get_mean(dist):
-        xs = np.linspace(dist.scale_min, dist.scale_max, dist.ps.size)
+        xs = np.linspace(dist.scale.scale_min, dist.scale.scale_max, dist.ps.size)
         return np.dot(dist.ps, xs)
 
     base_conditions = [MaxEntropyCondition(weight=0.1)]
