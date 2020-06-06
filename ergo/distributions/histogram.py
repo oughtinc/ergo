@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from jax import nn
 import jax.numpy as np
 import numpy as onp
+from scipy.integrate import trapz  # type: ignore
 
 from ergo import conditions
 from ergo.scale import Scale
@@ -16,11 +17,7 @@ class HistogramDist(Distribution, Optimizable):
     logps: np.DeviceArray
 
     def __init__(
-        self,
-        logps=None,
-        scale=None,
-        traceable=False,
-        direct_init=None,
+        self, logps=None, scale=None, traceable=False, direct_init=None,
     ):
         if direct_init:
             self.logps = direct_init["logps"]
@@ -35,9 +32,7 @@ class HistogramDist(Distribution, Optimizable):
             self.cum_ps = np.array(init_numpy.cumsum(self.ps))
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
-            self.bin = np.linspace(0, 1, self.logps.size + 1)
         self.bins = np.linspace(0, 1, self.logps.size + 1)
-
 
     def __hash__(self):
         return hash(self.__key())
@@ -90,9 +85,7 @@ class HistogramDist(Distribution, Optimizable):
         """
         x = self.scale.normalize_point(true_x)
         return np.where(
-            (x < 0) | (x > 1),
-            0,
-            self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
+            (x < 0) | (x > 1), 0, self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
         )
 
     def cdf(self, true_x):
@@ -108,9 +101,7 @@ class HistogramDist(Distribution, Optimizable):
             x < 0,
             0,
             np.where(
-                x > 1,
-                1,
-                self.cum_ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
+                x > 1, 1, self.cum_ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
             ),
         )
 
@@ -128,7 +119,7 @@ class HistogramDist(Distribution, Optimizable):
     def destructure(self):
         return (
             HistogramDist,
-            (self.logps, self.ps, self.cum_ps, self.bins, self.size,),
+            (self.logps, self.ps, self.cum_ps, self.size,),
             *self.scale.destructure(),
         )
 
@@ -140,9 +131,8 @@ class HistogramDist(Distribution, Optimizable):
                 "logps": params[0],
                 "ps": params[1],
                 "cum_ps": params[2],
-                "bins": params[3],
-                "size": params[4],
-                "scale": params[5](*params[6]),
+                "size": params[3],
+                "scale": params[4](*params[5]),
             }
         )
 
@@ -155,117 +145,54 @@ class HistogramDist(Distribution, Optimizable):
         densities = [density for (x, density) in sorted_pairs]
 
         # interpolate ps at normalized x bins
-        bins = np.linspace(0, 1, len(densities) + 1)
+        bins = onp.linspace(0, 1, len(densities) + 1)
         target_xs = (bins[:-1] + bins[1:]) / 2
-        import ipdb; ipdb.set_trace()
-        if not np.isclose(xs, target_xs, rtol=1e-04).all():  
-            from scipy.interpolate import interp1d
-            try:
-                f = interp1d(xs, densities)
-                densities = f(target_xs)
-            except Exception as e:
-                print(e)
-                import ipdb; ipdb.set_trace()
+
+        if not np.isclose(xs, target_xs, rtol=1e-04).all():
+            from scipy.interpolate import interp1d  # type: ignore
+
+            f = interp1d(xs, densities)
+            densities = f(target_xs)
         logps = onp.log(
             onp.array(densities) / sum(densities)
         )  # TODO investigate why scale the densities with /sum(densities?)
         return cls(logps, scale)
 
-
-
-     
-        # if normalized:
-        #     return cls(logps, scale, =xs)
-        # else:
-        #     normed_xs = self.scale.normalize_points(self.true_bins)
-        #     return cls(logps, scale, bins=normed_xs)
-        # return cls(logps, scale, bins=xs)
-        
-    def to_pairs(self, true_scale=True, normalize=True):
+    def to_pairs(
+        self, true_scale=True, linear_normalize=False, verbose=False,
+    ):
         pairs = []
         bins = self.bins
         xs = (bins[:-1] + bins[1:]) / 2  # get midpoint of each bin for x coord
 
-        #import ipdb; ipdb.set_trace()
         if true_scale:
             xs = np.array(self.scale.denormalize_points(xs))
             bins = np.array(self.scale.denormalize_points(self.bins))
 
-        ps = np.divide(self.ps, bins[1:] - bins[:-1])  
-        #true_bins = self.scale.denormalize_points(self.bins) if true_scale else None 
-        #ps = self.ps
+        if linear_normalize:
+            ps = np.divide(self.ps, bins[1:] - bins[:-1])
+        else:
+            auc = trapz(self.ps, xs)
+            ps = self.ps / auc
+        pairs = [
+            {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
+        ]
 
-        #        if normalize:
-        #true_bins = self.scale.denormalize_points(self.bins)
-        #   ps = np.divide(self.ps, bins[1:] - bins[:-1]
-        from scipy.integrate import trapz
-        auc = trapz(ps, xs)
-        print(auc)
-        #     auc_p_bin = auc/len(ps)
-        #     nps = ps/auc_p_bin
-        # from scipy.integrate import trapz
-        # auc = trapz(nps, xs)
-        # print(auc)
-        #     # auc_p_bin = auc/len(ps)
-        pairs = [{"x": float(x), "density": float(density)} for x, density in zip(xs, ps)]
-        #import ipdb; ipdb.set_trace()
-        # for i, bin in enumerate(bins[:-1]):
-        #     x = float((bin + bins[i + 1]) / 2.0)
-        #     if true_scale:
-        #         x = self.scale.denormalize_point(x)
-        #     bin_size = float(bins[i + 1] - bin)
-        #     density = float(ps[i]) / bin_size
-        #     pairs.append({"x": x, "density": density})
-        import pandas as pd
-        from scipy.integrate import trapz
-        df = pd.DataFrame.from_records(pairs)
-        print(df['density'].sum())
-        inte = trapz(df['density'], df['x'])
-        print(inte)
-        #import ipdb; ipdb.set_trace()
+        if verbose:
+            import pandas as pd
+            from scipy.integrate import trapz
+
+            df = pd.DataFrame.from_records(pairs)
+            auc = trapz(df["density"], df["x"])
+            print(f"AUC is {auc}")
+            print(f"scale is {self.scale}")
+
         return pairs
-
-    # def to_pairs_normed(self, normalized=False):
-    #     pairs = []
-    #     bins = self.bins if normalized else self.true_bins
-    #     ps = onp.array(self.ps)
-    #     auc = 0
-    #     for i, bin in enumerate(bins[:-1]):
-    #         x = float((bin + bins[i + 1]) / 2.0)
-    #         bin_size = float(bins[i + 1] - bin)
-    #         density = float(ps[i])
-    #         auc += density * bin_size
-    #         pairs.append({"x": x, "density": density})
-    #     auc_norm = auc / len(self.ps)
-    #     pairs = [{"x": x["x"], "density": x["density"] / auc_norm} for x in pairs]
-
-    # def to_pairs_points(self, normalized=False):
-    #     pairs = []
-    #     xs = self.bins if normalized else self.true_bins
-    #     ps = onp.array(self.ps)
-    #     auc = 0
-    #     from scipy.integrate import trapz  # type: ignore
-
-    #     auc = trapz(ps, xs)
-    #     auc_norm = auc / len(ps)
-
-    #     for i, xs in enumerate(xs):
-    #         pairs.append({"x": xs, "density": float(ps[i]) / auc_norm})
-
-    #     import pandas as pd
-    #     from scipy.integrate import trapz
-
-    #     df = pd.DataFrame.from_records(pairs)
-    #     print(df.iloc[:, 1].sum())
-    #     inte = trapz(df.iloc[:, 1], df.iloc[:, 0])
-    #     print(inte)
-
-    #     return pairs
 
     def to_lists(self, normalized=False):
         xs = []
         densities = []
-        bins = self.bins 
+        bins = self.bins
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
