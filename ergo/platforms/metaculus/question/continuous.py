@@ -159,12 +159,7 @@ class ContinuousQuestion(MetaculusQuestion):
         histogram = [
             {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
         ]
-        # from scipy.integrate import trapz
-        # df = pd.DataFrame.from_records(histogram)
-        # print(df.iloc[:,1].sum())
-        # inte = trapz(df.iloc[:,1], df.iloc[:,0])
-        # print(inte)
-        # import ipdb; ipdb.set_trace()
+
         return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
 
     @memoized_method(None)
