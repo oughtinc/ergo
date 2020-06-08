@@ -3,7 +3,6 @@ Logistic distribution
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
 
 from jax import scipy
 import jax.numpy as np
@@ -17,51 +16,60 @@ from .distribution import Distribution
 
 @dataclass
 class Logistic(Distribution):
-    loc: float
-    scale: float
-    metadata: Optional[Dict[str, Any]]
-
+    loc: float  # normalized loc
+    s: float  # normalized scale
+    scale: Scale
     dist = scipy.stats.logistic
     odist = oscipy.stats.logistic
 
-    def __init__(self, loc: float, scale: float, metadata=None):
+    def __init__(self, loc: float, s: float, scale: Scale):
         # TODO (#303): Raise ValueError on scale < 0
-        self.scale = np.max([scale, 0.0000001])
-        self.loc = loc
-        self.metadata = metadata
+        self.loc = scale.normalize_point(loc)
+        self.s = np.max([s, 0.0000001]) / scale.scale_range
+        self.scale = scale
+        self.true_s = s  # convenience field not used ergo internal
+        self.true_loc = loc  # convenience field not used ergo internal
 
     def rv(self):
-        return self.odist(loc=self.loc, scale=self.scale)
+        # returns normed rv object
+        return self.odist(loc=self.loc, scale=self.s)
+
+    def pdf(self, x):
+        return (
+            np.exp(self.logpdf(self.scale.normalize_point(x))) / self.scale.scale_range
+        )
 
     def logpdf(self, x):
-        return static.logistic_logpdf(x, self.loc, self.scale)
+        # assumes x is normalized
+        return static.logistic_logpdf(x, self.loc, self.s)
 
     def cdf(self, x):
-        y = (x - self.loc) / self.scale
+        y = (self.scale.normalize_point(x) - self.loc) / self.s
         return self.dist.cdf(y)
 
     def ppf(self, q):
         """
         Percent point function (inverse of cdf) at q.
         """
-        return self.rv().ppf(q)
+        return self.scale.denormalize_point(self.rv().ppf(q))
 
     def sample(self):
         # FIXME (#296): This needs to be compatible with ergo sampling
-        return self.odist.rvs(loc=self.loc, scale=self.scale)
+        return self.scale.denormalize_point(self.odist.rvs(loc=self.loc, scale=self.s))
 
-    def normalize(self, scale: Scale):
+    # Note: this is not strictly necessary as the distribution params are
+    # always stored in normalized form
+    def normalize(self):
         """
-        Assume that the condition's true range is [scale_min, scale_max].
         Return the normalized condition.
 
-        :param scale: the true-scale
+        :param scale: the true scale
         :return: the condition normalized to [0,1]
         """
-        normalized_loc = scale.normalize_point(self.loc)
-        normalized_scale = self.scale / scale.scale_range
-        return self.__class__(normalized_loc, normalized_scale, self.metadata)
+        return self.__class__(self.loc, self.s, Scale(0, 1))
 
+    # Note: only the scale is necessary to change as the distribution params are
+    # always stored in normalized form.
     def denormalize(self, scale: Scale):
         """
         Assume that the distribution has been normalized to be over [0,1].
@@ -69,5 +77,5 @@ class Logistic(Distribution):
         :param scale: the true-scale
         """
         denormalized_loc = scale.denormalize_point(self.loc)
-        denormalized_scale = self.scale * scale.scale_range
-        return self.__class__(denormalized_loc, denormalized_scale, self.metadata)
+        denormalized_s = self.s * scale.scale_range
+        return self.__class__(denormalized_loc, denormalized_s, scale)

@@ -31,10 +31,8 @@ class LinearQuestion(ContinuousQuestion):
         :param normalized_dist: normalized logistic distribution
         :return: logistic distribution on the true scale of the question
         """
-        scale_loc = normalized_dist.loc * self.scale.scale_range + self.scale.scale_min
 
-        true_scale = normalized_dist.scale * self.scale.scale_range
-        return Logistic(scale_loc, true_scale)
+        return normalized_dist.denormalize(self.scale)
 
     def get_true_scale_mixture(
         self, normalized_dist: LogisticMixture
@@ -46,7 +44,5 @@ class LinearQuestion(ContinuousQuestion):
         :param normalized_dist: normalized logistic mixture dist
         :return: same distribution rescaled to the true scale of the question
         """
-        true_scale_logistics = [
-            self.get_true_scale_logistic(c) for c in normalized_dist.components
-        ]
-        return LogisticMixture(true_scale_logistics, normalized_dist.probs)
+
+        return normalized_dist.denormalize(self.scale)

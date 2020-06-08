@@ -65,6 +65,7 @@ class Condition(ABC):
         :return: A description of various aspects of how well
         the distribution meets the condition
         """
+
         result = static.describe_fit(*dist.destructure(), *self.destructure())
         return {k: float(v) for (k, v) in result.items()}
 

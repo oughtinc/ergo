@@ -29,7 +29,7 @@ class Distribution(ABC):
         ...
 
     @abstractmethod
-    def normalize(self, scale: Scale):
+    def normalize(self):
         ...
 
     @abstractmethod

@@ -1,3 +1,4 @@
+import math
 import os
 from types import SimpleNamespace
 from typing import cast
@@ -9,30 +10,83 @@ import pytest
 
 import ergo
 from ergo.distributions import Logistic, LogisticMixture
+from ergo.scale import Scale
+
+
+def three_sd_scale(loc, s):
+    sd = s * math.pi / math.sqrt(3)
+    return Scale(loc - 3 * sd, loc + 3 * sd)
+
+
+def easyLogistic(loc, scale):
+    return Logistic(loc, scale, three_sd_scale(loc, scale))
 
 
 @pytest.fixture(scope="module")
-def logistic_mixture():
+def logistic_mixture10():
+    xscale = Scale(-20, 40)
     return LogisticMixture(
-        components=[Logistic(loc=10000, scale=1000), Logistic(loc=100000, scale=10000)],
-        probs=[0.8, 0.2],
+        components=[
+            Logistic(loc=15, s=2.3658268, scale=xscale),
+            Logistic(loc=5, s=2.3658268, scale=xscale),
+        ],
+        probs=[0.5, 0.5],
+        scale=xscale,
+    )
+
+
+@pytest.fixture(scope="module")
+def logistic_mixture_p_uneven():
+    xscale = Scale(-10, 20)
+    return LogisticMixture(
+        components=[
+            Logistic(loc=10, s=3, scale=xscale),
+            Logistic(loc=5, s=5, scale=xscale),
+        ],
+        probs=[1.8629593e-29, 1.0],
+        scale=xscale,
+    )
+
+
+@pytest.fixture(scope="module")
+def logistic_mixture_p_overlapping():
+    xscale = three_sd_scale(4000000.035555004, 200000.02)
+    return LogisticMixture(
+        components=[
+            Logistic(4000000.035555004, 200000.02, xscale),
+            Logistic(4000000.0329152746, 200000.0, xscale),
+        ],
+        probs=[0.5, 0.5],
+        scale=xscale,
+    )
+
+
+@pytest.fixture(scope="module")
+def logistic_mixture_norm_test():
+    xscale = Scale(-50, 50)
+    return LogisticMixture(
+        components=[Logistic(-40, 1, xscale), Logistic(50, 10, xscale)],
+        probs=[0.5, 0.5],
+        scale=xscale,
+    )
+
+
+@pytest.fixture(scope="module")
+def logistic_mixture15():
+    xscale = Scale(-10, 40)
+    return LogisticMixture(
+        components=[
+            Logistic(loc=10, s=3.658268, scale=xscale),
+            Logistic(loc=20, s=3.658268, scale=xscale),
+        ],
+        probs=[0.5, 0.5],
+        scale=xscale,
     )
 
 
 @pytest.fixture(scope="module")
 def logistic_mixture_samples(logistic_mixture, n=1000):
     return np.array([logistic_mixture.sample() for _ in range(0, n)])
-
-
-@pytest.fixture(scope="module")
-def normalized_logistic_mixture():
-    return LogisticMixture(
-        components=[
-            Logistic(loc=0.15, scale=0.037034005),
-            Logistic(loc=0.85, scale=0.032395907),
-        ],
-        probs=[0.6, 0.4],
-    )
 
 
 @pytest.fixture(scope="module")

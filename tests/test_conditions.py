@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import jax.numpy as np
 import pytest
 
-from ergo.scale import Scale
 from ergo import HistogramDist, Logistic, LogisticMixture, TruncatedLogisticMixture
 from ergo.conditions import (
     HistogramCondition,
@@ -14,6 +13,7 @@ from ergo.conditions import (
     SmoothnessCondition,
     VarianceCondition,
 )
+from ergo.scale import Scale
 
 
 @dataclass
@@ -36,6 +36,7 @@ class Uniform:
         return Uniform(params[0], params[1])
 
 
+@pytest.mark.slow
 def test_interval_condition():
     dist = Uniform(min=-1, max=1)
 
@@ -56,13 +57,12 @@ def test_interval_condition():
         IntervalCondition(p=1, min=-1, max=0).describe_fit(dist)["p_in_interval"] == 0.5
     )
 
+
 def test_normalization_interval_condition():
     def normalization_interval_condition_test(p, min, max, scale_min, scale_max):
         condition = IntervalCondition(p=p, min=min, max=max)
-        scale= Scale(scale_min, scale_max)
-        assert (
-            condition.normalize(scale).denormalize(scale) == condition
-        )
+        scale = Scale(scale_min, scale_max)
+        assert condition.normalize(scale).denormalize(scale) == condition
 
     # straightforward scenario
     normalization_interval_condition_test(
@@ -95,12 +95,15 @@ def test_normalization_interval_condition():
     )
 
     assert IntervalCondition(p=0.5, min=0, max=5).normalize(
-        Scale(0,10)
+        Scale(0, 10)
     ) == IntervalCondition(p=0.5, min=0, max=0.5)
+
 
 def test_normalization_histogram_condition(histogram):
     original = HistogramCondition(histogram["xs"], histogram["densities"])
-    normalized_denormalized = original.normalize(Scale(10, 1000)).denormalize(Scale(10, 1000))
+    normalized_denormalized = original.normalize(Scale(10, 1000)).denormalize(
+        Scale(10, 1000)
+    )
     for (density, norm_denorm_density) in zip(
         histogram["densities"], normalized_denormalized.densities
     ):

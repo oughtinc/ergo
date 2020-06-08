@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from jax import scipy
 import jax.numpy as np
-import scipy as oscipy
+import scipy as oscipy  # TODO can this be JAX scipy?
 
 from ergo.scale import Scale
 
@@ -15,11 +14,22 @@ from .distribution import Distribution
 class Mixture(Distribution):
     components: Sequence[Distribution]
     probs: Sequence[float]
+    scale: Scale
+
+    def __post_init__(self):
+        for c in self.components:
+            if c.scale != self.scale:
+                raise Exception(
+                    "Component distributions must be on the same scale as Mixture"
+                )
 
     def pdf(self, x):
-        return np.exp(self.logpdf(x))
+        return (
+            np.exp(self.logpdf(self.scale.normalize_point(x))) / self.scale.scale_range
+        )
 
     def logpdf(self, x):
+        # assumes x is normalized
         raise NotImplementedError
 
     def cdf(self, x):
@@ -52,24 +62,24 @@ class Mixture(Distribution):
                 maxiter=1000,
             )
         except ValueError:
-            return (cmax + cmin) / 2
+            return oscipy.optimize.bisect(
+                lambda x: self.cdf(x) - q, self.scale.min, self.scale.min, maxiter=1000,
+            )
 
     def sample(self):
         i = categorical(np.array(self.probs))
         component_dist = self.components[i]
         return component_dist.sample()
 
-    def normalize(self, scale: Scale):
+    def normalize(self):
         """
         Return the distribution on the true scale
 
         :param scale: the true-scale of condition
         :return: the condition in the true scale
         """
-        normalized_components = [
-            component.normalize(scale) for component in self.components
-        ]
-        return self.__class__(normalized_components, self.probs)
+        normalized_components = [component.normalize() for component in self.components]
+        return self.__class__(normalized_components, self.probs, scale=Scale(0, 1))
 
     def denormalize(self, scale: Scale):
         """
@@ -81,4 +91,4 @@ class Mixture(Distribution):
         denormalized_components = [
             component.denormalize(scale) for component in self.components
         ]
-        return self.__class__(denormalized_components, self.probs)
+        return self.__class__(denormalized_components, self.probs, scale)

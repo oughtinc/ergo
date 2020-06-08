@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from jax import nn
 import jax.numpy as np
 import numpy as onp
-from scipy.integrate import trapz  # type: ignore
+from scipy.integrate import trapz
 
 from ergo import conditions
 from ergo.scale import Scale
@@ -75,7 +75,7 @@ class HistogramDist(Distribution, Optimizable):
     def denormalize(self, scale: Scale):
         return HistogramDist(self.logps, scale)
 
-    def pdf(self, true_x):
+    def pdf(self, x):
         """
         If x is out of distribution range, returns 0. Otherwise returns the
         density at the lowest bin for which the upper bound of the bin
@@ -83,12 +83,12 @@ class HistogramDist(Distribution, Optimizable):
 
         :param x: The point in the distribution to get the density at
         """
-        x = self.scale.normalize_point(true_x)
+        x = self.scale.normalize_point(x)
         return np.where(
             (x < 0) | (x > 1), 0, self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
         )
 
-    def cdf(self, true_x):
+    def cdf(self, x):
         """
         If x is out of distribution range, returns 0/1. Otherwise returns the
         cumulative density at the lowest bin for which the upper bound of the bin
@@ -96,7 +96,7 @@ class HistogramDist(Distribution, Optimizable):
 
         :param x: The point in the distribution to get the cumulative density at
         """
-        x = self.scale.normalize_point(true_x)
+        x = self.scale.normalize_point(x)
         return np.where(
             x < 0,
             0,
@@ -118,14 +118,13 @@ class HistogramDist(Distribution, Optimizable):
 
     def destructure(self):
         return (
+            # TODO *self.scale.destructure()
             HistogramDist,
-            (self.logps, self.ps, self.cum_ps, self.size,),
-            *self.scale.destructure(),
+            (self.logps, self.ps, self.cum_ps, self.size, self.scale),
         )
 
     @classmethod
     def structure(cls, *params):
-        print(f"direct init bins are:\n {params[3]}")
         return cls(
             direct_init={
                 "logps": params[0],

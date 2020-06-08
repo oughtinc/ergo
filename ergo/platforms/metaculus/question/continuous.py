@@ -18,6 +18,7 @@ import requests
 
 from ergo import ppl
 import ergo.distributions as dist
+from ergo.scale import Scale
 from ergo.theme import ergo_theme
 from ergo.utils import memoized_method
 
@@ -100,14 +101,14 @@ class ContinuousQuestion(MetaculusQuestion):
     def prepare_logistic(self, normalized_dist: dist.Logistic) -> dist.Logistic:
         """
         Transform a single logistic distribution by clipping the
-        parameters and adding metadata as needed for submission to
+        parameters and adding scale information as needed for submission to
         Metaculus. The loc and scale have to be within a certain range
         for the Metaculus API to accept the prediction.
 
         :param dist: a (normalized) logistic distribution
         :return: a transformed logistic distribution
         """
-        if normalized_dist.scale <= 0:
+        if normalized_dist.s <= 0:
             raise ValueError("logistic_params.scale must be greater than 0")
 
         clipped_loc = min(normalized_dist.loc, max_loc)
@@ -125,9 +126,7 @@ class ContinuousQuestion(MetaculusQuestion):
         else:
             high = 1
 
-        return dist.Logistic(
-            clipped_loc, clipped_scale, metadata={"low": low, "high": high}
-        )
+        return dist.Logistic(clipped_loc, clipped_scale, Scale(low, high))
 
     def prepare_logistic_mixture(
         self, normalized_dist: dist.LogisticMixture
@@ -232,18 +231,18 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def format_logistic_for_api(submission: dist.Logistic, weight: float) -> dict:
-        if submission.metadata is None:
-            raise ValueError("Submission distribution needs metadata (low, high)")
+        if submission.scale is None:
+            raise ValueError("Submission distribution needs a scale")
         # Convert all the numbers to floats here so that you can be sure that
         # wherever they originated (e.g. numpy), they'll be regular old floats that
         # can be converted to json by json.dumps.
         return {
             "kind": "logistic",
             "x0": float(submission.loc),
-            "s": float(submission.scale),
+            "s": float(submission.s),
             "w": float(weight),
-            "low": float(submission.metadata["low"]),
-            "high": float(submission.metadata["high"]),
+            "low": submission.scale.scale_min,
+            "high": submission.scale.scale_max,
         }
 
     def submit(self, submission: dist.LogisticMixture) -> requests.Response:
@@ -279,10 +278,13 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def get_logistic_from_json(logistic_json: Dict) -> dist.Logistic:
+        print(
+            f"Logistic from json component scale is: {Scale(logistic_json['low'], logistic_json['high'])}"
+        )
         return dist.Logistic(
             logistic_json["x0"],
             logistic_json["s"],
-            metadata={"low": logistic_json["low"], "high": logistic_json["high"]},
+            Scale(logistic_json["low"], logistic_json["high"]),
         )
 
     @classmethod
@@ -291,8 +293,11 @@ class ContinuousQuestion(MetaculusQuestion):
             cls.get_logistic_from_json(logistic_json)
             for logistic_json in submission_json
         ]
+
         probs = [logistic_json["w"] for logistic_json in submission_json]
-        return dist.LogisticMixture(components, probs)
+        # TODO see if the assumption that scale does not varies between components is valid
+        scale = Scale(submission_json[0]["low"], submission_json[0]["high"])
+        return dist.LogisticMixture(components, probs, scale)
 
     def get_latest_normalized_prediction(self) -> dist.LogisticMixture:
         latest_prediction = self.my_predictions["predictions"][-1]["d"]

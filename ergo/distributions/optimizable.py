@@ -24,7 +24,7 @@ class Optimizable(ABC):
         ...
 
     @abstractmethod
-    def normalize(self, scale: Scale):
+    def normalize(self):
         ...
 
     @abstractmethod
@@ -32,16 +32,25 @@ class Optimizable(ABC):
         ...
 
     @classmethod
-    def from_samples(  # TODO make it so you can pass in a scale
-        cls: Type[T], data, fixed_params=None, verbose=False, init_tries=1, opt_tries=1
+    def from_samples(
+        cls: Type[T],
+        data,
+        fixed_params=None,
+        scale=None,
+        verbose=False,
+        init_tries=1,
+        opt_tries=1,
     ) -> T:
         if fixed_params is None:
             fixed_params = {}
-
+        if scale is None:
+            _range = max(data) - min(data)
+            scale = Scale(
+                scale_min=min(data) - _range / 2, scale_max=max(data) + _range / 2
+            )
         data = np.array(data)
-        scale = Scale(scale_min=min(data), scale_max=max(data))
         fixed_params = cls.normalize_fixed_params(fixed_params, scale)
-        normalized_data = np.array([scale.normalize_point(datum) for datum in data])
+        normalized_data = np.array(scale.normalize_points(data))
 
         loss = lambda params: static.dist_logloss(  # noqa: E731
             cls, fixed_params, params, normalized_data
@@ -125,6 +134,9 @@ class Optimizable(ABC):
         init_tries=1,
         opt_tries=1,
     ) -> T:
+
+        # fixed_params are assumed to be normalized
+
         if fixed_params is None:
             fixed_params = {}
 
@@ -148,6 +160,4 @@ class Optimizable(ABC):
 
     @classmethod
     def normalize_fixed_params(self, fixed_params, scale):
-        # TODO this should do something
-        # print(f"fixed params are: {fixed_params}")
-        return fixed_params
+        return NotImplemented

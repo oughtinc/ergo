@@ -75,11 +75,9 @@ single_condition_loss_grad = jit(
 # Description of distribution/condition fit
 
 
-@partial(jit, static_argnums=(0, 2, 4))
-def describe_fit(
-    dist_class, dist_params, scale_class, scale_params, cond_class, cond_params
-):
-    dist = dist_class.structure(*dist_params, scale_class, scale_params)
+@partial(jit, static_argnums=(0, 2))
+def describe_fit(dist_class, dist_params, cond_class, cond_params):
+    dist = dist_class.structure(*dist_params)
     condition = cond_class.structure(cond_params)
     return condition._describe_fit(dist)
 
@@ -101,6 +99,7 @@ dist_grad_logloss = jit(grad(dist_logloss, argnums=2), static_argnums=0)
 
 @jit
 def logistic_logpdf(x, loc, scale):
+    # x, loc, scale are assumed to be normalized
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.logistic.html
     y = (x - loc) / scale
     return scipy.stats.logistic.logpdf(y) - np.log(scale)
@@ -108,6 +107,7 @@ def logistic_logpdf(x, loc, scale):
 
 @jit
 def logistic_mixture_logpdf(params, data):
+    # params are assumed to be normalized
     if data.size == 1:
         return logistic_mixture_logpdf1(params, data)
     scores = vmap(partial(logistic_mixture_logpdf1, params))(data)
@@ -116,6 +116,7 @@ def logistic_mixture_logpdf(params, data):
 
 @jit
 def logistic_mixture_logpdf1(params, datum):
+    # params are assumed to be normalized
     structured_params = params.reshape((-1, 3))
     component_scores = []
     probs = np.array([p[2] for p in structured_params])
