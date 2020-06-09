@@ -334,6 +334,20 @@ def test_mixed_2(histogram):
     assert my_cache[conditions_2] == 3
 
 
+def test_histogram_fit(histogram):
+    condition = HistogramCondition(histogram["xs"], histogram["densities"])
+    conditions = (condition,)
+    dist = HistogramDist.from_conditions(
+        conditions,
+        {"num_bins": 100},
+        verbose=True,
+        scale_min=min(histogram["xs"]),
+        scale_max=max(histogram["xs"]),
+    )
+    for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):
+        assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
+
+
 def compare_runtimes():
     from tests.conftest import make_histogram
 
