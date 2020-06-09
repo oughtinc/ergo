@@ -76,8 +76,12 @@ single_condition_loss_grad = jit(
 
 
 @partial(jit, static_argnums=(0, 2))
-def describe_fit(dist_class, dist_params, cond_class, cond_params):
-    dist = dist_class.structure(*dist_params)
+def describe_fit(dist_classes, dist_params, cond_class, cond_params):
+    if isinstance(dist_classes, type):
+        dist = dist_classes.structure(dist_params)
+    else:
+        dist_class, scale_class = dist_classes
+        dist = dist_class.structure(*dist_params, scale_class)
     condition = cond_class.structure(cond_params)
     return condition._describe_fit(dist)
 

@@ -36,7 +36,6 @@ class Uniform:
         return Uniform(params[0], params[1])
 
 
-@pytest.mark.slow
 def test_interval_condition():
     dist = Uniform(min=-1, max=1)
 
@@ -147,9 +146,14 @@ def test_mixture_from_percentiles():
 
 
 def test_percentiles_from_mixture():
+    xscale = Scale(-1, 4)
     mixture = LogisticMixture(
-        components=[Logistic(loc=1, scale=0.1), Logistic(loc=2, scale=0.1)],
+        components=[
+            Logistic(loc=1, s=0.1, scale=xscale),
+            Logistic(loc=2, s=0.1, scale=xscale),
+        ],
         probs=[0.5, 0.5],
+        scale=xscale,
     )
     conditions = mixture.percentiles(percentiles=[0.1, 0.5, 0.9])
     for condition in conditions:
@@ -171,8 +175,13 @@ def test_percentile_roundtrip(LogisticMixtureClass):
         IntervalCondition(p=0.9, max=2.1386364698410034),
         IntervalCondition(p=0.99, max=2.3891870975494385),
     ]
+    scale_cls, scale_params = Scale(0, 4).destructure()
     mixture = LogisticMixtureClass.from_conditions(
-        conditions, {"num_components": 3, "floor": 0, "ceiling": 4}, verbose=True
+        conditions,
+        {"num_components": 3, "floor": 0, "ceiling": 4},
+        scale_cls=scale_cls,
+        scale_params=scale_params,
+        verbose=True,
     )
     recovered_conditions = mixture.percentiles(
         percentiles=[condition.p for condition in conditions]
@@ -183,8 +192,15 @@ def test_percentile_roundtrip(LogisticMixtureClass):
 
 def test_mixture_from_histogram(histogram):
     conditions = [HistogramCondition(histogram["xs"], histogram["densities"])]
+    scale_cls, scale_params = Scale(
+        min(histogram["xs"]), max(histogram["xs"])
+    ).destructure()
     mixture = LogisticMixture.from_conditions(
-        conditions, {"num_components": 3}, verbose=True
+        conditions,
+        {"num_components": 3},
+        verbose=True,
+        scale_cls=scale_cls,
+        scale_params=scale_params,
     )
     for (x, density) in zip(histogram["xs"], histogram["densities"]):
         assert mixture.pdf(x) == pytest.approx(density, abs=0.2)
@@ -246,7 +262,7 @@ def test_mean_condition():
 
 def test_variance_condition():
     def get_variance(dist):
-        xs = np.linspace(dist.scale_min, dist.scale_max, dist.ps.size)
+        xs = np.linspace(dist.scale.scale_min, dist.scale.scale_max, dist.ps.size)
         mean = np.dot(dist.ps, xs)
         return np.dot(dist.ps, np.square(xs - mean))
 
@@ -337,12 +353,15 @@ def test_mixed_2(histogram):
 def test_histogram_fit(histogram):
     condition = HistogramCondition(histogram["xs"], histogram["densities"])
     conditions = (condition,)
+    scale_cls, scale_params = Scale(
+        min(histogram["xs"]), max(histogram["xs"])
+    ).destructure()
     dist = HistogramDist.from_conditions(
         conditions,
         {"num_bins": 100},
+        scale_cls=scale_cls,
+        scale_params=scale_params,
         verbose=True,
-        scale_min=min(histogram["xs"]),
-        scale_max=max(histogram["xs"]),
     )
     for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)

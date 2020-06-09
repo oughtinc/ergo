@@ -33,11 +33,11 @@ class HistogramDist(Distribution, Optimizable):
             self.cum_ps = np.array(init_numpy.cumsum(self.ps))
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
-            self.bins = np.linspace(0, 1, self.logps.size + 1)
+            # self.bins = np.linspace(0, 1, self.logps.size + 1)
         self.bins = np.linspace(0, 1, self.logps.size + 1)
-        self.scale = scale.Scale(self.scale_min, self.scale_max)
-        self.bin_size = (self.scale.scale_max - self.scale.scale_min) / self.logps.size # will always be .005 if dealing with the 200ps from metaculus
-
+        self.bin_size = (
+            self.scale.scale_max - self.scale.scale_min
+        ) / self.logps.size  # will always be .005 if dealing with the 200ps from metaculus
 
     def __hash__(self):
         return hash(self.__key())
@@ -90,18 +90,12 @@ class HistogramDist(Distribution, Optimizable):
         """
         x = self.scale.normalize_point(x)
         bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
-        return np.where(
-            (x < 0) | (x > 1),
-            0,
-            self.ps[bin] / self.bin_size,
-        )
+        return np.where((x < 0) | (x > 1), 0, self.ps[bin] / self.bin_size,)
 
         return np.where(
             (x < 0) | (x > 1), 0, self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
         )
 
- 
-    
     def cdf(self, x):
         """
         If x is out of distribution range, returns 0/1. Otherwise returns the
@@ -112,9 +106,7 @@ class HistogramDist(Distribution, Optimizable):
         """
         x = self.scale.normalize_point(x)
         bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
-        return np.where(
-            x < 0, 0, np.where(x > 1, 1, self.cum_ps[bin],),
-        )
+        return np.where(x < 0, 0, np.where(x > 1, 1, self.cum_ps[bin],),)
 
     def ppf(self, q):
         return self.scale.denormalize_point(
@@ -128,10 +120,10 @@ class HistogramDist(Distribution, Optimizable):
         raise NotImplementedError
 
     def destructure(self):
+        scale_cls, scale_params = self.scale.destructure()
         return (
-            # TODO *self.scale.destructure()
-            HistogramDist,
-            (self.logps, self.ps, self.cum_ps, self.size, self.scale),
+            (HistogramDist, scale_cls),
+            (self.logps, self.ps, self.cum_ps, self.size, self.scale_params),
         )
 
     @classmethod
@@ -142,7 +134,7 @@ class HistogramDist(Distribution, Optimizable):
                 "ps": params[1],
                 "cum_ps": params[2],
                 "size": params[3],
-                "scale": params[4](*params[5]),
+                "scale": params[5](*params[4]),
             }
         )
 

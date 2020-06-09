@@ -160,4 +160,5 @@ class Optimizable(ABC):
 
     @classmethod
     def normalize_fixed_params(self, fixed_params, scale):
-        return NotImplemented
+        # They are not normalized unless a child class implements this method
+        return fixed_params

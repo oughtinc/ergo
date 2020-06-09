@@ -20,7 +20,7 @@ class MeanCondition(condition.Condition):
     def actual_mean(self, dist) -> float:
         # FIXME: Should be interacting with HistogramDist via pdf
         #        or similar public interface
-        xs = np.linspace(dist.scale_min, dist.scale_max, dist.ps.size)
+        xs = np.linspace(dist.scale.scale_min, dist.scale.scale_max, dist.ps.size)
         return np.dot(dist.ps, xs)
 
     def loss(self, dist) -> float:
