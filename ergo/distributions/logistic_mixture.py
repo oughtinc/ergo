@@ -66,3 +66,13 @@ class LogisticMixture(Mixture, Optimizable):
         return super(LogisticMixture, cls).from_samples(
             *args, init_tries=init_tries, opt_tries=opt_tries, **kwargs
         )
+
+    def destructure(self):
+        params = ([(c.loc, c.scale) for c in self.components], self.probs)
+        return (LogisticMixture, params)
+
+    @classmethod
+    def structure(cls, params):
+        component_params, probs = params
+        components = [Logistic(l, s) for (l, s) in component_params]
+        return cls(components=components, probs=probs)

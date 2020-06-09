@@ -105,3 +105,19 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         norm_fixed_params["floor"] = s.normalize_point(fixed_params["floor"])
         norm_fixed_params["ceiling"] = s.normalize_point(fixed_params["ceiling"])
         return norm_fixed_params
+
+    def destructure(self):
+        params = (
+            [(c.loc, c.scale) for c in self.components],
+            self.probs,
+            (self.floor, self.ceiling),
+        )
+        return (TruncatedLogisticMixture, params)
+
+    @classmethod
+    def structure(cls, params):
+        component_params, probs, limits = params
+        components = [Logistic(l, s) for (l, s) in component_params]
+        return cls(
+            components=components, probs=probs, floor=limits[0], ceiling=limits[1]
+        )

@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import ergo
-from ergo.distributions import Logistic, LogisticMixture
+from ergo.distributions import Logistic, LogisticMixture, TruncatedLogisticMixture
 
 
 @pytest.fixture(scope="module")
@@ -16,6 +16,16 @@ def logistic_mixture():
     return LogisticMixture(
         components=[Logistic(loc=10000, scale=1000), Logistic(loc=100000, scale=10000)],
         probs=[0.8, 0.2],
+    )
+
+
+@pytest.fixture(scope="module")
+def truncated_logistic_mixture():
+    return TruncatedLogisticMixture(
+        components=[Logistic(loc=10000, scale=1000), Logistic(loc=100000, scale=10000)],
+        probs=[0.8, 0.2],
+        floor=5000,
+        ceiling=500000,
     )
 
 
