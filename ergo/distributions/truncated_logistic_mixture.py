@@ -46,7 +46,10 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         Percent point function (inverse of cdf) at q.
         """
         return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q, self.floor, self.ceiling, maxiter=1000,
+            lambda x: self.cdf(x) - q,
+            self.floor - 1e-9,
+            self.ceiling + 1e-9,
+            maxiter=1000,
         )
 
     def sample(self):
