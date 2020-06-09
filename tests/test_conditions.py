@@ -218,7 +218,7 @@ def test_mode_condition():
     strong_outcome_dist = HistogramDist.from_conditions(
         strong_outcome_conditions, verbose=True
     )
-    assert strong_condition.loss(strong_outcome_dist) == 0
+    assert strong_condition.loss(strong_outcome_dist) == pytest.approx(0, abs=0.001)
 
 
 def test_mean_condition():
@@ -332,6 +332,20 @@ def test_mixed_2(histogram):
     )
     assert hash(conditions) == hash(conditions_2)
     assert my_cache[conditions_2] == 3
+
+
+def test_histogram_fit(histogram):
+    condition = HistogramCondition(histogram["xs"], histogram["densities"])
+    conditions = (condition,)
+    dist = HistogramDist.from_conditions(
+        conditions,
+        {"num_bins": 100},
+        verbose=True,
+        scale_min=min(histogram["xs"]),
+        scale_max=max(histogram["xs"]),
+    )
+    for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):
+        assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 
 
 def compare_runtimes():

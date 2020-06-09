@@ -19,6 +19,7 @@ class HistogramDist(Distribution, Optimizable):
     def __init__(
         self, logps=None, scale=None, traceable=False, direct_init=None,
     ):
+        # We assume that bin sizes are all equal
         if direct_init:
             self.logps = direct_init["logps"]
             self.ps = direct_init["ps"]
@@ -32,7 +33,11 @@ class HistogramDist(Distribution, Optimizable):
             self.cum_ps = np.array(init_numpy.cumsum(self.ps))
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
+            self.bins = np.linspace(0, 1, self.logps.size + 1)
         self.bins = np.linspace(0, 1, self.logps.size + 1)
+        self.scale = scale.Scale(self.scale_min, self.scale_max)
+        self.bin_size = (self.scale.scale_max - self.scale.scale_min) / self.logps.size # will always be .005 if dealing with the 200ps from metaculus
+
 
     def __hash__(self):
         return hash(self.__key())
@@ -84,10 +89,19 @@ class HistogramDist(Distribution, Optimizable):
         :param x: The point in the distribution to get the density at
         """
         x = self.scale.normalize_point(x)
+        bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
+        return np.where(
+            (x < 0) | (x > 1),
+            0,
+            self.ps[bin] / self.bin_size,
+        )
+
         return np.where(
             (x < 0) | (x > 1), 0, self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
         )
 
+ 
+    
     def cdf(self, x):
         """
         If x is out of distribution range, returns 0/1. Otherwise returns the
@@ -97,12 +111,9 @@ class HistogramDist(Distribution, Optimizable):
         :param x: The point in the distribution to get the cumulative density at
         """
         x = self.scale.normalize_point(x)
+        bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
         return np.where(
-            x < 0,
-            0,
-            np.where(
-                x > 1, 1, self.cum_ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
-            ),
+            x < 0, 0, np.where(x > 1, 1, self.cum_ps[bin],),
         )
 
     def ppf(self, q):

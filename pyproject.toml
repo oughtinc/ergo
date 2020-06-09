@@ -14,12 +14,12 @@ scipy = "1.4.1"
 matplotlib = "3.2.1"
 seaborn = "0.10.0"
 typing_extensions = "3.7.4.2"
-jax = "0.1.63"
-jaxlib = "0.1.44"
+jax = "0.1.67"
+jaxlib = "0.1.47"
 pandas = "1.0.3"
 sphinx-autodoc-typehints = "^1.10.3"
 plotnine = "^0.6.0"
-numpyro = {git = "https://github.com/pyro-ppl/numpyro.git", rev = "84bcbce2830c72af6292e2752cc338952b16cbf1"}
+numpyro = {git = "https://github.com/pyro-ppl/numpyro.git", rev = "4c4903103c496663195e0f368b52bb4467556291"}
 
 # A list of all of the optional dependencies, some of which are included in the
 # below `extras`. They can be opted into by apps.
