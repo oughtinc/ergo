@@ -70,8 +70,51 @@ class HistogramDist(Distribution, Optimizable):
         num_bins = fixed_params.get("num_bins", 100)
         return onp.full(num_bins, -num_bins)
 
-    def normalize(self):
-        return HistogramDist(self.logps, 0, 1)
+    def normalize(self, true_scale: scale.Scale = None):  # type: ignore
+        """
+        Normalize the histogram onto [0,1]
+        Setting a true_scale allows you to express that the histogram to be normalized
+        did not cover the entire scale of interest.
+        E.g. -- imagine my histogram only has probability mass from 2 to 5,
+        but I'm interested in p over [0,10].
+        So I'll use Scale(0,10), and I'll get back a histogram with additional
+        bins with 0 probability to cover the area from 0 to 2 and 5 to 10,
+        where my histogram doesn't place any probability.
+        :param true_scale: the full scale that I'm interested in probability over.
+        """
+        # if true_scale is not provided, assume that the histogram has
+        # entries over the entire scale of interest
+        if not true_scale:
+            return HistogramDist(self.logps, 0, 1)
+
+        if true_scale.scale_min is None or true_scale.scale_max is None:
+            raise ValueError(
+                "If you provide a true_scale, you must provide both a scale_min and a scale_max"
+            )
+
+        if (
+            true_scale.scale_min > self.scale_min
+            or true_scale.scale_max < self.scale_max
+        ):
+            raise ValueError(
+                "Can only rescale hist to a scale that includes all of its current scale"
+            )
+
+        x_range_below = scale.Scale(true_scale.scale_min, self.scale_min)
+        x_range_below_per_hist_range = x_range_below.range / self.scale.range
+        num_x_bins_below = round(self.size * x_range_below_per_hist_range)
+
+        x_range_above = scale.Scale(self.scale_max, true_scale.scale_max)
+        x_range_above_per_hist_range = x_range_above.range / self.scale.range
+        num_x_bins_above = round(self.size * x_range_above_per_hist_range)
+
+        bins_below = onp.full(num_x_bins_below, float("-inf"))
+
+        bins_above = onp.full(num_x_bins_above, float("-inf"))
+
+        logps = onp.concatenate((bins_below, self.logps, bins_above))
+
+        return HistogramDist(logps, 0, 1)
 
     def denormalize(self, scale_min, scale_max):
         return HistogramDist(self.logps, scale_min, scale_max)
@@ -157,14 +200,29 @@ class HistogramDist(Distribution, Optimizable):
         logps = onp.log(onp.array(densities) / sum(densities))
         return cls(logps, scale_min=scale_min, scale_max=scale_max)
 
-    def to_pairs(self):
+    def to_pairs(self, total_p: float = 1.0):
+        """
+        Represent the distribution as a list of pairs.
+        Sometimes we use a histogram to represent
+        just part of a probability distribution
+        (if the rest will be represented by some other distribution)
+        In this case, when converting to pairs,
+        downscale the p in this distribution to some amount of total p.
+        :total_p: the amount of p to keep in this distribution
+        :return: a list of pairs representing the distribution
+        """
+        if total_p > 1:
+            raise ValueError(
+                "Can only scale down the distribution below total p of 1. Doesn't make sense for total p to be more than 1."
+            )
+
         pairs = []
         bins = onp.array(self.bins)
         ps = onp.array(self.ps)
         for i, bin in enumerate(bins[:-1]):
             x = float((bin + bins[i + 1]) / 2.0)
             bin_size = float(bins[i + 1] - bin)
-            density = float(ps[i]) / bin_size
+            density = (float(ps[i]) * total_p) / bin_size
             pairs.append({"x": x, "density": density})
         return pairs
 
