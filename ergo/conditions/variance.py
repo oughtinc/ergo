@@ -18,6 +18,8 @@ class VarianceCondition(condition.Condition):
         super().__init__(weight)
 
     def actual_variance(self, dist) -> float:
+        # FIXME: Should be interacting with HistogramDist via pdf
+        #        or similar public interface
         xs = np.linspace(dist.scale_min, dist.scale_max, dist.ps.size)
         mean = np.dot(dist.ps, xs)
         return np.dot(dist.ps, np.square(xs - mean))
