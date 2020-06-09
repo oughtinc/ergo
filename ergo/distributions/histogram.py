@@ -17,6 +17,7 @@ class HistogramDist(Distribution, Optimizable):
     def __init__(
         self, logps=None, scale_min=0, scale_max=1, traceable=False, direct_init=None
     ):
+        # We assume that bin sizes are all equal
         if direct_init:
             self.logps = direct_init["logps"]
             self.ps = direct_init["ps"]
@@ -34,7 +35,8 @@ class HistogramDist(Distribution, Optimizable):
             self.size = logps.size
             self.scale_min = scale_min
             self.scale_max = scale_max
-        self.scale = scale.Scale(scale_min, scale_max)
+        self.scale = scale.Scale(self.scale_min, self.scale_max)
+        self.bin_size = (self.scale_max - self.scale_min) / self.logps.size
 
     def __hash__(self):
         return hash(self.__key())
@@ -84,10 +86,11 @@ class HistogramDist(Distribution, Optimizable):
 
         :param x: The point in the distribution to get the density at
         """
+        bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
         return np.where(
             (x < self.scale_min) | (x > self.scale_max),
             0,
-            self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
+            self.ps[bin] / self.bin_size,
         )
 
     def cdf(self, x):
@@ -98,14 +101,9 @@ class HistogramDist(Distribution, Optimizable):
 
         :param x: The point in the distribution to get the cumulative density at
         """
+        bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
         return np.where(
-            x < self.scale_min,
-            0,
-            np.where(
-                x > self.scale_max,
-                1,
-                self.cum_ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
-            ),
+            x < self.scale_min, 0, np.where(x > self.scale_max, 1, self.cum_ps[bin],),
         )
 
     def ppf(self, q):

@@ -51,5 +51,14 @@ class HistogramCondition(condition.Condition):
             (tuple(self.xs), tuple(self.densities), self.weight),
         )
 
+    def _describe_fit(self, dist):
+        description = super()._describe_fit(dist)
+        entry_distance_fn = lambda x, density: abs(density - dist.pdf(x))  # noqa: E731
+        distances = vmap(entry_distance_fn)(self.xs, self.densities)
+        description["max_distance"] = np.max(distances)
+        description["95th_distance"] = np.percentile(distances, 90)
+        description["mean_distance"] = np.mean(distances)
+        return description
+
     def __str__(self):
         return "The probability density function looks similar to the provided density function."
