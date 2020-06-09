@@ -218,7 +218,7 @@ def test_mode_condition():
     strong_outcome_dist = HistogramDist.from_conditions(
         strong_outcome_conditions, verbose=True
     )
-    assert strong_condition.loss(strong_outcome_dist) == 0
+    assert strong_condition.loss(strong_outcome_dist) == pytest.approx(0, abs=0.001)
 
 
 def test_mean_condition():
