@@ -212,7 +212,7 @@ class ContinuousQuestion(MetaculusQuestion):
         if not self.has_predictions:
             raise ValueError("There are currently no predictions for this question")
         normalized_sample = self.sample_normalized_community()
-        sample = np.array(self.denormalize_samples([normalized_sample]))
+        sample = np.array(self.scale.denormalize_points([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
         return float(sample)
@@ -374,14 +374,14 @@ class ContinuousQuestion(MetaculusQuestion):
             ]
 
         # get domain for graph given the percentage of distribution kept
-        xmin, xmax = self.denormalize_samples(
+        xmin, xmax = self.scale.denormalize_points(
             self.get_central_quantiles(
                 df, percent_kept=percent_kept, side_cut_from=side_cut_from,
             )
         )
 
         for col in df:
-            df[col] = self.denormalize_samples(df[col])
+            df[col] = self.scale.denormalize_points(df[col])
 
         df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
 
@@ -420,7 +420,7 @@ class ContinuousQuestion(MetaculusQuestion):
             [self.sample_normalized_community() for _ in range(0, num_samples)]
         )
 
-        _xmin, _xmax = self.denormalize_samples(
+        _xmin, _xmax = self.scale.denormalize_points(
             self.get_central_quantiles(
                 community_samples,
                 percent_kept=percent_kept,
@@ -428,7 +428,9 @@ class ContinuousQuestion(MetaculusQuestion):
             )
         )
 
-        df = pd.DataFrame(data={"samples": self.denormalize_samples(community_samples)})
+        df = pd.DataFrame(
+            data={"samples": self.scale.denormalize_points(community_samples)}
+        )
 
         plot = self.density_plot(df, _xmin, _xmax, **kwargs) + labs(
             x="Prediction",
@@ -487,3 +489,22 @@ class ContinuousQuestion(MetaculusQuestion):
             return 0
 
         return new["q2"] - old["q2"]
+
+    def normalize_samples(self, samples):
+        """
+        Map samples from their true scale to the Metaculus normalized scale
+        :param samples: samples from a distribution answering the prediction question
+            (true scale)
+        :return: samples on the normalized scale
+        """
+        return self.scale.normalize_points(samples)
+
+    def denormalize_samples(self, samples):
+        """
+        Map samples from the Metaculus normalized scale to the true scale
+        :param samples: samples on the normalized scale
+        :return: samples from a distribution answering the prediction question
+            (true scale)
+        """
+
+        return self.scale.denormalize_points(samples)

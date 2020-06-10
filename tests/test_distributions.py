@@ -3,6 +3,7 @@ import pytest
 import ergo
 from ergo.conditions import IntervalCondition, MaxEntropyCondition
 from ergo.distributions.histogram import HistogramDist
+from ergo.scale import Scale
 
 
 @pytest.mark.xfail(reason="New histogram dist doesn't interpolate")
@@ -34,7 +35,7 @@ def test_hist_pdf():
     assert uniform_dist.pdf(1.5) == 0
 
     # Denormalized
-    denormalized_dist = uniform_dist.denormalize(scale_min=0, scale_max=2)
+    denormalized_dist = uniform_dist.denormalize(Scale(0, 2))
     assert denormalized_dist.pdf(1.5) != 0
     assert denormalized_dist.pdf(2.5) == 0
 
@@ -51,7 +52,7 @@ def test_hist_cdf():
     assert uniform_dist.cdf(0.985) != uniform_dist.cdf(0.995)
 
     # Denormalized
-    denormalized_dist = uniform_dist.denormalize(scale_min=0, scale_max=2)
+    denormalized_dist = uniform_dist.denormalize(Scale(0, 2))
     assert denormalized_dist.cdf(1) == pytest.approx(0.5, abs=0.01)
     assert denormalized_dist.cdf(1.5) != 0
     assert denormalized_dist.cdf(2.5) == 1

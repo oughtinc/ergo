@@ -175,12 +175,11 @@ def test_percentile_roundtrip(LogisticMixtureClass):
         IntervalCondition(p=0.9, max=2.1386364698410034),
         IntervalCondition(p=0.99, max=2.3891870975494385),
     ]
-    scale_cls, scale_params = Scale(0, 4).destructure()
+
     mixture = LogisticMixtureClass.from_conditions(
         conditions,
         {"num_components": 3, "floor": 0, "ceiling": 4},
-        scale_cls=scale_cls,
-        scale_params=scale_params,
+        scale=Scale(0, 4),
         verbose=True,
     )
     recovered_conditions = mixture.percentiles(
@@ -192,15 +191,11 @@ def test_percentile_roundtrip(LogisticMixtureClass):
 
 def test_mixture_from_histogram(histogram):
     conditions = [HistogramCondition(histogram["xs"], histogram["densities"])]
-    scale_cls, scale_params = Scale(
-        min(histogram["xs"]), max(histogram["xs"])
-    ).destructure()
+
     mixture = LogisticMixture.from_conditions(
         conditions,
         {"num_components": 3},
-        verbose=True,
-        scale_cls=scale_cls,
-        scale_params=scale_params,
+        Scale(min(histogram["xs"]), max(histogram["xs"])),
     )
     for (x, density) in zip(histogram["xs"], histogram["densities"]):
         assert mixture.pdf(x) == pytest.approx(density, abs=0.2)
@@ -353,14 +348,11 @@ def test_mixed_2(histogram):
 def test_histogram_fit(histogram):
     condition = HistogramCondition(histogram["xs"], histogram["densities"])
     conditions = (condition,)
-    scale_cls, scale_params = Scale(
-        min(histogram["xs"]), max(histogram["xs"])
-    ).destructure()
+
     dist = HistogramDist.from_conditions(
         conditions,
         {"num_bins": 100},
-        scale_cls=scale_cls,
-        scale_params=scale_params,
+        Scale(min(histogram["xs"]), max(histogram["xs"])),
         verbose=True,
     )
     for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):

@@ -44,10 +44,7 @@ class Optimizable(ABC):
         if fixed_params is None:
             fixed_params = {}
         if scale is None:
-            _range = max(data) - min(data)
-            scale = Scale(
-                scale_min=min(data) - _range / 2, scale_max=max(data) + _range / 2
-            )
+            scale = Scale(scale_min=min(data), scale_max=max(data))
         data = np.array(data)
         fixed_params = cls.normalize_fixed_params(fixed_params, scale)
         normalized_data = np.array(scale.normalize_points(data))
@@ -75,8 +72,8 @@ class Optimizable(ABC):
         cls: Type[T],
         conditions: Sequence[Condition],
         fixed_params=None,
-        verbose=False,
         scale=None,
+        verbose=False,
         init_tries=1,
         opt_tries=1,
         jit_all=False,
@@ -154,7 +151,6 @@ class Optimizable(ABC):
             print(fit_results)
         optimized_params = fit_results.x
 
-        import ipdb; ipdb.set_trace()
         return cls.from_params(fixed_params, optimized_params)
 
     @classmethod

@@ -23,6 +23,25 @@ def easyLogistic(loc, scale):
 
 
 @pytest.fixture(scope="module")
+def normalized_logistic_mixture():
+    return LogisticMixture(
+        components=[
+            Logistic(loc=0.15, scale=0.037034005),
+            Logistic(loc=0.85, scale=0.032395907),
+        ],
+        probs=[0.6, 0.4],
+    )
+
+
+@pytest.fixture(scope="module")
+def logistic_mixture():
+    return LogisticMixture(
+        components=[Logistic(loc=10000, scale=1000), Logistic(loc=100000, scale=10000)],
+        probs=[0.8, 0.2],
+    )
+
+
+@pytest.fixture(scope="module")
 def logistic_mixture10():
     xscale = Scale(-20, 40)
     return LogisticMixture(

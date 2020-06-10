@@ -115,6 +115,52 @@ class LogScale(Scale):
         return (LogScale, (self.scale_min, self.scale_max, self.log_base))
 
 
+class DateScale(Scale):
+    def __post_init__(self):
+        self.scale_range = self.scale_max - self.scale_min
+
+    def __hash__(self):
+        return super.__hash__(self)
+
+    # TODO do we still need this default?
+    def normalize_point(self, point):
+        """
+        Get a prediciton sample value on the normalized scale from a true-scale value
+
+        :param true_value: a sample value on the true scale
+        :return: a sample value on the normalized scale
+        """
+        if point is None:
+            raise Exception("Point was None This shouldn't happen")
+        shifted = point - self.scale_min
+        numerator = shifted * (self.log_base - 1)
+        scaled = numerator / self.scale_range
+        timber = 1 + scaled
+        floored_timber = np.amax([timber, 1e-9])
+
+        return np.log(floored_timber) / np.log(self.log_base)
+
+    # TODO do we still need this default?
+    def denormalize_point(self, point):
+        """
+        Get a value on the true scale from a normalized-scale value
+
+        :param normalized_value: [description]
+        :type normalized_value: [type]
+        :return: [description]
+        :rtype: [type]
+        """
+        if point is None:
+            raise Exception("Point was None This shouldn't happen")
+        deriv_term = (self.log_base ** point - 1) / (self.log_base - 1)
+        scaled = self.scale_range * deriv_term
+        return self.scale_min + scaled
+        return (point * self.scale_range) + self.scale_min
+
+    def destructure(self):
+        return (LogScale, (self.scale_min, self.scale_max, self.log_base))
+
+
 def scale_factory(class_name, params):
     if type(class_name) == str:
         if class_name == "Scale":
