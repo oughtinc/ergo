@@ -154,7 +154,6 @@ class Optimizable(ABC):
             print(fit_results)
         optimized_params = fit_results.x
 
-        import ipdb; ipdb.set_trace()
         return cls.from_params(fixed_params, optimized_params)
 
     @classmethod

@@ -25,7 +25,7 @@ def test_cdf():
 # TODO test truncated Logistic better in this file
 
 
-@pytest.mark.slow
+# @pytest.mark.slow
 def test_pdf(logistic_mixture_p_uneven):
     ## on normed scale ##
     xscale = Scale(0, 1)
@@ -218,3 +218,22 @@ def test_logistic_mixture_normalization():
         [0.5, 0.5],
         Scale(0, 1),
     )
+
+
+def test_destructure(logistic_mixture10, truncated_logistic_mixture):
+    for original_mixture in [logistic_mixture10, truncated_logistic_mixture]:
+        cls, params = original_mixture.destructure()
+        recovered_mixture = cls.structure(params)
+        assert recovered_mixture.probs == pytest.approx(original_mixture.probs)
+        if hasattr(original_mixture, "floor"):
+            assert recovered_mixture.floor == pytest.approx(original_mixture.floor)
+            assert recovered_mixture.ceiling == pytest.approx(original_mixture.ceiling)
+        for recovered_component, orginal_component in zip(
+            recovered_mixture.components, original_mixture.components
+        ):
+            assert recovered_component.loc == pytest.approx(
+                float(orginal_component.loc)
+            )
+            assert recovered_component.scale == pytest.approx(
+                float(orginal_component.scale)
+            )

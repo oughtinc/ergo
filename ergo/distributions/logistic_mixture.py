@@ -79,3 +79,17 @@ class LogisticMixture(Mixture, Optimizable):
     def normalize_fixed_params(self, fixed_params, scale: Scale):
         # no normalization required
         return fixed_params
+
+    def destructure(self):
+        raise NotImplementedError
+        # params = ([(c.loc, c.scale) for c in self.components], self.probs, self.scale.destructure())
+        # return (LogisticMixture, params)
+
+    @classmethod
+    def structure(cls, params):
+        raise NotImplementedError
+        # component_params, probs, scale_params = params
+        # scale = Scale(*scale_params) # should use .structure
+        # components = [Logistic(l, s, scale) for (l, s) in component_params]
+        # return cls(components=components, probs=probs, scale=scale)
+

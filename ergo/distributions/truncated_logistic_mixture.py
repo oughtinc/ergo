@@ -51,7 +51,10 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         Percent point function (inverse of cdf) at q.
         """
         return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q, self.floor, self.ceiling, maxiter=1000,
+            lambda x: self.cdf(x) - q,
+            self.floor - 1e-9,
+            self.ceiling + 1e-9,
+            maxiter=1000,
         )
 
     def sample(self):
@@ -112,3 +115,25 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         norm_fixed_params["floor"] = scale.normalize_point(fixed_params["floor"])
         norm_fixed_params["ceiling"] = scale.normalize_point(fixed_params["ceiling"])
         return norm_fixed_params
+
+    def destructure(self):
+        raise NotImplementedError
+        # scale_cls, scale_params = self.scale.destructure()
+        # params = (
+        #     [(c.loc, c.scale) for c in self.components],
+        #     self.probs,
+        #     (self.floor, self.ceiling),
+        #     scale_params
+        # )
+        # return ((TruncatedLogisticMixture, scale_cls), params)
+
+    @classmethod
+    def structure(cls, params):
+        raise NotImplementedError
+        # dist_cls, scale_cls = cls
+        # component_params, probs, limits, scale_params = params
+        # scale = Scale(*scale_params) # should use .structure
+        # components = [Logistic(l, s, scale) for (l, s) in component_params]
+        # return cls(
+        #     components=components, probs=probs, floor=limits[0], ceiling=limits[1], scale=scale
+        # )
