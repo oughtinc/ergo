@@ -81,7 +81,7 @@ def describe_fit(dist_classes, dist_params, cond_class, cond_params):
         dist = dist_classes.structure(dist_params)
     else:
         dist_class, scale_class = dist_classes
-        dist = dist_class.structure(*dist_params, scale_class)
+        dist = dist_class.structure((*dist_params, scale_class))
     condition = cond_class.structure(cond_params)
     return condition._describe_fit(dist)
 

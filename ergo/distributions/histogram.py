@@ -133,7 +133,7 @@ class HistogramDist(Distribution, Optimizable):
         )
 
     @classmethod
-    def structure(cls, *params):
+    def structure(cls, params):
         return cls(
             direct_init={
                 "logps": params[0],

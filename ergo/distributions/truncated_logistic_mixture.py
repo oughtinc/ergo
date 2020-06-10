@@ -34,6 +34,7 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         self.logp_inside = np.log(self.p_inside)
 
     def logpdf(self, x):
+        # assumes x is normalized
         logp_x = self.base_dist.logpdf(x) - self.logp_inside
         res = np.where(
             x < self.normed_floor,

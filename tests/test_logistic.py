@@ -4,6 +4,7 @@ import pytest
 import scipy.stats
 
 from ergo import Logistic, LogisticMixture, TruncatedLogisticMixture
+from ergo.conditions import HistogramCondition
 from ergo.scale import Scale
 
 
@@ -220,7 +221,6 @@ def test_logistic_mixture_normalization():
     )
 
 
-@pytest.mark.look
 def test_destructure(logistic_mixture10, truncated_logistic_mixture):
     for original_mixture in [logistic_mixture10, truncated_logistic_mixture]:
         classes, params = original_mixture.destructure()
@@ -237,3 +237,9 @@ def test_destructure(logistic_mixture10, truncated_logistic_mixture):
                 float(orginal_component.loc)
             )
             assert recovered_component.scale == orginal_component.scale
+
+
+def test_destructure_with_cond(truncated_logistic_mixture, histogram):
+    HistogramCondition(histogram["xs"], histogram["densities"]).describe_fit(
+        truncated_logistic_mixture
+    )
