@@ -50,6 +50,9 @@ class HistogramDist(Distribution, Optimizable):
     def __key(self):
         return tuple(self.logps)
 
+    def __repr__(self):
+        return f"{self.__class__}(size={self.size}, scale={self.scale}, bins={self.bins}, ps: {self.ps})"
+
     def entropy(self):
         return -np.dot(self.ps, self.logps)
 

@@ -30,6 +30,9 @@ class Logistic(Distribution):
         self.true_s = s  # convenience field not used ergo internal
         self.true_loc = loc  # convenience field not used ergo internal
 
+    def __repr__(self):
+        return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s})"
+
     def rv(self):
         # returns normed rv object
         return self.odist(loc=self.loc, scale=self.s)
