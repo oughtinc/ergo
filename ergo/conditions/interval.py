@@ -39,13 +39,21 @@ class IntervalCondition(condition.Condition):
         return description
 
     def normalize(self, scale: Scale):
-        normalized_min = scale.normalize_point(self.min)
-        normalized_max = scale.normalize_point(self.max)
+        normalized_min = (
+            scale.normalize_point(self.min) if self.min is not None else None
+        )
+        normalized_max = (
+            scale.normalize_point(self.max) if self.max is not None else None
+        )
         return self.__class__(self.p, normalized_min, normalized_max, self.weight)
 
     def denormalize(self, scale: Scale):
-        denormalized_min = scale.denormalize_point(self.min)
-        denormalized_max = scale.denormalize_point(self.max)
+        denormalized_min = (
+            scale.denormalize_point(self.min) if self.min is not None else None
+        )
+        denormalized_max = (
+            scale.denormalize_point(self.max) if self.max is not None else None
+        )
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
 
     def destructure(self):

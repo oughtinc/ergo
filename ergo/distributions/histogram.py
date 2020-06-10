@@ -36,7 +36,7 @@ class HistogramDist(Distribution, Optimizable):
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
             self.bins = np.linspace(0, 1, self.logps.size + 1)
-        # print(f"I am now {self.size} big")
+
         self.bin_size = 1 / self.logps.size
         # given we are using uniform bin sizes on a normalized scale, this isn't necessary
         # self.truebin_size = (
