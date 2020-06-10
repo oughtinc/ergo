@@ -28,8 +28,8 @@ class Logistic(Distribution):
         self.s = np.max([s, 0.0000001]) / scale.scale_range
         self.scale = scale
         self.metadata = metadata
-        self.true_s = s  # convenience field not used ergo internal
-        self.true_loc = loc  # convenience field not used ergo internal
+        self.true_s = s
+        self.true_loc = loc
 
     def __repr__(self):
         return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"

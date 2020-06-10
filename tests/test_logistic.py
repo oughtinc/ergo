@@ -220,10 +220,12 @@ def test_logistic_mixture_normalization():
     )
 
 
+@pytest.mark.look
 def test_destructure(logistic_mixture10, truncated_logistic_mixture):
     for original_mixture in [logistic_mixture10, truncated_logistic_mixture]:
-        cls, params = original_mixture.destructure()
-        recovered_mixture = cls.structure(params)
+        classes, params = original_mixture.destructure()
+        cls, scale_cls = classes
+        recovered_mixture = cls.structure((*params, scale_cls))
         assert recovered_mixture.probs == pytest.approx(original_mixture.probs)
         if hasattr(original_mixture, "floor"):
             assert recovered_mixture.floor == pytest.approx(original_mixture.floor)
@@ -234,6 +236,4 @@ def test_destructure(logistic_mixture10, truncated_logistic_mixture):
             assert recovered_component.loc == pytest.approx(
                 float(orginal_component.loc)
             )
-            assert recovered_component.scale == pytest.approx(
-                float(orginal_component.scale)
-            )
+            assert recovered_component.scale == orginal_component.scale

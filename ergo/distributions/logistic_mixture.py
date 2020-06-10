@@ -81,14 +81,17 @@ class LogisticMixture(Mixture, Optimizable):
         return fixed_params
 
     def destructure(self):
-        raise NotImplementedError
-        # params = ([(c.loc, c.scale) for c in self.components], self.probs, self.scale.destructure())
-        # return (LogisticMixture, params)
+        scale_cls, scale_params = self.scale.destructure()
+        params = (
+            [(c.true_loc, c.true_s) for c in self.components],
+            self.probs,
+            scale_params,
+        )
+        return ((LogisticMixture, scale_cls), params)
 
     @classmethod
     def structure(cls, params):
-        raise NotImplementedError
-        # component_params, probs, scale_params = params
-        # scale = Scale(*scale_params) # should use .structure
-        # components = [Logistic(l, s, scale) for (l, s) in component_params]
-        # return cls(components=components, probs=probs, scale=scale)
+        component_params, probs, scale_params, scale_cls = params
+        scale = scale_cls(*scale_params)
+        components = [Logistic(l, s, scale) for (l, s) in component_params]
+        return cls(components=components, probs=probs, scale=scale)
