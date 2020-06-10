@@ -184,13 +184,18 @@ class Metaculus:
         questions_json = self.get_questions_json(
             question_status, player_status, cat, pages, False
         )
+
+        def is_log_date(data: Dict) -> bool:
+            return (
+                data["possibilities"]["type"] == "continuous"
+                and data["possibilities"]["scale"]["deriv_ratio"] != 1
+            )
+
         questions = []
         for q in questions_json:
-            try:
+            if not is_log_date(q):
                 questions.append(self.make_question_from_data(q))
-            except NotImplementedError as e:
-                if not fail_silent:
-                    raise e
+
         return questions
 
     def get_questions_json(
