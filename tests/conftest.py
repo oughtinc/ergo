@@ -9,7 +9,6 @@ import pandas as pd
 import pytest
 
 import ergo
-
 from ergo.distributions import Logistic, LogisticMixture, TruncatedLogisticMixture
 from ergo.scale import Scale
 
@@ -53,17 +52,15 @@ def logistic_mixture_p_uneven():
 def truncated_logistic_mixture():
     xscale = Scale(5000, 120000)
     return TruncatedLogisticMixture(
-        components=[Logistic(loc=10000, s=1000, scale=xscale), Logistic(loc=100000, s=10000, scale=xscale)],
+        components=[
+            Logistic(loc=10000, s=1000, scale=xscale),
+            Logistic(loc=100000, s=10000, scale=xscale),
+        ],
         probs=[0.8, 0.2],
         floor=5000,
         ceiling=500000,
-        scale=xscale
+        scale=xscale,
     )
-
-
-@pytest.fixture(scope="module")
-def logistic_mixture_samples(logistic_mixture, n=1000):
-    return np.array([logistic_mixture.sample() for _ in range(0, n)])
 
 
 @pytest.fixture(scope="module")

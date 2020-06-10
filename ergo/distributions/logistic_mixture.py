@@ -92,4 +92,3 @@ class LogisticMixture(Mixture, Optimizable):
         # scale = Scale(*scale_params) # should use .structure
         # components = [Logistic(l, s, scale) for (l, s) in component_params]
         # return cls(components=components, probs=probs, scale=scale)
-
