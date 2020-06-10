@@ -165,11 +165,7 @@ class HistogramDist(Distribution, Optimizable):
         logps = onp.log(onp.array(densities) / sum(densities))
         return cls(logps, scale)
 
-    def to_pairs(
-        self, true_scale=True, verbose=False,
-    ):
-
-        pairs = []
+    def to_lists(self, true_scale=True, verbose=False):
         bins = self.bins
         xs = (bins[:-1] + bins[1:]) / 2
 
@@ -179,36 +175,30 @@ class HistogramDist(Distribution, Optimizable):
 
         if type(self.scale) != LogScale:
             ps = np.divide(self.ps, bins[1:] - bins[:-1])
+
         else:
-            # TODO figure out analytic integral for log dist
             auc = trapz(self.ps, xs)
             ps = self.ps / auc
-        pairs = [
-            {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
-        ]
 
         if verbose:
             import pandas as pd
 
-            df = pd.DataFrame.from_records(pairs)
+            df = pd.DataFrame(data={"x": xs, "density": ps})
             auc = trapz(df["density"], df["x"])
             print(f"AUC is {auc}")
             print(f"scale is {self.scale}")
 
-        return pairs
+        return xs, ps
 
-    def to_lists(self, normalized=False):
-        xs = []
-        densities = []
-        bins = self.bins
-        ps = onp.array(self.ps)
-        for i, bin in enumerate(bins[:-1]):
-            x = float((bin + bins[i + 1]) / 2.0)
-            bin_size = float(bins[i + 1] - bin)
-            density = float(ps[i]) / bin_size
-            xs.append(x)
-            densities.append(density)
-        return xs, densities
+    def to_pairs(
+        self, true_scale=True, verbose=False,
+    ):
+
+        xs, ps = self.to_lists(true_scale=True, verbose=False)
+
+        return [
+            {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
+        ]
 
     def to_arrays(self, normalized=False):
         # TODO: vectorize
