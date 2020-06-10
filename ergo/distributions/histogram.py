@@ -4,9 +4,10 @@ from jax import nn
 import jax.numpy as np
 import numpy as onp
 from scipy.integrate import trapz
+from scipy.interpolate import interp1d
 
 from ergo import conditions
-from ergo.scale import Scale
+from ergo.scale import LogScale, Scale
 
 from .distribution import Distribution
 from .optimizable import Optimizable
@@ -24,6 +25,7 @@ class HistogramDist(Distribution, Optimizable):
             self.logps = direct_init["logps"]
             self.ps = direct_init["ps"]
             self.cum_ps = direct_init["cum_ps"]
+            self.bins = direct_init["bins"]
             self.size = direct_init["size"]
             self.scale = direct_init["scale"]
         else:
@@ -33,11 +35,13 @@ class HistogramDist(Distribution, Optimizable):
             self.cum_ps = np.array(init_numpy.cumsum(self.ps))
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
-            # self.bins = np.linspace(0, 1, self.logps.size + 1)
-        self.bins = np.linspace(0, 1, self.logps.size + 1)
-        self.bin_size = (
-            self.scale.scale_max - self.scale.scale_min
-        ) / self.logps.size  # will always be .005 if dealing with the 200ps from metaculus
+            self.bins = np.linspace(0, 1, self.logps.size + 1)
+        # print(f"I am now {self.size} big")
+        self.bin_size = 1 / self.logps.size
+        # given we are using uniform bin sizes on a normalized scale, this isn't necessary
+        # self.truebin_size = (
+        #     self.scale.scale_max - self.scale.scale_min
+        # ) / self.logps.size
 
     def __hash__(self):
         return hash(self.__key())
@@ -126,7 +130,7 @@ class HistogramDist(Distribution, Optimizable):
         scale_cls, scale_params = self.scale.destructure()
         return (
             (HistogramDist, scale_cls),
-            (self.logps, self.ps, self.cum_ps, self.size, self.scale_params),
+            (self.logps, self.ps, self.cum_ps, self.bins, self.size, scale_params),
         )
 
     @classmethod
@@ -136,47 +140,47 @@ class HistogramDist(Distribution, Optimizable):
                 "logps": params[0],
                 "ps": params[1],
                 "cum_ps": params[2],
-                "size": params[3],
-                "scale": params[5](*params[4]),
+                "bins": params[3],
+                "size": params[4],
+                "scale": params[6](*params[5]),
             }
         )
 
     @classmethod
-    def from_pairs(cls, pairs, scale: Scale, normalized=False):
+    def from_pairs(cls, pairs, scale: Scale, normalized=False, bins=201):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         if not normalized:
             xs = scale.normalize_points(xs)
         densities = [density for (x, density) in sorted_pairs]
 
+        bins = onp.linspace(0, 1, bins)
+        target_xs = (bins[:-1] + bins[1:]) / 2  # get midpoint of each bin for x coord
         # interpolate ps at normalized x bins
-        bins = onp.linspace(0, 1, len(densities) + 1)
-        target_xs = (bins[:-1] + bins[1:]) / 2
-
-        if not np.isclose(xs, target_xs, rtol=1e-04).all():
-            from scipy.interpolate import interp1d  # type: ignore
-
+        if not (
+            len(xs) == len(target_xs) and np.isclose(xs, target_xs, rtol=1e-04).all()
+        ):
             f = interp1d(xs, densities)
             densities = f(target_xs)
-        logps = onp.log(
-            onp.array(densities) / sum(densities)
-        )  # TODO investigate why scale the densities with /sum(densities?)
+        logps = onp.log(onp.array(densities) / sum(densities))
         return cls(logps, scale)
 
     def to_pairs(
-        self, true_scale=True, linear_normalize=False, verbose=False,
+        self, true_scale=True, verbose=False,
     ):
+
         pairs = []
         bins = self.bins
-        xs = (bins[:-1] + bins[1:]) / 2  # get midpoint of each bin for x coord
+        xs = (bins[:-1] + bins[1:]) / 2
 
         if true_scale:
             xs = np.array(self.scale.denormalize_points(xs))
             bins = np.array(self.scale.denormalize_points(self.bins))
 
-        if linear_normalize:
+        if type(self.scale) != LogScale:
             ps = np.divide(self.ps, bins[1:] - bins[:-1])
         else:
+            # TODO figure out analytic integral for log dist
             auc = trapz(self.ps, xs)
             ps = self.ps / auc
         pairs = [
