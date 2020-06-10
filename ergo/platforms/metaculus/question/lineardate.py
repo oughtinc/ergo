@@ -1,4 +1,5 @@
-from datetime import date, datetime, timedelta
+import datetime
+from typing import Any, Dict
 
 import pandas as pd
 from plotnine import (
@@ -13,83 +14,32 @@ from plotnine import (
     theme,
 )
 
+from ergo.scale import TimeScale
 from ergo.theme import ergo_theme
 
 from .linear import LinearQuestion
 
 
 class LinearDateQuestion(LinearQuestion):
-    # TODO: add log functionality (if some psychopath makes a log scaled date question)
+    scale: TimeScale
+
+    def __init__(
+        self, id: int, metaculus: Any, data: Dict, name=None,
+    ):
+        super().__init__(id, metaculus, data, name)
+
+        self.scale = TimeScale(
+            datetime.datetime.strptime(
+                self.possibilities["scale"]["min"], "%Y-%m-%d"
+            ).date(),
+            datetime.datetime.strptime(
+                self.possibilities["scale"]["max"], "%Y-%m-%d"
+            ).date(),
+            "days",
+        )
 
     def _scale_x(self, xmin: float = None, xmax: float = None):
         return scale_x_datetime(limits=(xmin, xmax))
-
-    @property
-    def question_range(self):
-        """
-        Question range from the Metaculus data plus the question's data range
-        """
-        qr = {
-            "min": 0,
-            "max": 1,
-            "date_min": datetime.strptime(
-                self.possibilities["scale"]["min"], "%Y-%m-%d"
-            ).date(),
-            "date_max": datetime.strptime(
-                self.possibilities["scale"]["max"], "%Y-%m-%d"
-            ).date(),
-        }
-        qr["date_range"] = (qr["date_max"] - qr["date_min"]).days
-        return qr
-
-    # TODO Make less fancy. Would be better to only accept datetimes
-    def normalize_samples(self, samples):
-        """
-        Normalize samples from dates to the normalized scale used by the Metaculus API
-
-        :param samples: dates from the predicted distribution answering the question
-        :return: normalized samples
-        """
-        if isinstance(samples[0], date):
-            if type(samples) != pd.Series:
-                try:
-                    samples = pd.Series(samples)
-                except ValueError:
-                    raise ValueError("Could not process samples vector")
-            return self.normalize_dates(samples)
-        else:
-            return super().scale.normalize_points(samples)
-
-    def normalize_dates(self, dates: pd.Series):
-        """
-        Map dates to the normalized scale used by the Metaculus API
-
-        :param dates: a pandas series of dates
-        :return: normalized samples
-        """
-
-        return (dates - self.question_range["date_min"]).dt.days / self.question_range[
-            "date_range"
-        ]
-
-    def denormalize_samples(self, samples):
-        """
-        Map normalized samples to dates using the date range from the question
-
-        :param samples: normalized samples
-        :return: dates
-        """
-
-        def denorm(sample):
-            return self.question_range["date_min"] + timedelta(
-                days=round(self.question_range["date_range"] * sample)
-            )
-
-        if type(samples) == float:
-            return denorm(samples)
-        else:
-            samples = pd.Series(samples)
-            return samples.apply(denorm)
 
     # TODO enforce return type date/datetime
     def sample_community(self):
