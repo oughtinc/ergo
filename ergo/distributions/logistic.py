@@ -22,16 +22,17 @@ class Logistic(Distribution):
     dist = scipy.stats.logistic
     odist = oscipy.stats.logistic
 
-    def __init__(self, loc: float, s: float, scale: Scale):
+    def __init__(self, loc: float, s: float, scale: Scale, metadata=None):
         # TODO (#303): Raise ValueError on scale < 0
         self.loc = scale.normalize_point(loc)
         self.s = np.max([s, 0.0000001]) / scale.scale_range
         self.scale = scale
+        self.metadata = metadata
         self.true_s = s  # convenience field not used ergo internal
         self.true_loc = loc  # convenience field not used ergo internal
 
     def __repr__(self):
-        return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s})"
+        return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
 
     def rv(self):
         # returns normed rv object
@@ -69,7 +70,7 @@ class Logistic(Distribution):
         :param scale: the true scale
         :return: the condition normalized to [0,1]
         """
-        return self.__class__(self.loc, self.s, Scale(0, 1))
+        return self.__class__(self.loc, self.s, Scale(0, 1), self.metadata)
 
     # Note: only the scale is necessary to change as the distribution params are
     # always stored in normalized form.
@@ -81,4 +82,4 @@ class Logistic(Distribution):
         """
         denormalized_loc = scale.denormalize_point(self.loc)
         denormalized_s = self.s * scale.scale_range
-        return self.__class__(denormalized_loc, denormalized_s, scale)
+        return self.__class__(denormalized_loc, denormalized_s, scale, self.metadata)

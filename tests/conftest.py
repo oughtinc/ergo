@@ -26,18 +26,24 @@ def easyLogistic(loc, scale):
 def normalized_logistic_mixture():
     return LogisticMixture(
         components=[
-            Logistic(loc=0.15, scale=0.037034005),
-            Logistic(loc=0.85, scale=0.032395907),
+            Logistic(loc=0.15, s=0.037034005, scale=Scale(0, 1)),
+            Logistic(loc=0.85, s=0.032395907, scale=Scale(0, 1)),
         ],
         probs=[0.6, 0.4],
+        scale=Scale(0, 1),
     )
 
 
 @pytest.fixture(scope="module")
 def logistic_mixture():
+    xscale = Scale(0, 150000)
     return LogisticMixture(
-        components=[Logistic(loc=10000, scale=1000), Logistic(loc=100000, scale=10000)],
+        components=[
+            Logistic(loc=10000, s=1000, scale=xscale),
+            Logistic(loc=100000, s=10000, scale=xscale),
+        ],
         probs=[0.8, 0.2],
+        scale=xscale,
     )
 
 

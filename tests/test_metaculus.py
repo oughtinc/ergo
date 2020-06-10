@@ -26,7 +26,7 @@ def test_date_normalize_denormalize(metaculus_questions, date_samples):
     denormalized = metaculus_questions.continuous_linear_date_open_question.denormalize_samples(
         normalized
     )
-    assert all(denormalized == date_samples)
+    assert denormalized == date_samples
 
 
 def test_normalize_denormalize(metaculus_questions):
@@ -36,6 +36,7 @@ def test_normalize_denormalize(metaculus_questions):
     assert denormalized == pytest.approx(samples, abs=1e-5)
 
 
+@pytest.mark.look
 def test_submit_continuous_linear_open(metaculus_questions, logistic_mixture):
     submission = metaculus_questions.continuous_linear_open_question.prepare_logistic_mixture(
         logistic_mixture
@@ -97,9 +98,10 @@ def test_score_binary(metaculus_questions):
     metaculus_questions.binary_question.score_my_predictions()
 
 
+@pytest.mark.look
 def test_get_questions(metaculus):
     questions = metaculus.get_questions(question_status="closed")
-    assert len(questions) >= 20
+    assert len(questions) >= 15
 
 
 def test_get_questions_json(metaculus):

@@ -17,17 +17,16 @@ from plotnine import (
 from ergo.scale import TimeScale
 from ergo.theme import ergo_theme
 
-from .linear import LinearQuestion
+from .linear import ContinuousQuestion
 
 
-class LinearDateQuestion(LinearQuestion):
+class LinearDateQuestion(ContinuousQuestion):
     scale: TimeScale
 
     def __init__(
         self, id: int, metaculus: Any, data: Dict, name=None,
     ):
         super().__init__(id, metaculus, data, name)
-
         self.scale = TimeScale(
             datetime.datetime.strptime(
                 self.possibilities["scale"]["min"], "%Y-%m-%d"

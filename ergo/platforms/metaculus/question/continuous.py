@@ -112,7 +112,7 @@ class ContinuousQuestion(MetaculusQuestion):
             raise ValueError("logistic_params.scale must be greater than 0")
 
         clipped_loc = min(normalized_dist.loc, max_loc)
-        clipped_scale = float(onp.clip(normalized_dist.scale, min_scale, max_scale))  # type: ignore
+        clipped_scale = float(onp.clip(normalized_dist.s, min_scale, max_scale))  # type: ignore
 
         if self.low_open:
             low = float(onp.clip(normalized_dist.cdf(0), min_open_low, max_open_low,))
@@ -126,7 +126,9 @@ class ContinuousQuestion(MetaculusQuestion):
         else:
             high = 1
 
-        return dist.Logistic(clipped_loc, clipped_scale, Scale(low, high))
+        return dist.Logistic(
+            clipped_loc, clipped_scale, Scale(0, 1), {"low": low, "high": high}
+        )
 
     def prepare_logistic_mixture(
         self, normalized_dist: dist.LogisticMixture
@@ -142,7 +144,7 @@ class ContinuousQuestion(MetaculusQuestion):
             self.prepare_logistic(c) for c in normalized_dist.components
         ]
         transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
-        return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
+        return dist.LogisticMixture(transformed_components, transformed_probs, Scale(0, 1))  # type: ignore
 
     def community_dist(self) -> dist.HistogramDist:
         """
@@ -241,8 +243,8 @@ class ContinuousQuestion(MetaculusQuestion):
             "x0": float(submission.loc),
             "s": float(submission.s),
             "w": float(weight),
-            "low": submission.scale.scale_min,
-            "high": submission.scale.scale_max,
+            "low": float(submission.metadata["low"]),
+            "high": float(submission.metadata["high"]),
         }
 
     def submit(self, submission: dist.LogisticMixture) -> requests.Response:
