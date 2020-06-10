@@ -80,9 +80,8 @@ class HistogramDist(Distribution, Optimizable):
         num_bins = fixed_params.get("num_bins", 100)
         return onp.full(num_bins, -num_bins)
 
-    def normalize(self, scale: Scale = None):
-        scale = scale if scale else Scale(0, 1)
-        return HistogramDist(self.logps, scale=scale)
+    def normalize(self):
+        return HistogramDist(self.logps, scale=Scale(0, 1))
 
     def denormalize(self, scale: Scale):
         return HistogramDist(self.logps, scale)

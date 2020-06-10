@@ -148,4 +148,4 @@ def scale_factory(class_name, params):
             return Scale(*params)
         elif class_name == "LogScale":
             return LogScale(*params)
-    print("cannot reconstruct Scale")
+    raise TypeError("cannot reconstruct Scale")
