@@ -10,7 +10,7 @@ import pytest
 
 import ergo
 from ergo.distributions import Logistic, LogisticMixture, TruncatedLogisticMixture
-from ergo.scale import Scale
+from ergo.scale import Scale, LogScale
 
 
 def three_sd_scale(loc, s):
@@ -208,3 +208,13 @@ def make_histogram():
         ]
     )
     return {"xs": xs, "densities": densities}
+
+
+scales_to_test = [
+    Scale(0, 1),
+    Scale(0, 10000),
+    Scale(-1, 1),
+    LogScale(0, 1, 10),
+    LogScale(-1, 1, 10),
+    LogScale(0, 1028, 2),
+]
