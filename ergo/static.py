@@ -59,8 +59,10 @@ def single_condition_loss(
     dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
 ):
     print(
-        f"Tracing {dist_class.__name__} condition loss for"
-        f" {cond_class.__name__} with params {cond_param}"
+        f"Tracing {dist_class.__name__} condition loss for {cond_class.__name__}:\n"
+        f"- Fixed: {dist_fixed_params}\n"
+        f"- Optim: {dist_opt_params}\n"
+        f"- Cond: {cond_param}\n\n"
     )
     dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     condition = cond_class.structure(cond_param)
