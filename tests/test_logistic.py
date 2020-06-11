@@ -76,6 +76,21 @@ def test_pdf(xscale: Scale):
 
         plt.show()
 
+        plt.figure()
+
+        xs = onp.linspace(0, 1, 10)
+
+        scipy_ys = [normed_scipydist.pdf(x) for x in xs]
+
+        ergo_ys = [float(ergoLogistic.pdf(xscale.denormalize_point(x))) for x in xs]
+
+        seaborn.lineplot(xs, scipy_ys)
+        seaborn.lineplot(xs, ergo_ys)
+
+        plt.legend()
+
+        plt.show()
+
         for x in np.linspace(0, 1, 10):
             denormalized_x = xscale.denormalize_point(x)
             assert (
