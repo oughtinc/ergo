@@ -29,14 +29,14 @@ class HistogramCondition(condition.Condition):
     def normalize(self, scale: Scale):
         normalized_xs = np.array([scale.normalize_point(x) for x in self.xs])
         normalized_densities = np.array(
-            [density * scale.scale_range for density in self.densities]
+            [density * scale.width for density in self.densities]
         )
         return self.__class__(normalized_xs, normalized_densities, self.weight)
 
     def denormalize(self, scale: Scale):
         denormalized_xs = np.array([scale.denormalize_point(x) for x in self.xs])
         denormalized_densities = np.array(
-            [density / scale.scale_range for density in self.densities]
+            [density / scale.width for density in self.densities]
         )
         return self.__class__(denormalized_xs, denormalized_densities, self.weight)
 
