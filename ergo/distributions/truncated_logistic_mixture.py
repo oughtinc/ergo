@@ -61,9 +61,9 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
     def from_params(cls, fixed_params, opt_params, traceable=True):
         floor = fixed_params["floor"]
         ceiling = fixed_params["ceiling"]
-        # Hardcode -2 and 3 for now since importing causes an import cycle
-        loc_floor = floor + (ceiling - floor) * -2
-        loc_ceiling = floor + (ceiling - floor) * 3
+        # Allow logistic center to exceed the range by 50%
+        loc_floor = floor + (ceiling - floor) * -0.5
+        loc_ceiling = floor + (ceiling - floor) * 1.5
         structured_params = opt_params.reshape((-1, 3))
         locs = loc_floor + scipy.special.expit(structured_params[:, 0]) * (
             loc_ceiling - loc_floor
@@ -84,7 +84,7 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         """
         num_components = fixed_params["num_components"]
         scale_multiplier = 0.2
-        loc_multiplier = 1
+        loc_multiplier = 5
         locs = (onp.random.rand(num_components) - 0.5) * loc_multiplier
         scales = onp.random.rand(num_components) * scale_multiplier
         weights = onp.full(num_components, -num_components)
