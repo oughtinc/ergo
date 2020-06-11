@@ -178,7 +178,7 @@ def test_percentile_roundtrip(LogisticMixtureClass):
 
     mixture = LogisticMixtureClass.from_conditions(
         conditions,
-        {"num_components": 3, "floor": 0, "ceiling": 4},
+        {"num_components": 4, "floor": 0, "ceiling": 4},
         scale=Scale(0, 4),
         verbose=True,
     )

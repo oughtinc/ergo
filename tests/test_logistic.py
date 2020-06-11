@@ -2,12 +2,10 @@ import jax.numpy as np
 import numpy as onp
 import pytest
 import scipy.stats
-import seaborn
-import matplotlib.pyplot as plt
 
 from ergo import Logistic, LogisticMixture, TruncatedLogisticMixture
 from ergo.conditions import HistogramCondition
-from ergo.scale import Scale, LogScale
+from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
 
 
@@ -92,10 +90,10 @@ def test_pdf(xscale: Scale):
     "LogisticMixtureClass", [LogisticMixture, TruncatedLogisticMixture]
 )
 def test_fit_mixture_small(LogisticMixtureClass):
-    xscale = Scale(-2, 3)
+    xscale = Scale(-0.5, 1.5)
     mixture = LogisticMixtureClass.from_samples(
         data=np.array([0.1, 0.2, 0.8, 0.9]),
-        fixed_params={"num_components": 2, "floor": -2, "ceiling": 3},
+        fixed_params={"num_components": 2, "floor": -0.5, "ceiling": 1.5},
         scale=xscale,
     )
     for prob in mixture.probs:

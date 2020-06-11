@@ -6,6 +6,8 @@ from typing import Sequence
 
 from jax import nn
 import jax.numpy as np
+import jax.scipy as scipy
+import numpy as onp
 import scipy as oscipy
 
 from ergo.scale import Scale
@@ -68,15 +70,35 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
             scale = Scale(0, 1)
         floor = fixed_params["floor"]
         ceiling = fixed_params["ceiling"]
+        # Allow logistic center to exceed the range by 50%
+        loc_floor = floor + (ceiling - floor) * -0.5
+        loc_ceiling = floor + (ceiling - floor) * 1.5
         structured_params = opt_params.reshape((-1, 3))
-        unnormalized_weights = structured_params[:, 2]
-        probs = list(nn.softmax(unnormalized_weights))
-        component_dists = [Logistic(p[0], p[1], scale) for p in structured_params]
+        locs = loc_floor + scipy.special.expit(structured_params[:, 0]) * (
+            loc_ceiling - loc_floor
+        )
+        scales = np.abs(structured_params[:, 1])
+        probs = list(nn.softmax(structured_params[:, 2]))
+        component_dists = [Logistic(l, s, scale) for (l, s) in zip(locs, scales)]
         return cls(component_dists, probs, scale, floor, ceiling)
 
     @staticmethod
     def initialize_optimizable_params(fixed_params):
-        return LogisticMixture.initialize_optimizable_params(fixed_params)
+        """
+        Each component has (location, scale, weight).
+        The shape of the components matrix is (num_components, 3).
+        Weights sum to 1 (are given in log space).
+        We use original numpy to initialize parameters since we don't
+        want to track randomness.
+        """
+        num_components = fixed_params["num_components"]
+        scale_multiplier = 0.4
+        loc_multiplier = 3
+        locs = (onp.random.rand(num_components) - 0.5) * loc_multiplier
+        scales = onp.random.rand(num_components) * scale_multiplier
+        weights = onp.full(num_components, -num_components)
+        components = onp.stack([locs, scales, weights]).transpose()
+        return components.reshape(-1)
 
     @classmethod
     def from_conditions(cls, *args, init_tries=100, opt_tries=2, **kwargs):

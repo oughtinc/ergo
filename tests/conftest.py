@@ -10,7 +10,7 @@ import pytest
 
 import ergo
 from ergo.distributions import Logistic, LogisticMixture, TruncatedLogisticMixture
-from ergo.scale import Scale, LogScale
+from ergo.scale import LogScale, Scale
 
 
 def three_sd_scale(loc, s):

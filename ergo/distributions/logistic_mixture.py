@@ -38,9 +38,10 @@ class LogisticMixture(Mixture, Optimizable):
         if scale is None:
             scale = Scale(0, 1)
         structured_params = opt_params.reshape((-1, 3))
-        unnormalized_weights = structured_params[:, 2]
-        probs = list(nn.softmax(unnormalized_weights))
-        component_dists = [Logistic(p[0], p[1], scale) for p in structured_params]
+        locs = structured_params[:, 0]
+        scales = np.abs(structured_params[:, 1])
+        probs = list(nn.softmax(structured_params[:, 2]))
+        component_dists = [Logistic(l, s, scale) for (l, s) in zip(locs, scales)]
         return cls(component_dists, probs, scale)
 
     @staticmethod
