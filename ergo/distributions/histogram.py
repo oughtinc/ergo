@@ -37,7 +37,7 @@ class HistogramDist(Distribution, Optimizable):
             self.scale = scale if scale else Scale(0, 1)
             self.bins = np.linspace(0, 1, self.logps.size + 1)
         self.truebin_size = (
-            self.scale.scale_max - self.scale.scale_min
+            self.scale.high - self.scale.low
         ) / self.logps.size
 
     def __hash__(self):
@@ -59,8 +59,8 @@ class HistogramDist(Distribution, Optimizable):
 
     def cross_entropy(self, q_dist):
         # Commented out to support Jax tracing:
-        # assert self.scale_min == q_dist.scale_min, (self.scale_min, q_dist.scale_min)
-        # assert self.scale_max == q_dist.scale_max
+        # assert self.low == q_dist.low, (self.low, q_dist.low)
+        # assert self.high == q_dist.high
         # assert self.size == q_dist.size, (self.size, q_dist.size)
         return -np.dot(self.ps, q_dist.logps)
 

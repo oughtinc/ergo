@@ -38,7 +38,7 @@ class Logistic(Distribution):
             self.metadata = metadata
             if scale is not None:
                 self.scale = scale
-                self.true_s = self.s * scale.scale_range
+                self.true_s = self.s * scale.width
                 self.true_loc = scale.denormalize_point(loc)
             else:
                 self.scale = Scale(0, 1)
@@ -46,7 +46,7 @@ class Logistic(Distribution):
             raise ValueError("Either a Scale or normalized parameters are required")
         else:
             self.loc = scale.normalize_point(loc)
-            self.s = np.max([s, 0.0000001]) / scale.scale_range
+            self.s = np.max([s, 0.0000001]) / scale.width
             self.scale = scale
             self.metadata = metadata
             self.true_s = s
@@ -61,7 +61,7 @@ class Logistic(Distribution):
 
     def pdf(self, x):
         return (
-            np.exp(self.logpdf(self.scale.normalize_point(x))) / self.scale.scale_range
+            np.exp(self.logpdf(self.scale.normalize_point(x))) / self.scale.width
         )
 
     def logpdf(self, x):
@@ -102,5 +102,5 @@ class Logistic(Distribution):
         :param scale: the true-scale
         """
         denormalized_loc = scale.denormalize_point(self.loc)
-        denormalized_s = self.s * scale.scale_range
+        denormalized_s = self.s * scale.width
         return self.__class__(denormalized_loc, denormalized_s, scale, self.metadata)

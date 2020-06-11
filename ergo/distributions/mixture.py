@@ -25,7 +25,7 @@ class Mixture(Distribution):
 
     def pdf(self, x):
         return (
-            np.exp(self.logpdf(self.scale.normalize_point(x))) / self.scale.scale_range
+            np.exp(self.logpdf(self.scale.normalize_point(x))) / self.scale.width
         )
 
     def logpdf(self, x):
@@ -64,8 +64,8 @@ class Mixture(Distribution):
         except ValueError:
             return oscipy.optimize.bisect(
                 lambda x: self.cdf(x) - q,
-                self.scale.scale_min,
-                self.scale.scale_max,
+                self.scale.low,
+                self.scale.high,
                 maxiter=1000,
             )
 

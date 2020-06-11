@@ -13,7 +13,7 @@ from tests.conftest import scales_to_test
 def test_cdf(xscale: Scale):
     scipydist_normed = scipy.stats.logistic(0.5, 0.05)
     true_loc = xscale.denormalize_point(0.5)
-    true_s = 0.05 * xscale.scale_range
+    true_s = 0.05 * xscale.width
 
     ergodist = Logistic(loc=true_loc, s=true_s, scale=xscale)
 
@@ -24,13 +24,13 @@ def test_cdf(xscale: Scale):
 
     # TODO: consider a better approach for log scale
     if isinstance(xscale, LogScale):
-        for x in np.linspace(xscale.scale_min, xscale.scale_max, 10):
+        for x in np.linspace(xscale.low, xscale.high, 10):
             assert scipydist_normed.cdf(xscale.normalize_point(x)) == pytest.approx(
                 float(ergodist.cdf(x)), rel=1e-3
             )
     else:
         scipydist_true = scipy.stats.logistic(true_loc, true_s)
-        for x in np.linspace(xscale.scale_min, xscale.scale_max, 10):
+        for x in np.linspace(xscale.low, xscale.high, 10):
             assert scipydist_true.cdf(x) == pytest.approx(
                 float(ergodist.cdf(x)), rel=1e-3
             )
@@ -45,13 +45,13 @@ def test_pdf(xscale: Scale):
     normed_test_loc = 0.8
     normed_test_s = 0.1
     test_loc = xscale.denormalize_point(normed_test_loc)
-    test_s = normed_test_s * xscale.scale_range
+    test_s = normed_test_s * xscale.width
 
     ergoLogisticMixture = LogisticMixture(
         components=[
             Logistic(
                 loc=xscale.denormalize_point(0.2),
-                s=0.5 * xscale.scale_range,
+                s=0.5 * xscale.width,
                 scale=xscale,
             ),
             Logistic(loc=test_loc, s=test_s, scale=xscale,),
@@ -67,7 +67,7 @@ def test_pdf(xscale: Scale):
         for x in np.linspace(0, 1, 10):
             denormalized_x = xscale.denormalize_point(x)
             assert (
-                normed_scipydist.pdf(x) / xscale.scale_range
+                normed_scipydist.pdf(x) / xscale.width
                 == pytest.approx(float(ergoLogistic.pdf(denormalized_x)), rel=1e-3)
                 == pytest.approx(
                     float(ergoLogisticMixture.pdf(denormalized_x)), rel=1e-3
