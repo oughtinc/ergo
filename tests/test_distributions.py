@@ -3,6 +3,8 @@ import pytest
 import ergo
 from ergo.conditions import IntervalCondition, MaxEntropyCondition
 from ergo.distributions.histogram import HistogramDist
+from ergo.scale import Scale
+from tests.conftest import scales_to_test
 
 
 @pytest.mark.xfail(reason="New histogram dist doesn't interpolate")
@@ -26,40 +28,43 @@ def test_hist_from_percentile():
         assert dist.ppf(0.5) == pytest.approx(value, abs=0.1)
 
 
-def test_hist_pdf():
-    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()])
+@pytest.mark.parametrize("scale", scales_to_test)
+def test_hist_pdf(scale: Scale):
+    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()], scale=scale)
+
+    assert uniform_dist.pdf(scale.denormalize_point(0.5)) != 0
+    assert uniform_dist.pdf(scale.denormalize_point(1.5)) == 0
+
+
+@pytest.mark.parametrize("scale", scales_to_test)
+def test_hist_cdf(scale: Scale):
+    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()], scale=scale)
 
     # Off of scale
-    assert uniform_dist.pdf(-0.5) == 0
-    assert uniform_dist.pdf(1.5) == 0
-
-    # Denormalized
-    denormalized_dist = uniform_dist.denormalize(scale_min=0, scale_max=2)
-    assert denormalized_dist.pdf(1.5) != 0
-    assert denormalized_dist.pdf(2.5) == 0
-
-
-def test_hist_cdf():
-    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()])
-
-    # Off of scale
-    assert uniform_dist.cdf(-0.5) == 0
-    assert uniform_dist.cdf(1.5) == 1
+    assert uniform_dist.cdf(scale.denormalize_point(-0.5)) == 0
+    assert uniform_dist.cdf(scale.denormalize_point(1.5)) == 1
 
     # Edges of scale
-    assert uniform_dist.cdf(0.005) != uniform_dist.cdf(0.015)
-    assert uniform_dist.cdf(0.985) != uniform_dist.cdf(0.995)
+    assert uniform_dist.cdf(scale.denormalize_point(0.005)) != uniform_dist.cdf(
+        scale.denormalize_point(0.015)
+    )
+    assert uniform_dist.cdf(scale.denormalize_point(0.985)) != uniform_dist.cdf(
+        scale.denormalize_point(0.995)
+    )
 
-    # Denormalized
-    denormalized_dist = uniform_dist.denormalize(scale_min=0, scale_max=2)
+    # Denormalized onto a different scale
+    denormalized_dist = uniform_dist.denormalize(Scale(0, 2))
     assert denormalized_dist.cdf(1) == pytest.approx(0.5, abs=0.01)
     assert denormalized_dist.cdf(1.5) != 0
     assert denormalized_dist.cdf(2.5) == 1
 
 
-def test_hist_ppf():
-    uniform_dist = HistogramDist.from_conditions([])
+@pytest.mark.parametrize("scale", scales_to_test)
+def test_hist_ppf(scale: Scale):
+    uniform_dist = HistogramDist.from_conditions([], scale=scale)
 
     # Ends of scale; second is approx since implemented as start of last bin
-    assert uniform_dist.ppf(0) == 0
-    assert uniform_dist.ppf(1) == pytest.approx(1, abs=0.01)
+    assert uniform_dist.ppf(scale.denormalize_point(0)) == scale.scale_min
+    assert uniform_dist.ppf(scale.denormalize_point(1)) == pytest.approx(
+        scale.scale_max, rel=0.1
+    )

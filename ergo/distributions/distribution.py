@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 
 import jax.numpy as np
 
+from ergo.scale import Scale
+
 
 class Distribution(ABC):
     @abstractmethod
@@ -27,11 +29,11 @@ class Distribution(ABC):
         ...
 
     @abstractmethod
-    def normalize(self, scale_min: float, scale_max: float):
+    def normalize(self):
         ...
 
     @abstractmethod
-    def denormalize(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale: Scale):
         ...
 
     def pdf(self, x):

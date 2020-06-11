@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from jax import scipy
 import jax.numpy as np
-import scipy as oscipy
+import scipy as oscipy  # TODO can this be JAX scipy?
+
+from ergo.scale import Scale
 
 from .base import categorical
 from .distribution import Distribution
@@ -13,11 +14,22 @@ from .distribution import Distribution
 class Mixture(Distribution):
     components: Sequence[Distribution]
     probs: Sequence[float]
+    scale: Scale
+
+    def __post_init__(self):
+        for c in self.components:
+            if c.scale is not None and c.scale != self.scale:
+                raise Exception(
+                    "Component distributions must be on the same scale as Mixture"
+                )
 
     def pdf(self, x):
-        return np.exp(self.logpdf(x))
+        return (
+            np.exp(self.logpdf(self.scale.normalize_point(x))) / self.scale.scale_range
+        )
 
     def logpdf(self, x):
+        # assumes x is normalized
         raise NotImplementedError
 
     def cdf(self, x):
@@ -50,36 +62,36 @@ class Mixture(Distribution):
                 maxiter=1000,
             )
         except ValueError:
-            return (cmax + cmin) / 2
+            return oscipy.optimize.bisect(
+                lambda x: self.cdf(x) - q,
+                self.scale.scale_min,
+                self.scale.scale_max,
+                maxiter=1000,
+            )
 
     def sample(self):
         i = categorical(np.array(self.probs))
         component_dist = self.components[i]
         return component_dist.sample()
 
-    def normalize(self, scale_min: float, scale_max: float):
+    def normalize(self):
         """
-        Assume that the distribution has been normalized to be over [0,1].
-        Return the distribution on the true scale of [scale_min, scale_max]
+        Return the distribution on the true scale
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale of condition
+        :return: the condition in the true scale
         """
-        normalized_components = [
-            component.normalize(scale_min, scale_max) for component in self.components
-        ]
-        return self.__class__(normalized_components, self.probs)
+        normalized_components = [component.normalize() for component in self.components]
+        return self.__class__(normalized_components, self.probs, scale=Scale(0, 1))
 
-    def denormalize(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale: Scale):
         """
-        Assume that the distribution's true range is [scale_min, scale_max].
         Return the normalized condition.
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale of condition
         :return: the condition normalized to [0,1]
         """
         denormalized_components = [
-            component.denormalize(scale_min, scale_max) for component in self.components
+            component.denormalize(scale) for component in self.components
         ]
-        return self.__class__(denormalized_components, self.probs)
+        return self.__class__(denormalized_components, self.probs, scale)

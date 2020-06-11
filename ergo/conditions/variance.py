@@ -20,7 +20,7 @@ class VarianceCondition(condition.Condition):
     def actual_variance(self, dist) -> float:
         # FIXME: Should be interacting with HistogramDist via pdf
         #        or similar public interface
-        xs = np.linspace(dist.scale_min, dist.scale_max, dist.ps.size)
+        xs = np.linspace(dist.scale.scale_min, dist.scale.scale_max, dist.ps.size)
         mean = np.dot(dist.ps, xs)
         return np.dot(dist.ps, np.square(xs - mean))
 
@@ -32,13 +32,11 @@ class VarianceCondition(condition.Condition):
         description["variance"] = self.actual_variance(dist)
         return description
 
-    def normalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def normalize(self, scale: Scale):
         normalized_variance = scale.normalize_variance(self.variance)
         return self.__class__(normalized_variance, self.weight)
 
-    def denormalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def denormalize(self, scale: Scale):
         denormalized_variance = scale.denormalize_point(self.variance)
         return self.__class__(denormalized_variance, self.weight)
 

@@ -170,6 +170,7 @@ class Metaculus:
         ] = "any",  # 20 results per page
         cat: Union[str, None] = None,
         pages: int = 1,
+        fail_silent: bool = False,
     ) -> List["MetaculusQuestion"]:
         """
         Retrieve multiple questions from Metaculus API.
@@ -183,7 +184,19 @@ class Metaculus:
         questions_json = self.get_questions_json(
             question_status, player_status, cat, pages, False
         )
-        return [self.make_question_from_data(q) for q in questions_json]
+
+        def is_log_date(data: Dict) -> bool:
+            return (
+                data["possibilities"]["type"] == "continuous"
+                and data["possibilities"]["scale"]["deriv_ratio"] != 1
+            )
+
+        questions = []
+        for q in questions_json:
+            if not is_log_date(q):
+                questions.append(self.make_question_from_data(q))
+
+        return questions
 
     def get_questions_json(
         self,

@@ -18,6 +18,7 @@ import requests
 
 from ergo import ppl
 import ergo.distributions as dist
+from ergo.scale import Scale
 from ergo.theme import ergo_theme
 from ergo.utils import memoized_method
 
@@ -97,30 +98,21 @@ class ContinuousQuestion(MetaculusQuestion):
     def plot_title(self):
         return "\n".join(textwrap.wrap(self.name or self.data["title"], 60))  # type: ignore
 
-    def normalize_samples(self, samples):
-        """
-        The Metaculus API accepts normalized predictions rather than predictions on
-        the true scale of the question. Normalize samples to fit that scale.
-
-        :param samples: samples from the true-scale prediction distribution
-        """
-        raise NotImplementedError("This should be implemented by a subclass")
-
     def prepare_logistic(self, normalized_dist: dist.Logistic) -> dist.Logistic:
         """
         Transform a single logistic distribution by clipping the
-        parameters and adding metadata as needed for submission to
+        parameters and adding scale information as needed for submission to
         Metaculus. The loc and scale have to be within a certain range
         for the Metaculus API to accept the prediction.
 
         :param dist: a (normalized) logistic distribution
         :return: a transformed logistic distribution
         """
-        if normalized_dist.scale <= 0:
+        if normalized_dist.s <= 0:
             raise ValueError("logistic_params.scale must be greater than 0")
 
         clipped_loc = min(normalized_dist.loc, max_loc)
-        clipped_scale = float(onp.clip(normalized_dist.scale, min_scale, max_scale))  # type: ignore
+        clipped_scale = float(onp.clip(normalized_dist.s, min_scale, max_scale))  # type: ignore
 
         if self.low_open:
             low = float(onp.clip(normalized_dist.cdf(0), min_open_low, max_open_low,))
@@ -135,7 +127,7 @@ class ContinuousQuestion(MetaculusQuestion):
             high = 1
 
         return dist.Logistic(
-            clipped_loc, clipped_scale, metadata={"low": low, "high": high}
+            clipped_loc, clipped_scale, Scale(0, 1), {"low": low, "high": high}
         )
 
     def prepare_logistic_mixture(
@@ -152,13 +144,7 @@ class ContinuousQuestion(MetaculusQuestion):
             self.prepare_logistic(c) for c in normalized_dist.components
         ]
         transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
-        return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
-
-    def denormalize_samples(self, samples) -> np.ndarray:
-        """
-        Map normalized samples back to the true scale
-        """
-        raise NotImplementedError("This should be implemented by a subclass")
+        return dist.LogisticMixture(transformed_components, transformed_probs, Scale(0, 1))  # type: ignore
 
     def community_dist(self) -> dist.HistogramDist:
         """
@@ -170,23 +156,12 @@ class ContinuousQuestion(MetaculusQuestion):
         # TODO (#306): Unify distributions interface
         # TODO (#307): Account for values out of range in
         #   ContinuousQuestion.community_dist()
-        denormalized_max = float(
-            self.denormalize_samples(self.prediction_histogram[-1][0])
-        )
-        denormalized_min = float(
-            self.denormalize_samples(self.prediction_histogram[0][0])
-        )
-
-        denormalized_range = denormalized_max - denormalized_min
 
         histogram = [
-            {
-                "x": float(self.denormalize_samples(v[0])),
-                "density": v[2] / denormalized_range,
-            }
-            for v in self.prediction_histogram
+            {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
         ]
-        return dist.HistogramDist.from_pairs(histogram)
+
+        return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
 
     @memoized_method(None)
     def community_dist_in_range(self):
@@ -239,7 +214,7 @@ class ContinuousQuestion(MetaculusQuestion):
         if not self.has_predictions:
             raise ValueError("There are currently no predictions for this question")
         normalized_sample = self.sample_normalized_community()
-        sample = np.array(self.denormalize_samples([normalized_sample]))
+        sample = np.array(self.scale.denormalize_points([normalized_sample]))
         if self.name:
             ppl.tag(sample, self.name)
         return float(sample)
@@ -249,7 +224,8 @@ class ContinuousQuestion(MetaculusQuestion):
     ) -> dist.LogisticMixture:
         if not type(samples) in ArrayLikes:
             raise TypeError("Please submit a vector of samples")
-        normalized_samples = self.normalize_samples(samples)
+
+        normalized_samples = self.scale.normalize_points(samples)
         _dist = dist.LogisticMixture.from_samples(
             normalized_samples, fixed_params={"num_components": 3}, verbose=verbose
         )
@@ -257,15 +233,15 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def format_logistic_for_api(submission: dist.Logistic, weight: float) -> dict:
-        if submission.metadata is None:
-            raise ValueError("Submission distribution needs metadata (low, high)")
+        if submission.scale is None:
+            raise ValueError("Submission distribution needs a scale")
         # Convert all the numbers to floats here so that you can be sure that
         # wherever they originated (e.g. numpy), they'll be regular old floats that
         # can be converted to json by json.dumps.
         return {
             "kind": "logistic",
             "x0": float(submission.loc),
-            "s": float(submission.scale),
+            "s": float(submission.s),
             "w": float(weight),
             "low": float(submission.metadata["low"]),
             "high": float(submission.metadata["high"]),
@@ -304,11 +280,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def get_logistic_from_json(logistic_json: Dict) -> dist.Logistic:
-        return dist.Logistic(
-            logistic_json["x0"],
-            logistic_json["s"],
-            metadata={"low": logistic_json["low"], "high": logistic_json["high"]},
-        )
+        return dist.Logistic(logistic_json["x0"], logistic_json["s"], normalized=True)
 
     @classmethod
     def get_submission_from_json(cls, submission_json: Dict) -> dist.LogisticMixture:
@@ -316,8 +288,9 @@ class ContinuousQuestion(MetaculusQuestion):
             cls.get_logistic_from_json(logistic_json)
             for logistic_json in submission_json
         ]
+
         probs = [logistic_json["w"] for logistic_json in submission_json]
-        return dist.LogisticMixture(components, probs)
+        return dist.LogisticMixture(components, probs, Scale(0, 1))
 
     def get_latest_normalized_prediction(self) -> dist.LogisticMixture:
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
@@ -378,9 +351,9 @@ class ContinuousQuestion(MetaculusQuestion):
                         "For multiple predictions comparisons, only samples can be compared (plot_fitted must be False)"
                     )
                 for col in samples:
-                    df[col] = self.normalize_samples(samples[col])
+                    df[col] = self.scale.normalize_points(samples[col])
             else:
-                df["samples"] = self.normalize_samples(samples)
+                df["samples"] = self.scale.normalize_points(samples)
 
         if plot_fitted:
             prediction = self.get_submission_from_samples(samples)
@@ -394,14 +367,14 @@ class ContinuousQuestion(MetaculusQuestion):
             ]
 
         # get domain for graph given the percentage of distribution kept
-        xmin, xmax = self.denormalize_samples(
+        xmin, xmax = self.scale.denormalize_points(
             self.get_central_quantiles(
                 df, percent_kept=percent_kept, side_cut_from=side_cut_from,
             )
         )
 
         for col in df:
-            df[col] = self.denormalize_samples(df[col])
+            df[col] = self.scale.denormalize_points(df[col])
 
         df = pd.melt(df, var_name="sources", value_name="samples")  # type: ignore
 
@@ -440,7 +413,7 @@ class ContinuousQuestion(MetaculusQuestion):
             [self.sample_normalized_community() for _ in range(0, num_samples)]
         )
 
-        _xmin, _xmax = self.denormalize_samples(
+        _xmin, _xmax = self.scale.denormalize_points(
             self.get_central_quantiles(
                 community_samples,
                 percent_kept=percent_kept,
@@ -448,7 +421,9 @@ class ContinuousQuestion(MetaculusQuestion):
             )
         )
 
-        df = pd.DataFrame(data={"samples": self.denormalize_samples(community_samples)})
+        df = pd.DataFrame(
+            data={"samples": self.scale.denormalize_points(community_samples)}
+        )
 
         plot = self.density_plot(df, _xmin, _xmax, **kwargs) + labs(
             x="Prediction",
@@ -507,3 +482,22 @@ class ContinuousQuestion(MetaculusQuestion):
             return 0
 
         return new["q2"] - old["q2"]
+
+    def normalize_samples(self, samples):
+        """
+        Map samples from their true scale to the Metaculus normalized scale
+        :param samples: samples from a distribution answering the prediction question
+            (true scale)
+        :return: samples on the normalized scale
+        """
+        return self.scale.normalize_points(samples)
+
+    def denormalize_samples(self, samples):
+        """
+        Map samples from the Metaculus normalized scale to the true scale
+        :param samples: samples on the normalized scale
+        :return: samples from a distribution answering the prediction question
+            (true scale)
+        """
+
+        return self.scale.denormalize_points(samples)

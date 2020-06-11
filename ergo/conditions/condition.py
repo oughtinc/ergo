@@ -4,6 +4,7 @@ from typing import Any, Dict, Sequence, Tuple
 import jax.numpy as np
 import numpy as onp
 
+from ergo.scale import Scale
 import ergo.static as static
 
 
@@ -36,24 +37,22 @@ class Condition(ABC):
         # convert to float for easy serialization
         return {"loss": self.loss(dist)}
 
-    def normalize(self, scale_min: float, scale_max: float):
+    def normalize(self, scale: Scale):
         """
-        Assume that the condition's true range is [scale_min, scale_max].
+        Assume that the condition's true range is scale.
         Return the normalized condition.
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale
         :return: the condition normalized to [0,1]
         """
         return self
 
-    def denormalize(self, scale_min: float, scale_max: float):
+    def denormalize(self, scale: Scale):
         """
         Assume that the condition has been normalized to be over [0,1].
         Return the condition on the true scale.
 
-        :param scale_min: the true-scale minimum of the range
-        :param scale_max: the true-scale maximum of the range
+        :param scale: the true-scale
         :return: the condition on the true scale of [scale_min, scale_max]
         """
         return self
@@ -66,6 +65,7 @@ class Condition(ABC):
         :return: A description of various aspects of how well
         the distribution meets the condition
         """
+
         result = static.describe_fit(*dist.destructure(), *self.destructure())
         return {k: float(v) for (k, v) in result.items()}
 

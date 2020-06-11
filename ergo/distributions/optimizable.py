@@ -24,30 +24,35 @@ class Optimizable(ABC):
         ...
 
     @abstractmethod
-    def normalize(self, scale_min, scale_max):
+    def normalize(self):
         ...
 
     @abstractmethod
-    def denormalize(self, scale_min, scale_max):
+    def denormalize(self, scale: Scale):
         ...
 
     @classmethod
     def from_samples(
-        cls: Type[T], data, fixed_params=None, verbose=False, init_tries=1, opt_tries=1
+        cls: Type[T],
+        data,
+        fixed_params=None,
+        scale=None,
+        verbose=False,
+        init_tries=1,
+        opt_tries=1,
     ) -> T:
         if fixed_params is None:
             fixed_params = {}
-
         data = np.array(data)
-        data_range = max(data) - min(data)
-        scale = Scale(
-            scale_min=min(data) - 0.25 * data_range,
-            scale_max=max(data) + 0.25 * data_range,
-        )
-        fixed_params = cls.normalize_fixed_params(
-            fixed_params, scale.scale_min, scale.scale_max
-        )
-        normalized_data = np.array([scale.normalize_point(datum) for datum in data])
+        if scale is None:
+            data_range = max(data) - min(data)
+            scale = Scale(
+                scale_min=min(data) - 0.25 * data_range,
+                scale_max=max(data) + 0.25 * data_range,
+            )
+
+        fixed_params = cls.normalize_fixed_params(fixed_params, scale)
+        normalized_data = np.array(scale.normalize_points(data))
 
         loss = lambda params: static.dist_logloss(  # noqa: E731
             cls, fixed_params, params, normalized_data
@@ -65,16 +70,15 @@ class Optimizable(ABC):
             opt_tries=opt_tries,
         )
 
-        return normalized_dist.denormalize(scale.scale_min, scale.scale_max)
+        return normalized_dist.denormalize(scale)
 
     @classmethod
     def from_conditions(
         cls: Type[T],
         conditions: Sequence[Condition],
         fixed_params=None,
+        scale=None,
         verbose=False,
-        scale_min=0,
-        scale_max=1,
         init_tries=1,
         opt_tries=1,
         jit_all=False,
@@ -82,11 +86,12 @@ class Optimizable(ABC):
         if fixed_params is None:
             fixed_params = {}
 
-        fixed_params = cls.normalize_fixed_params(fixed_params, scale_min, scale_max)
+        if scale is None:
+            scale = Scale(0, 1)  # assume a linear scale in [0,1]
 
-        normalized_conditions = [
-            condition.normalize(scale_min, scale_max) for condition in conditions
-        ]
+        fixed_params = cls.normalize_fixed_params(fixed_params, scale)
+
+        normalized_conditions = [condition.normalize(scale) for condition in conditions]
 
         cond_data = [condition.destructure() for condition in normalized_conditions]
         if cond_data:
@@ -117,7 +122,7 @@ class Optimizable(ABC):
             opt_tries=opt_tries,
         )
 
-        return normalized_dist.denormalize(scale_min, scale_max)
+        return normalized_dist.denormalize(scale)
 
     @classmethod
     def from_loss(
@@ -129,6 +134,9 @@ class Optimizable(ABC):
         init_tries=1,
         opt_tries=1,
     ) -> T:
+
+        # fixed_params are assumed to be normalized
+
         if fixed_params is None:
             fixed_params = {}
 
@@ -151,5 +159,6 @@ class Optimizable(ABC):
         return cls.from_params(fixed_params, optimized_params)
 
     @classmethod
-    def normalize_fixed_params(self, fixed_params, scale_min: float, scale_max: float):
+    def normalize_fixed_params(self, fixed_params, scale):
+        # They are not normalized unless a child class implements this method
         return fixed_params

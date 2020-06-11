@@ -21,7 +21,7 @@ class ModeCondition(condition.Condition):
         # FIXME: Should be interacting with HistogramDist via pdf
         #        or similar public interface
         p_outcome = dist.pdf(self.outcome)
-        p_highest = np.max(dist.ps / dist.bin_size)
+        p_highest = np.max(dist.ps / dist.truebin_size)
         return self.weight * (p_highest - p_outcome) ** 2
 
     def _describe_fit(self, dist):
@@ -29,16 +29,14 @@ class ModeCondition(condition.Condition):
         #        or similar public interface
         description = super()._describe_fit(dist)
         description["p_outcome"] = dist.pdf(self.outcome)
-        description["p_highest"] = np.max(dist.ps / dist.bin_size)
+        description["p_highest"] = np.max(dist.ps / dist.truebin_size)
         return description
 
-    def normalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def normalize(self, scale: Scale):
         normalized_outcome = scale.normalize_point(self.outcome)
         return self.__class__(normalized_outcome, self.weight)
 
-    def denormalize(self, scale_min: float, scale_max: float):
-        scale = Scale(scale_min, scale_max)
+    def denormalize(self, scale: Scale):
         denormalized_outcome = scale.denormalize_point(self.outcome)
         return self.__class__(denormalized_outcome, self.weight)
 

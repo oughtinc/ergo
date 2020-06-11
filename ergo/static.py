@@ -59,8 +59,10 @@ def single_condition_loss(
     dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
 ):
     print(
-        f"Tracing {dist_class.__name__} condition loss for"
-        f" {cond_class.__name__} with params {cond_param}"
+        f"Tracing {dist_class.__name__} condition loss for {cond_class.__name__}:\n"
+        f"- Fixed: {dist_fixed_params}\n"
+        f"- Optim: {dist_opt_params}\n"
+        f"- Cond: {cond_param}\n\n"
     )
     dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     condition = cond_class.structure(cond_param)
@@ -76,8 +78,12 @@ single_condition_loss_grad = jit(
 
 
 @partial(jit, static_argnums=(0, 2))
-def describe_fit(dist_class, dist_params, cond_class, cond_params):
-    dist = dist_class.structure(dist_params)
+def describe_fit(dist_classes, dist_params, cond_class, cond_params):
+    if isinstance(dist_classes, type):
+        dist = dist_classes.structure(dist_params)
+    else:
+        dist_class, scale_class = dist_classes
+        dist = dist_class.structure((*dist_params, scale_class))
     condition = cond_class.structure(cond_params)
     return condition._describe_fit(dist)
 
@@ -99,6 +105,7 @@ dist_grad_logloss = jit(grad(dist_logloss, argnums=2), static_argnums=0)
 
 @jit
 def logistic_logpdf(x, loc, scale):
+    # x, loc, scale are assumed to be normalized
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.logistic.html
     y = (x - loc) / scale
     return scipy.stats.logistic.logpdf(y) - np.log(scale)
@@ -106,6 +113,7 @@ def logistic_logpdf(x, loc, scale):
 
 @jit
 def logistic_mixture_logpdf(params, data):
+    # params are assumed to be normalized
     if data.size == 1:
         return logistic_mixture_logpdf1(params, data)
     scores = vmap(partial(logistic_mixture_logpdf1, params))(data)
@@ -114,6 +122,7 @@ def logistic_mixture_logpdf(params, data):
 
 @jit
 def logistic_mixture_logpdf1(params, datum):
+    # params are assumed to be normalized
     structured_params = params.reshape((-1, 3))
     component_scores = []
     probs = np.array([p[2] for p in structured_params])
