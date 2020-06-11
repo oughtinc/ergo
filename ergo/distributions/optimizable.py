@@ -39,7 +39,11 @@ class Optimizable(ABC):
             fixed_params = {}
 
         data = np.array(data)
-        scale = Scale(scale_min=min(data), scale_max=max(data))
+        data_range = max(data) - min(data)
+        scale = Scale(
+            scale_min=min(data) - 0.25 * data_range,
+            scale_max=max(data) + 0.25 * data_range,
+        )
         fixed_params = cls.normalize_fixed_params(
             fixed_params, scale.scale_min, scale.scale_max
         )
