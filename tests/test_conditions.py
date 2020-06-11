@@ -64,19 +64,13 @@ def test_normalization_interval_condition():
         assert condition.normalize(scale).denormalize(scale) == condition
 
     # straightforward scenario
-    normalization_interval_condition_test(
-        p=0.5, min=10, max=100, low=10, high=1000
-    )
+    normalization_interval_condition_test(p=0.5, min=10, max=100, low=10, high=1000)
 
     # left open
-    normalization_interval_condition_test(
-        p=0.5, min=None, max=10000, low=10, high=1000
-    )
+    normalization_interval_condition_test(p=0.5, min=None, max=10000, low=10, high=1000)
 
     # right open
-    normalization_interval_condition_test(
-        p=0.5, min=10, max=None, low=10, high=1000
-    )
+    normalization_interval_condition_test(p=0.5, min=10, max=None, low=10, high=1000)
 
     # negative values
     normalization_interval_condition_test(
@@ -84,14 +78,10 @@ def test_normalization_interval_condition():
     )
 
     # p = 1
-    normalization_interval_condition_test(
-        p=1, min=10, max=100, low=10, high=1000
-    )
+    normalization_interval_condition_test(p=1, min=10, max=100, low=10, high=1000)
 
     # interval bigger than scale
-    normalization_interval_condition_test(
-        p=1, min=0, max=1000, low=10, high=100
-    )
+    normalization_interval_condition_test(p=1, min=0, max=1000, low=10, high=100)
 
     assert IntervalCondition(p=0.5, min=0, max=5).normalize(
         Scale(0, 10)

@@ -36,9 +36,7 @@ class HistogramDist(Distribution, Optimizable):
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
             self.bins = np.linspace(0, 1, self.logps.size + 1)
-        self.truebin_size = (
-            self.scale.high - self.scale.low
-        ) / self.logps.size
+        self.truebin_size = (self.scale.high - self.scale.low) / self.logps.size
 
     def __hash__(self):
         return hash(self.__key())

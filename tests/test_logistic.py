@@ -50,9 +50,7 @@ def test_pdf(xscale: Scale):
     ergoLogisticMixture = LogisticMixture(
         components=[
             Logistic(
-                loc=xscale.denormalize_point(0.2),
-                s=0.5 * xscale.width,
-                scale=xscale,
+                loc=xscale.denormalize_point(0.2), s=0.5 * xscale.width, scale=xscale,
             ),
             Logistic(loc=test_loc, s=test_s, scale=xscale,),
         ],
