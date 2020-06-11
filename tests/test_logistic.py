@@ -66,35 +66,10 @@ def test_pdf(xscale: Scale):
     if isinstance(xscale, LogScale):
         normed_scipydist = scipy.stats.logistic(normed_test_loc, normed_test_s)
 
-        normed_scipy = normed_scipydist.rvs(size=1000)
-
-        seaborn.distplot([xscale.denormalize_point(x) for x in normed_scipy], label="scipy")  # type: ignore
-
-        seaborn.distplot([ergoLogistic.sample() for x in range(1000)], label="ergo")  # type: ignore
-
-        plt.legend()
-
-        plt.show()
-
-        plt.figure()
-
-        xs = onp.linspace(0, 1, 10)
-
-        scipy_ys = [normed_scipydist.pdf(x) for x in xs]
-
-        ergo_ys = [float(ergoLogistic.pdf(xscale.denormalize_point(x))) for x in xs]
-
-        seaborn.lineplot(xs, scipy_ys)
-        seaborn.lineplot(xs, ergo_ys)
-
-        plt.legend()
-
-        plt.show()
-
         for x in np.linspace(0, 1, 10):
             denormalized_x = xscale.denormalize_point(x)
             assert (
-                normed_scipydist.pdf(x)
+                normed_scipydist.pdf(x) / xscale.scale_range
                 == pytest.approx(float(ergoLogistic.pdf(denormalized_x)), rel=1e-3)
                 == pytest.approx(
                     float(ergoLogisticMixture.pdf(denormalized_x)), rel=1e-3
@@ -102,16 +77,6 @@ def test_pdf(xscale: Scale):
             )
     else:
         scipydist = scipy.stats.logistic(test_loc, test_s)
-
-        scipy_samples = scipydist.rvs(size=1000)
-
-        seaborn.distplot(scipy_samples, label="scipy")  # type: ignore
-
-        seaborn.distplot([ergoLogistic.sample() for x in range(1000)], label="ergo")  # type: ignore
-
-        plt.legend()
-
-        plt.show()
 
         for x in np.linspace(
             xscale.denormalize_point(0), xscale.denormalize_point(1), 10
