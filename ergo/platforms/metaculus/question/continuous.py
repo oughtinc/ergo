@@ -280,14 +280,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
     @staticmethod
     def get_logistic_from_json(logistic_json: Dict) -> dist.Logistic:
-        print(
-            f"Logistic from json component scale is: {Scale(logistic_json['low'], logistic_json['high'])}"
-        )
-        return dist.Logistic(
-            logistic_json["x0"],
-            logistic_json["s"],
-            Scale(logistic_json["low"], logistic_json["high"]),
-        )
+        return dist.Logistic(logistic_json["x0"], logistic_json["s"], normalized=True)
 
     @classmethod
     def get_submission_from_json(cls, submission_json: Dict) -> dist.LogisticMixture:
@@ -297,9 +290,7 @@ class ContinuousQuestion(MetaculusQuestion):
         ]
 
         probs = [logistic_json["w"] for logistic_json in submission_json]
-        # TODO see if the assumption that scale does not varies between components is valid
-        scale = Scale(submission_json[0]["low"], submission_json[0]["high"])
-        return dist.LogisticMixture(components, probs, scale)
+        return dist.LogisticMixture(components, probs, Scale(0, 1))
 
     def get_latest_normalized_prediction(self) -> dist.LogisticMixture:
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
