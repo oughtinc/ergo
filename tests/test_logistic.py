@@ -35,63 +35,34 @@ def test_cdf(xscale: Scale):
 
 
 # @pytest.mark.slow
-def test_pdf(logistic_mixture_p_uneven):
-    ## on normed scale ##
-    xscale = Scale(0, 1)
-    ergoLogisticMixture = LogisticMixture(
-        components=[
-            Logistic(loc=0.2, s=0.5, scale=xscale),
-            Logistic(loc=0.8, s=0.1, scale=xscale),
-        ],
-        probs=[1.8629593e-29, 1.0],
-        scale=xscale,
-    )
-    ergoLogistic = Logistic(loc=0.8, s=0.1, scale=xscale)
-    scipydist = scipy.stats.logistic(0.8, 0.1)
-    for x in np.linspace(0, 1, 10):
-        assert (
-            scipydist.pdf(x)
-            == pytest.approx(float(ergoLogistic.pdf(x)), rel=1e-3)
-            == pytest.approx(float(ergoLogisticMixture.pdf(x)), rel=1e-3)
-        )
+@pytest.mark.parametrize("xscale", scales_to_test)
+def test_pdf(xscale: Scale):
+    if not isinstance(xscale, LogScale):
+        test_loc = xscale.denormalize_point(0.8)
+        test_s = 0.1 * xscale.scale_range
 
-    ## linear scale ##
-    xscale = Scale(0, 100)
-    ergoLogisticMixture = LogisticMixture(
-        components=[
-            Logistic(loc=20, s=50, scale=xscale),
-            Logistic(loc=80, s=10, scale=xscale),
-        ],
-        probs=[1.8629593e-29, 1.0],
-        scale=xscale,
-    )
-    ergoLogistic = Logistic(loc=80, s=10, scale=xscale)
-    scipydist = scipy.stats.logistic(80, 10)
-    for x in np.linspace(0, 100, 10):
-        assert (
-            scipydist.pdf(x)
-            == pytest.approx(float(ergoLogistic.pdf(x)), rel=1e-3)
-            == pytest.approx(float(ergoLogisticMixture.pdf(x)), rel=1e-3)
+        ergoLogisticMixture = LogisticMixture(
+            components=[
+                Logistic(
+                    loc=xscale.denormalize_point(0.2),
+                    s=0.5 * xscale.scale_range,
+                    scale=xscale,
+                ),
+                Logistic(loc=test_loc, s=test_s, scale=xscale,),
+            ],
+            probs=[1.8629593e-29, 1.0],
+            scale=xscale,
         )
-
-    ## more chaotic linear scale ##
-    xscale = Scale(0, 58)
-    ergoLogisticMixture = LogisticMixture(
-        components=[
-            Logistic(loc=20, s=50, scale=xscale),
-            Logistic(loc=15, s=5, scale=xscale),
-        ],
-        probs=[1.8629593e-29, 1.0],
-        scale=xscale,
-    )
-    ergoLogistic = Logistic(loc=15, s=5, scale=xscale)
-    scipydist = scipy.stats.logistic(15, 5)
-    for x in np.linspace(0, 58, 14):
-        assert (
-            scipydist.pdf(x)
-            == pytest.approx(float(ergoLogistic.pdf(x)), rel=1e-3)
-            == pytest.approx(float(ergoLogisticMixture.pdf(x)), rel=1e-3)
-        )
+        ergoLogistic = Logistic(loc=test_loc, s=test_s, scale=xscale)
+        scipydist = scipy.stats.logistic(test_loc, test_s)
+        for x in np.linspace(
+            xscale.denormalize_point(0), xscale.denormalize_point(1), 10
+        ):
+            assert (
+                scipydist.pdf(x)
+                == pytest.approx(float(ergoLogistic.pdf(x)), rel=1e-3)
+                == pytest.approx(float(ergoLogisticMixture.pdf(x)), rel=1e-3)
+            )
 
 
 @pytest.mark.parametrize(
