@@ -36,12 +36,9 @@ class HistogramDist(Distribution, Optimizable):
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
             self.bins = np.linspace(0, 1, self.logps.size + 1)
-
-        self.bin_size = 1 / self.logps.size
-        # given we are using uniform bin sizes on a normalized scale, this isn't necessary
-        # self.truebin_size = (
-        #     self.scale.scale_max - self.scale.scale_min
-        # ) / self.logps.size
+        self.truebin_size = (
+            self.scale.scale_max - self.scale.scale_min
+        ) / self.logps.size
 
     def __hash__(self):
         return hash(self.__key())
@@ -96,11 +93,7 @@ class HistogramDist(Distribution, Optimizable):
         """
         x = self.scale.normalize_point(x)
         bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
-        return np.where((x < 0) | (x > 1), 0, self.ps[bin] / self.bin_size,)
-
-        return np.where(
-            (x < 0) | (x > 1), 0, self.ps[np.maximum(np.argmax(self.bins >= x) - 1, 0)],
-        )
+        return np.where((x < 0) | (x > 1), 0, self.ps[bin] / self.truebin_size)
 
     def cdf(self, x):
         """
@@ -112,7 +105,7 @@ class HistogramDist(Distribution, Optimizable):
         """
         x = self.scale.normalize_point(x)
         bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
-        return np.where(x < 0, 0, np.where(x > 1, 1, self.cum_ps[bin],),)
+        return np.where(x < 0, 0, np.where(x > 1, 1, self.cum_ps[bin]))
 
     def ppf(self, q):
         return self.scale.denormalize_point(
