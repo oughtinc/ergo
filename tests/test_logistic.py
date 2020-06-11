@@ -43,7 +43,7 @@ def test_cdf(xscale: Scale):
 
 # @pytest.mark.slow
 @pytest.mark.parametrize("xscale", scales_to_test)
-def test_pdf_a(xscale: Scale):
+def test_pdf(xscale: Scale):
     normed_test_loc = 0.8
     normed_test_s = 0.1
     test_loc = xscale.denormalize_point(normed_test_loc)
