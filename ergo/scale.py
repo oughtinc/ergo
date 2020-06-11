@@ -64,6 +64,9 @@ class LogScale(Scale):
     log_base: float
 
     def __post_init__(self):
+        if self.log_base < 1:
+            raise ValueError(f"log_Base must be > 1, was {self.log_base}")
+
         self.scale_range = self.scale_max - self.scale_min
 
     def __hash__(self):

@@ -3,7 +3,16 @@ import pytest
 import ergo
 from ergo.conditions import IntervalCondition, MaxEntropyCondition
 from ergo.distributions.histogram import HistogramDist
-from ergo.scale import Scale
+from ergo.scale import Scale, LogScale
+
+scales_to_test = [
+    Scale(0, 1),
+    Scale(0, 10000),
+    Scale(-1, 1),
+    LogScale(0, 1, 10),
+    LogScale(-1, 1, 10),
+    LogScale(0, 1028, 2),
+]
 
 
 @pytest.mark.xfail(reason="New histogram dist doesn't interpolate")
@@ -27,17 +36,12 @@ def test_hist_from_percentile():
         assert dist.ppf(0.5) == pytest.approx(value, abs=0.1)
 
 
-def test_hist_pdf():
-    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()])
+@pytest.mark.parametrize("scale", scales_to_test)
+def test_hist_pdf(scale: Scale):
+    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()], scale=scale)
 
-    # Off of scale
-    assert uniform_dist.pdf(-0.5) == 0
-    assert uniform_dist.pdf(1.5) == 0
-
-    # Denormalized
-    denormalized_dist = uniform_dist.denormalize(Scale(0, 2))
-    assert denormalized_dist.pdf(1.5) != 0
-    assert denormalized_dist.pdf(2.5) == 0
+    assert uniform_dist.pdf(scale.scale_min + 0.5 * scale.scale_range) != 0
+    assert uniform_dist.pdf(scale.scale_max + 0.5 * scale.scale_range) == 0
 
 
 def test_hist_cdf():
