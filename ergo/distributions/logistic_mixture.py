@@ -57,7 +57,7 @@ class LogisticMixture(Mixture, Optimizable):
         scale_multiplier = 0.2
         locs = onp.random.rand(num_components)
         scales = onp.random.rand(num_components) * scale_multiplier
-        weights = onp.full(num_components, -num_components)
+        weights = onp.full(num_components, -float(num_components))
         components = onp.stack([locs, scales, weights]).transpose()
         return components.reshape(-1)
 

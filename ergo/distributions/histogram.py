@@ -75,7 +75,7 @@ class HistogramDist(Distribution, Optimizable):
     @staticmethod
     def initialize_optimizable_params(fixed_params):
         num_bins = fixed_params.get("num_bins", 100)
-        return onp.full(num_bins, -num_bins)
+        return onp.full(num_bins, -float(num_bins))
 
     def normalize(self):
         return HistogramDist(self.logps, scale=Scale(0, 1))
