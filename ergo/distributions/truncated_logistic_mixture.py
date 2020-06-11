@@ -66,6 +66,7 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
     @classmethod
     def from_params(cls, fixed_params, opt_params, scale=None, traceable=True):
         # returns a normalized mixture naive to the true distribution
+        # The settings below are specific to Metaculus
         if scale is None:
             scale = Scale(0, 1)
         floor = fixed_params["floor"]
@@ -77,7 +78,10 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         locs = loc_floor + scipy.special.expit(structured_params[:, 0]) * (
             loc_ceiling - loc_floor
         )
-        scales = np.abs(structured_params[:, 1])
+        # Allow logistic scales between 0.01 and 0.5
+        scale_floor = 0.01
+        scale_ceiling = 0.5
+        scales = np.minimum(scale_floor + structured_params[:, 1], scale_ceiling)
         probs = list(nn.softmax(structured_params[:, 2]))
         component_dists = [Logistic(l, s, scale) for (l, s) in zip(locs, scales)]
         return cls(component_dists, probs, scale, floor, ceiling)
