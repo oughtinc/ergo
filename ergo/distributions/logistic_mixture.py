@@ -83,7 +83,7 @@ class LogisticMixture(Mixture, Optimizable):
     def destructure(self):
         scale_cls, scale_params = self.scale.destructure()
         params = (
-            [(c.true_loc, c.true_s) for c in self.components],
+            [(c.loc, c.s) for c in self.components],
             self.probs,
             scale_params,
         )
@@ -93,5 +93,7 @@ class LogisticMixture(Mixture, Optimizable):
     def structure(cls, params):
         component_params, probs, scale_params, scale_cls = params
         scale = scale_cls(*scale_params)
-        components = [Logistic(l, s, scale) for (l, s) in component_params]
+        components = [
+            Logistic(l, s, scale, normalized=True) for (l, s) in component_params
+        ]
         return cls(components=components, probs=probs, scale=scale)

@@ -18,7 +18,7 @@ class Mixture(Distribution):
 
     def __post_init__(self):
         for c in self.components:
-            if c.scale != self.scale:
+            if c.scale is not None and c.scale != self.scale:
                 raise Exception(
                     "Component distributions must be on the same scale as Mixture"
                 )

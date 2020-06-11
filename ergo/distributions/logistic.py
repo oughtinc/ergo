@@ -3,6 +3,7 @@ Logistic distribution
 """
 
 from dataclasses import dataclass
+from typing import Optional
 
 from jax import scipy
 import jax.numpy as np
@@ -22,14 +23,34 @@ class Logistic(Distribution):
     dist = scipy.stats.logistic
     odist = oscipy.stats.logistic
 
-    def __init__(self, loc: float, s: float, scale: Scale, metadata=None):
+    def __init__(
+        self,
+        loc: float,
+        s: float,
+        scale: Optional[Scale] = None,
+        metadata=None,
+        normalized=False,
+    ):
         # TODO (#303): Raise ValueError on scale < 0
-        self.loc = scale.normalize_point(loc)
-        self.s = np.max([s, 0.0000001]) / scale.scale_range
-        self.scale = scale
-        self.metadata = metadata
-        self.true_s = s
-        self.true_loc = loc
+        if normalized:
+            self.loc = loc
+            self.s = np.max([s, 0.0000001])
+            self.metadata = metadata
+            if scale is not None:
+                self.scale = scale
+                self.true_s = self.s * scale.scale_range
+                self.true_loc = scale.denormalize_point(loc)
+            else:
+                self.scale = Scale(0, 1)
+        elif scale is None:
+            raise ValueError("Either a Scale or normalized parameters are required")
+        else:
+            self.loc = scale.normalize_point(loc)
+            self.s = np.max([s, 0.0000001]) / scale.scale_range
+            self.scale = scale
+            self.metadata = metadata
+            self.true_s = s
+            self.true_loc = loc
 
     def __repr__(self):
         return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
