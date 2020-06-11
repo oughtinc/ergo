@@ -233,14 +233,29 @@ class HistogramDist(Distribution, Optimizable):
 
         return xs, ps
 
-    def to_pairs(
-        self, true_scale=True, verbose=False,
-    ):
+    def to_pairs(self, true_scale=True, verbose=False, total_p: float = 1.0):
+        """
+        Represent the distribution as a list of pairs.
+
+        Sometimes we use a histogram to represent
+        just part of a probability distribution
+        (if the rest will be represented by some other distribution)
+
+        In this case, when converting to pairs,
+        downscale the p in this distribution to some amount of total p.
+        :total_p: the amount of p to keep in this distribution
+        :return: a list of pairs representing the distribution
+        """
+        if total_p > 1:
+            raise ValueError(
+                "Can only scale down the distribution below total p of 1. Doesn't make sense for total p to be more than 1."
+            )
 
         xs, ps = self.to_lists(true_scale=True, verbose=False)
 
         return [
-            {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
+            {"x": float(x), "density": float(density) * total_p}
+            for x, density in zip(xs, ps)
         ]
 
     def to_arrays(self, normalized=False):
