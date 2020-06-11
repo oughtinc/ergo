@@ -94,7 +94,7 @@ class HistogramDist(Distribution, Optimizable):
         """
         # if true_scale is not provided, assume that the histogram has
         # entries over the entire scale of interest
-        if not true_scale:
+        if true_scale is None:
             return HistogramDist(self.logps, scale=Scale(0, 1))
 
         if true_scale.scale_min is None or true_scale.scale_max is None:
