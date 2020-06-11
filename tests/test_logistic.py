@@ -2,6 +2,8 @@ import jax.numpy as np
 import numpy as onp
 import pytest
 import scipy.stats
+import seaborn
+import matplotlib.pyplot as plt
 
 from ergo import Logistic, LogisticMixture, TruncatedLogisticMixture
 from ergo.conditions import HistogramCondition
@@ -41,7 +43,7 @@ def test_cdf(xscale: Scale):
 
 # @pytest.mark.slow
 @pytest.mark.parametrize("xscale", scales_to_test)
-def test_pdf(xscale: Scale):
+def test_pdf_a(xscale: Scale):
     normed_test_loc = 0.8
     normed_test_s = 0.1
     test_loc = xscale.denormalize_point(normed_test_loc)
@@ -63,6 +65,17 @@ def test_pdf(xscale: Scale):
 
     if isinstance(xscale, LogScale):
         normed_scipydist = scipy.stats.logistic(normed_test_loc, normed_test_s)
+
+        normed_scipy = normed_scipydist.rvs(size=1000)
+
+        seaborn.distplot([xscale.denormalize_point(x) for x in normed_scipy], label="scipy")  # type: ignore
+
+        seaborn.distplot([ergoLogistic.sample() for x in range(1000)], label="ergo")  # type: ignore
+
+        plt.legend()
+
+        plt.show()
+
         for x in np.linspace(0, 1, 10):
             denormalized_x = xscale.denormalize_point(x)
             assert (
@@ -74,6 +87,17 @@ def test_pdf(xscale: Scale):
             )
     else:
         scipydist = scipy.stats.logistic(test_loc, test_s)
+
+        scipy_samples = scipydist.rvs(size=1000)
+
+        seaborn.distplot(scipy_samples, label="scipy")  # type: ignore
+
+        seaborn.distplot([ergoLogistic.sample() for x in range(1000)], label="ergo")  # type: ignore
+
+        plt.legend()
+
+        plt.show()
+
         for x in np.linspace(
             xscale.denormalize_point(0), xscale.denormalize_point(1), 10
         ):
