@@ -2,6 +2,10 @@
 # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
 max_loc = 3
 
+# Min loc set based on API response to prediction on
+# https://www.metaculus.com/questions/3992/
+min_loc = -2
+
 # Max scale of 10 set based on API response to prediction on
 # https://pandemic.metaculus.com/questions/3920/what-will-the-cbo-estimate-to-be-the-cost-of-the-emergency-telework-act-s3561/
 min_scale = 0.01
