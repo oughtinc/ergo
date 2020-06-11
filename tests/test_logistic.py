@@ -22,8 +22,13 @@ def test_cdf(xscale: Scale):
             float(ergodist.cdf(xscale.denormalize_point(x))), rel=1e-3
         )
 
-    # TODO: add a true-scale test for the log-scale distributions as well
-    if not isinstance(xscale, LogScale):
+    # TODO: consider a better approach for log scale
+    if isinstance(xscale, LogScale):
+        for x in np.linspace(xscale.scale_min, xscale.scale_max, 10):
+            assert scipydist_normed.cdf(xscale.normalize_point(x)) == pytest.approx(
+                float(ergodist.cdf(x)), rel=1e-3
+            )
+    else:
         scipydist_true = scipy.stats.logistic(true_loc, true_s)
         for x in np.linspace(xscale.scale_min, xscale.scale_max, 10):
             assert scipydist_true.cdf(x) == pytest.approx(
@@ -37,23 +42,37 @@ def test_cdf(xscale: Scale):
 # @pytest.mark.slow
 @pytest.mark.parametrize("xscale", scales_to_test)
 def test_pdf(xscale: Scale):
-    if not isinstance(xscale, LogScale):
-        test_loc = xscale.denormalize_point(0.8)
-        test_s = 0.1 * xscale.scale_range
+    normed_test_loc = 0.8
+    normed_test_s = 0.1
+    test_loc = xscale.denormalize_point(normed_test_loc)
+    test_s = normed_test_s * xscale.scale_range
 
-        ergoLogisticMixture = LogisticMixture(
-            components=[
-                Logistic(
-                    loc=xscale.denormalize_point(0.2),
-                    s=0.5 * xscale.scale_range,
-                    scale=xscale,
-                ),
-                Logistic(loc=test_loc, s=test_s, scale=xscale,),
-            ],
-            probs=[1.8629593e-29, 1.0],
-            scale=xscale,
-        )
-        ergoLogistic = Logistic(loc=test_loc, s=test_s, scale=xscale)
+    ergoLogisticMixture = LogisticMixture(
+        components=[
+            Logistic(
+                loc=xscale.denormalize_point(0.2),
+                s=0.5 * xscale.scale_range,
+                scale=xscale,
+            ),
+            Logistic(loc=test_loc, s=test_s, scale=xscale,),
+        ],
+        probs=[1.8629593e-29, 1.0],
+        scale=xscale,
+    )
+    ergoLogistic = Logistic(loc=test_loc, s=test_s, scale=xscale)
+
+    if isinstance(xscale, LogScale):
+        normed_scipydist = scipy.stats.logistic(normed_test_loc, normed_test_s)
+        for x in np.linspace(0, 1, 10):
+            denormalized_x = xscale.denormalize_point(x)
+            assert (
+                normed_scipydist.pdf(x)
+                == pytest.approx(float(ergoLogistic.pdf(denormalized_x)), rel=1e-3)
+                == pytest.approx(
+                    float(ergoLogisticMixture.pdf(denormalized_x)), rel=1e-3
+                )
+            )
+    else:
         scipydist = scipy.stats.logistic(test_loc, test_s)
         for x in np.linspace(
             xscale.denormalize_point(0), xscale.denormalize_point(1), 10
