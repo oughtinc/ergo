@@ -6,11 +6,10 @@ from typing import Sequence
 
 from jax import nn
 import jax.numpy as np
-import numpy as onp
 import jax.scipy as scipy
+import numpy as onp
 import scipy as oscipy
 
-# import ergo.platforms.metaculus.question.constants as constants
 import ergo.scale as scale
 
 from .logistic import Logistic
@@ -38,7 +37,6 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
         res = np.where(
             x < self.floor, -np.inf, np.where(x > self.ceiling, -np.inf, logp_x)
         )
-        # print(f'x: {x} res: {res} logp_x: {logp_x} inside: {self.p_inside} loginside: {self.logp_inside} floor: {self.floor} ceil: {self.ceiling}')
         return res
 
     def cdf(self, x):
@@ -63,13 +61,13 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
     def from_params(cls, fixed_params, opt_params, traceable=True):
         floor = fixed_params["floor"]
         ceiling = fixed_params["ceiling"]
+        # Hardcode -2 and 3 for now since importing causes an import cycle
         loc_floor = floor + (ceiling - floor) * -2
         loc_ceiling = floor + (ceiling - floor) * 3
         structured_params = opt_params.reshape((-1, 3))
         locs = loc_floor + scipy.special.expit(structured_params[:, 0]) * (
             loc_ceiling - loc_floor
         )
-        # print(f'plocs: {locs}')
         scales = np.abs(structured_params[:, 1])
         probs = list(nn.softmax(structured_params[:, 2]))
         component_dists = [Logistic(l, s) for (l, s) in zip(locs, scales)]
