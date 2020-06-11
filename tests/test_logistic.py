@@ -22,7 +22,7 @@ def test_logpdf(logistic_mixture):
 )
 def test_fit_mixture_small(LogisticMixtureClass):
     mixture = LogisticMixtureClass.from_samples(
-        np.array([0.1, 0.2, 0.8, 0.9]), {"num_components": 2, "floor": -3, "ceiling": 3}
+        np.array([0.1, 0.2, 0.8, 0.9]), {"num_components": 2, "floor": 0, "ceiling": 1}
     )
     for prob in mixture.probs:
         assert prob == pytest.approx(0.5, 0.1)
