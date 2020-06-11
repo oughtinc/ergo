@@ -63,7 +63,10 @@ class Mixture(Distribution):
             )
         except ValueError:
             return oscipy.optimize.bisect(
-                lambda x: self.cdf(x) - q, self.scale.min, self.scale.min, maxiter=1000,
+                lambda x: self.cdf(x) - q,
+                self.scale.scale_min,
+                self.scale.scale_max,
+                maxiter=1000,
             )
 
     def sample(self):
