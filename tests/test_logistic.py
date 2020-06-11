@@ -5,22 +5,30 @@ import scipy.stats
 
 from ergo import Logistic, LogisticMixture, TruncatedLogisticMixture
 from ergo.conditions import HistogramCondition
-from ergo.scale import Scale
+from ergo.scale import Scale, LogScale
+from tests.conftest import scales_to_test
 
 
-def test_cdf():
-    xscale = Scale(-50, 150)
+@pytest.mark.parametrize("xscale", scales_to_test)
+def test_cdf(xscale: Scale):
     scipydist_normed = scipy.stats.logistic(0.5, 0.05)
-    scipydist_true = scipy.stats.logistic(50, 10)
-    ergodist = Logistic(loc=50, s=10, scale=xscale)
+    true_loc = xscale.denormalize_point(0.5)
+    true_s = 0.05 * xscale.scale_range
+
+    ergodist = Logistic(loc=true_loc, s=true_s, scale=xscale)
 
     for x in np.linspace(0, 1, 10):
         assert scipydist_normed.cdf(x) == pytest.approx(
             float(ergodist.cdf(xscale.denormalize_point(x))), rel=1e-3
         )
 
-    for x in np.linspace(-50, 150, 10):
-        assert scipydist_true.cdf(x) == pytest.approx(float(ergodist.cdf(x)), rel=1e-3)
+    # TODO: add a true-scale test for the log-scale distributions as well
+    if not isinstance(xscale, LogScale):
+        scipydist_true = scipy.stats.logistic(true_loc, true_s)
+        for x in np.linspace(xscale.scale_min, xscale.scale_max, 10):
+            assert scipydist_true.cdf(x) == pytest.approx(
+                float(ergodist.cdf(x)), rel=1e-3
+            )
 
 
 # TODO test truncated Logistic better in this file

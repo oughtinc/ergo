@@ -3,16 +3,8 @@ import pytest
 import ergo
 from ergo.conditions import IntervalCondition, MaxEntropyCondition
 from ergo.distributions.histogram import HistogramDist
-from ergo.scale import Scale, LogScale
-
-scales_to_test = [
-    Scale(0, 1),
-    Scale(0, 10000),
-    Scale(-1, 1),
-    LogScale(0, 1, 10),
-    LogScale(-1, 1, 10),
-    LogScale(0, 1028, 2),
-]
+from ergo.scale import Scale
+from tests.conftest import scales_to_test
 
 
 @pytest.mark.xfail(reason="New histogram dist doesn't interpolate")
