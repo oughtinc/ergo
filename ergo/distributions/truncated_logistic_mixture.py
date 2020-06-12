@@ -44,6 +44,7 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
             -np.inf,
             np.where(x > self.normed_ceiling, -np.inf, logp_x),
         )
+        print(f'logp_x: {logp_x} logp_inside: {self.logp_inside}')
         return res
 
     def cdf(self, x):
