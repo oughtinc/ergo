@@ -95,27 +95,24 @@ class HistogramDist(Distribution, Optimizable):
         if true_scale is None:
             return HistogramDist(self.logps, scale=Scale(0, 1))
 
-        if true_scale.scale_min is None or true_scale.scale_max is None:
+        if true_scale.low is None or true_scale.high is None:
             raise ValueError(
-                "If you provide a true_scale, you must provide both a scale_min and a scale_max"
+                "If you provide a true_scale, you must provide both a low and a high"
             )
 
-        if (
-            true_scale.scale_min > self.scale.scale_min
-            or true_scale.scale_max < self.scale.scale_max
-        ):
+        if true_scale.low > self.scale.low or true_scale.high < self.scale.high:
             raise ValueError(
                 "Can only rescale hist to a scale that includes all of its current scale"
             )
 
-        x_range_below = Scale(true_scale.scale_min, self.scale.scale_min)
+        x_range_below = Scale(true_scale.low, self.scale.low)
 
         x_range_below_per_hist_range = (
             x_range_below.scale_range / self.scale.scale_range
         )
         num_x_bins_below = round(self.size * x_range_below_per_hist_range)
 
-        x_range_above = Scale(self.scale.scale_max, true_scale.scale_max)
+        x_range_above = Scale(self.scale.high, true_scale.high)
         x_range_above_per_hist_range = (
             x_range_above.scale_range / self.scale.scale_range
         )
