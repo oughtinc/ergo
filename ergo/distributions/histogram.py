@@ -108,13 +108,13 @@ class HistogramDist(Distribution, Optimizable):
         x_range_below = Scale(true_scale.low, self.scale.low)
 
         x_range_below_per_hist_range = (
-            x_range_below.scale_range / self.scale.scale_range
+            x_range_below.width / self.scale.width
         )
         num_x_bins_below = round(self.size * x_range_below_per_hist_range)
 
         x_range_above = Scale(self.scale.high, true_scale.high)
         x_range_above_per_hist_range = (
-            x_range_above.scale_range / self.scale.scale_range
+            x_range_above.width / self.scale.width
         )
         num_x_bins_above = round(self.size * x_range_above_per_hist_range)
 
