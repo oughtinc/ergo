@@ -4,6 +4,7 @@ Truncated mixture of logistic distributions
 from dataclasses import dataclass
 from typing import Sequence
 
+import jax
 from jax import nn
 import jax.numpy as np
 import jax.scipy as scipy
@@ -107,9 +108,10 @@ class TruncatedLogisticMixture(Mixture, Optimizable):
     @classmethod
     def from_conditions(cls, *args, init_tries=100, opt_tries=2, **kwargs):
         # Increase default initialization and optimization tries
-        return super(TruncatedLogisticMixture, cls).from_conditions(
-            *args, init_tries=init_tries, opt_tries=opt_tries, **kwargs
-        )
+        with jax.disable_jit():
+            return super(TruncatedLogisticMixture, cls).from_conditions(
+                *args, init_tries=init_tries, opt_tries=opt_tries, **kwargs
+            )
 
     @classmethod
     def from_samples(cls, *args, init_tries=100, opt_tries=2, **kwargs):

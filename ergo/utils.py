@@ -41,6 +41,7 @@ def minimize_random(fun, init, tries=100):
             best_x = x
             best_loss = loss
         tries -= 1
+    print(f'best_x: {best_x}')
     return best_x
 
 

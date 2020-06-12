@@ -12,14 +12,15 @@ import jax.scipy as scipy
 def jitted_condition_loss(
     dist_class, dist_fixed_params, dist_opt_params, cond_classes, cond_params
 ):
-    print(
-        f"Tracing {dist_class.__name__} ({dist_fixed_params}) loss for {[c.__name__ for c in cond_classes]} ({str(cond_params)[:60]})"
-    )
+    #print(
+    #    f"Tracing {dist_class.__name__} ({dist_fixed_params}) loss for {[c.__name__ for c in cond_classes]} ({str(cond_params)[:60]})"
+    #)
     dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     total_loss = 0.0
     for (cond_class, cond_param) in zip(cond_classes, cond_params):
         condition = cond_class.structure(cond_param)
         total_loss += condition.loss(dist)
+    print(f'dist_opt_params: {dist_opt_params} total_loss: {total_loss}')
     return total_loss * 100
 
 

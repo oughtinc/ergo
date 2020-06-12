@@ -23,7 +23,9 @@ class HistogramCondition(condition.Condition):
 
     def loss(self, dist):
         entry_loss_fn = lambda x, density: (density - dist.pdf(x)) ** 2  # noqa: E731
-        total_loss = np.sum(vmap(entry_loss_fn)(self.xs, self.densities))
+        temp = vmap(entry_loss_fn)(self.xs, self.densities)
+        print(f'temp: {temp}')
+        total_loss = np.sum(temp)
         return self.weight * total_loss / self.xs.size
 
     def normalize(self, scale: Scale):
