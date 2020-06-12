@@ -7,12 +7,12 @@ import jax.numpy as np
 
 @dataclass
 class Scale:
-    scale_min: Union[date, datetime, float]
-    scale_max: Union[date, datetime, float]
-    scale_range: float = field(init=False)
+    low: Union[date, datetime, float]
+    high: Union[date, datetime, float]
+    width: float = field(init=False)
 
     def __post_init__(self):
-        self.scale_range = self.scale_max - self.scale_min
+        self.width = self.high - self.low
 
     def __hash__(self):
         return hash(self.__key())
@@ -27,10 +27,10 @@ class Scale:
         return (cls, params)
 
     def normalize_point(self, point):
-        return (point - self.scale_min) / self.scale_range
+        return (point - self.low) / self.width
 
     def denormalize_point(self, point):
-        return (point * self.scale_range) + self.scale_min
+        return (point * self.width) + self.low
 
     def denormalize_points(self, points):
         return [self.denormalize_point(point) for point in points]
@@ -41,15 +41,15 @@ class Scale:
     def normalize_variance(self, variance):
         if variance is None:
             raise Exception("Point was None This shouldn't happen")
-        return variance / (self.scale_range ** 2)
+        return variance / (self.width ** 2)
 
     def denormalize_variance(self, variance):
         if variance is None:
             raise Exception("Point was None This shouldn't happen")
-        return variance * (self.scale_range ** 2)
+        return variance * (self.width ** 2)
 
     def destructure(self):
-        return (Scale, (self.scale_min, self.scale_max))
+        return (Scale, (self.low, self.high))
 
     def export(self):
         cls, params = self.destructure()
@@ -66,7 +66,7 @@ class LogScale(Scale):
     def __post_init__(self):
         # if self.log_base < 1:
         #     raise ValueError(f"log_Base must be > 1, was {self.log_base}")
-        self.scale_range = self.scale_max - self.scale_min
+        self.width = self.high - self.low
 
     def __hash__(self):
         return super.__hash__(self)
@@ -81,9 +81,9 @@ class LogScale(Scale):
         """
         if point is None:
             raise Exception("Point was None This shouldn't happen")
-        shifted = point - self.scale_min
+        shifted = point - self.low
         numerator = shifted * (self.log_base - 1)
-        scaled = numerator / self.scale_range
+        scaled = numerator / self.width
         timber = 1 + scaled
         floored_timber = np.amax([timber, 1e-9])
 
@@ -102,12 +102,12 @@ class LogScale(Scale):
         if point is None:
             raise Exception("Point was None This shouldn't happen")
         deriv_term = (self.log_base ** point - 1) / (self.log_base - 1)
-        scaled = self.scale_range * deriv_term
-        return self.scale_min + scaled
-        return (point * self.scale_range) + self.scale_min
+        scaled = self.width * deriv_term
+        return self.low + scaled
+        return (point * self.width) + self.low
 
     def destructure(self):
-        return (LogScale, (self.scale_min, self.scale_max, self.log_base))
+        return (LogScale, (self.low, self.high, self.log_base))
 
 
 @dataclass
@@ -115,7 +115,7 @@ class TimeScale(Scale):
     time_unit: str  # function that returns timedelta in desired scale units e.g. seconds, days, months, years
 
     def __post_init__(self):
-        self.scale_range = getattr(self.scale_max - self.scale_min, self.time_unit)
+        self.width = getattr(self.high - self.low, self.time_unit)
 
     def __hash__(self):
         return super.__hash__(self)
@@ -127,7 +127,7 @@ class TimeScale(Scale):
         :param point: a point on the true scale
         :return: a sample value on the normalized scale
         """
-        return float(getattr(point - self.scale_min, self.time_unit) / self.scale_range)  # type: ignore
+        return float(getattr(point - self.low, self.time_unit) / self.width)  # type: ignore
 
     def denormalize_point(self, point: float) -> Union[date, datetime]:
         """
@@ -136,12 +136,12 @@ class TimeScale(Scale):
         :param point: a point on the normalized scale
         :return: a point on the true scale
         """
-        return self.scale_min + timedelta(  # type: ignore
-            **{self.time_unit: round(self.scale_range * point)}
+        return self.low + timedelta(  # type: ignore
+            **{self.time_unit: round(self.width * point)}
         )
 
     def destructure(self):
-        return (TimeScale, (self.scale_min, self.scale_max, self.time_unit))
+        return (TimeScale, (self.low, self.high, self.time_unit))
 
 
 def scale_factory(class_name, params):

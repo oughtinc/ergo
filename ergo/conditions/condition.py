@@ -53,7 +53,7 @@ class Condition(ABC):
         Return the condition on the true scale.
 
         :param scale: the true-scale
-        :return: the condition on the true scale of [scale_min, scale_max]
+        :return: the condition on the true scale of [low, high]
         """
         return self
 
