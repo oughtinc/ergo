@@ -132,7 +132,7 @@ class HistogramDist(Distribution, Optimizable):
                 "cum_ps": params[2],
                 "bins": params[3],
                 "size": params[4],
-                "scale": params[6](*params[5]),
+                "scale": params[6].structure(params[5]),
             }
         )
 

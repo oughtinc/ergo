@@ -51,6 +51,11 @@ class Scale:
     def destructure(self):
         return (Scale, (self.low, self.high))
 
+    @classmethod
+    def structure(cls, params):
+        low, high = params
+        return cls(low, high)
+
     def export(self):
         cls, params = self.destructure()
         return (cls.__name__, params)
@@ -109,6 +114,11 @@ class LogScale(Scale):
     def destructure(self):
         return (LogScale, (self.low, self.high, self.log_base))
 
+    @classmethod
+    def structure(cls, params):
+        low, high, log_base = params
+        return cls(low, high, log_base)
+
 
 @dataclass
 class TimeScale(Scale):
@@ -139,15 +149,32 @@ class TimeScale(Scale):
         return self.low + timedelta(  # type: ignore
             **{self.time_unit: round(self.width * point)}
         )
+    @classmethod
+    def structure(cls, params):
+        low, high, time_unit = params
+        return cls(
+            datetime.fromtimestamp(low),
+            datetime.fromtimestamp(high),
+            cls.time_units[time_unit],
+        )
 
     def destructure(self):
-        return (TimeScale, (self.low, self.high, self.time_unit))
+        return (
+            TimeScale,
+            (
+                datetime(*self.low.timetuple()[:6]).timestamp(),
+                datetime(*self.high.timetuple()[:6]).timestamp(),
+                self.time_units.index(self.time_unit),
+            ),
+        )
 
 
 def scale_factory(class_name, params):
     if type(class_name) == str:
         if class_name == "Scale":
-            return Scale(*params)
+            return Scale.structure(params)
         elif class_name == "LogScale":
-            return LogScale(*params)
+            return LogScale.structure(params)
+        elif class_name == "TimeScale":
+            return TimeScale.structure(params)
     raise TypeError("cannot reconstruct Scale")
