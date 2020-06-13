@@ -170,7 +170,6 @@ class Metaculus:
         ] = "any",  # 20 results per page
         cat: Union[str, None] = None,
         pages: int = 1,
-        fail_silent: bool = False,
     ) -> List["MetaculusQuestion"]:
         """
         Retrieve multiple questions from Metaculus API.
