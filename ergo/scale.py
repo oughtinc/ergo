@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import TypeVar, Union
+from typing import Tuple, TypeVar, Union
 
+from dateutil.parser import parse
 import jax.numpy as np
 
 
@@ -32,11 +33,11 @@ class Scale:
     def denormalize_point(self, point):
         return (point * self.width) + self.low
 
-    def denormalize_points(self, points):
-        return [self.denormalize_point(point) for point in points]
+    def denormalize_points(self, points, **kwargs):
+        return [self.denormalize_point(point, **kwargs) for point in points]
 
-    def normalize_points(self, points):
-        return [self.normalize_point(point) for point in points]
+    def normalize_points(self, points, **kwargs):
+        return [self.normalize_point(point, **kwargs) for point in points]
 
     def normalize_variance(self, variance):
         if variance is None:
@@ -123,32 +124,74 @@ class LogScale(Scale):
 @dataclass
 class TimeScale(Scale):
     time_unit: str  # function that returns timedelta in desired scale units e.g. seconds, days, months, years
+    time_units: Tuple[str, str, str, str, str, str] = (
+        "years",
+        "months",
+        "days",
+        "hours",
+        "seconds",
+        "microseconds",
+    )
 
-    def __post_init__(self):
+    def __init__(self, low, high, time_unit):
+        if time_unit not in self.time_units:
+            raise Exception(
+                "time_unit needs to be one of 'years','months','days','hours','seconds', 'microseconds'"
+            )
+        self.time_unit = time_unit
+
+        self.low = self.string_to_datetime(low) if isinstance(low, str) else low
+        self.high = self.string_to_datetime(high) if isinstance(high, str) else high
+        if not isinstance(self.low, (date, datetime)) and not isinstance(
+            self.high, (date, datetime)
+        ):
+            raise Exception(
+                "Low value {low} and High value {high} could not be parsed into Datetime "
+            )
+
+        # self.low_string = self.low.isoformat()
+        # self.high_string = self.high.isoformat()
+
         self.width = getattr(self.high - self.low, self.time_unit)
 
     def __hash__(self):
         return super.__hash__(self)
 
-    def normalize_point(self, point: Union[date, datetime]) -> float:
+    def normalize_point(self, point: Union[str, date, datetime]) -> float:
         """
         Get a prediciton point on the normalized scale from a true-scale value
 
         :param point: a point on the true scale
         :return: a sample value on the normalized scale
         """
+        if isinstance(point, str):
+            point = self.string_to_datetime(point)
+
         return float(getattr(point - self.low, self.time_unit) / self.width)  # type: ignore
 
-    def denormalize_point(self, point: float) -> Union[date, datetime]:
+    def denormalize_point(
+        self, point: float, as_string: bool = True
+    ) -> Union[str, date, datetime]:
         """
         Get a value on the true scale from a normalized-scale value
 
         :param point: a point on the normalized scale
         :return: a point on the true scale
         """
-        return self.low + timedelta(  # type: ignore
+        denormed_point = self.low + timedelta(  # type: ignore
             **{self.time_unit: round(self.width * point)}
         )
+        return denormed_point.isoformat() if as_string else denormed_point
+
+    def string_to_datetime(self, date_string: str) -> Union[date, datetime]:
+        try:
+            return parse(date_string)
+        except ValueError as e:
+            print(str(e))
+            raise TypeError(
+                "Date format must be in ISO format: e.g. '2011-11-04' or '2011-11-04 00:05:23.283+00:00'"
+            )
+
     @classmethod
     def structure(cls, params):
         low, high, time_unit = params

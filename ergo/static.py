@@ -77,7 +77,7 @@ single_condition_loss_grad = jit(
 # Description of distribution/condition fit
 
 
-@partial(jit, static_argnums=(0, 2))
+# @partial(jit, static_argnums=(0, 2))
 def describe_fit(dist_classes, dist_params, cond_class, cond_params):
     if isinstance(dist_classes, type):
         dist = dist_classes.structure(dist_params)
