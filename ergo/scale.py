@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
-from typing import Tuple, TypeVar, Union
+from datetime import date, datetime
+import time
+from typing import TypeVar, Union
 
 from dateutil.parser import parse
 import jax.numpy as np
@@ -123,41 +124,34 @@ class LogScale(Scale):
 
 @dataclass
 class TimeScale(Scale):
-    time_unit: str  # function that returns timedelta in desired scale units e.g. seconds, days, months, years
-    time_units: Tuple[str, str, str, str, str, str] = (
-        "years",
-        "months",
-        "days",
-        "hours",
-        "seconds",
-        "microseconds",
-    )
+    def __init__(self, low, high, direct_init=False):
+        if direct_init:
+            self.low = low
+            self.high = high
+            self.width = self.high - self.low
+        else:
+            if isinstance(low, (float, int)):
+                self.low = low
+            elif isinstance(low, str):
+                self.low = self.str_to_timestamp(low)
+            elif isinstance(low, (date, datetime)):
+                self.low = self.datetime_to_timestamp(low)
+            if isinstance(high, (float, int)):
+                self.high = high
+            elif isinstance(high, str):
+                self.high = self.str_to_timestamp(high)
+            elif isinstance(high, (date, datetime)):
+                self.high = self.datetime_to_timestamp(high)
+            self.width = self.high - self.low
 
-    def __init__(self, low, high, time_unit):
-        if time_unit not in self.time_units:
-            raise Exception(
-                "time_unit needs to be one of 'years','months','days','hours','seconds', 'microseconds'"
-            )
-        self.time_unit = time_unit
-
-        self.low = self.string_to_datetime(low) if isinstance(low, str) else low
-        self.high = self.string_to_datetime(high) if isinstance(high, str) else high
-        if not isinstance(self.low, (date, datetime)) and not isinstance(
-            self.high, (date, datetime)
-        ):
-            raise Exception(
-                "Low value {low} and High value {high} could not be parsed into Datetime "
-            )
-
-        # self.low_string = self.low.isoformat()
-        # self.high_string = self.high.isoformat()
-
-        self.width = getattr(self.high - self.low, self.time_unit)
+            assert isinstance(self.low, float), f"low was {self.low}"
+            assert isinstance(self.high, float), f"high was {self.high}"
+            assert isinstance(self.width, float), f"widht was {self.width}"
 
     def __hash__(self):
         return super.__hash__(self)
 
-    def normalize_point(self, point: Union[str, date, datetime]) -> float:
+    def normalize_point(self, point) -> float:
         """
         Get a prediciton point on the normalized scale from a true-scale value
 
@@ -165,51 +159,60 @@ class TimeScale(Scale):
         :return: a sample value on the normalized scale
         """
         if isinstance(point, str):
-            point = self.string_to_datetime(point)
+            point = self.str_to_timestamp(point)
+        if isinstance(point, (date, datetime)):
+            point = self.datetime_to_timestamp(point)
 
-        return float(getattr(point - self.low, self.time_unit) / self.width)  # type: ignore
+        assert isinstance(point, float)
+        return (point - self.low) / self.width  # type: ignore
 
     def denormalize_point(
         self, point: float, as_string: bool = True
-    ) -> Union[str, date, datetime]:
+    ) -> Union[str, float]:
         """
         Get a value on the true scale from a normalized-scale value
 
         :param point: a point on the normalized scale
         :return: a point on the true scale
         """
-        denormed_point = self.low + timedelta(  # type: ignore
-            **{self.time_unit: round(self.width * point)}
+        denormed_point = self.low + self.width * point  # type: ignore
+        assert isinstance(denormed_point, float)
+        return (
+            time.strftime("%Y-%m-%d", time.localtime(denormed_point))
+            if as_string
+            else denormed_point
         )
-        return denormed_point.isoformat() if as_string else denormed_point
 
-    def string_to_datetime(self, date_string: str) -> Union[date, datetime]:
+    def str_to_datetime(self, date_string: str) -> datetime:
         try:
             return parse(date_string)
         except ValueError as e:
             print(str(e))
             raise TypeError(
-                "Date format must be in ISO format: e.g. '2011-11-04' or '2011-11-04 00:05:23.283+00:00'"
+                "Datetimes in string format must be in ISO format: e.g. '2011-11-04' or '2011-11-04 00:05:23.283+00:00'"
             )
 
-    @classmethod
-    def structure(cls, params):
-        low, high, time_unit = params
-        return cls(
-            datetime.fromtimestamp(low),
-            datetime.fromtimestamp(high),
-            cls.time_units[time_unit],
-        )
+    def str_to_timestamp(self, date_string: str) -> float:
+        return self.str_to_datetime(date_string).timestamp()
+
+    def datetime_to_timestamp(self, xdatetime: Union[date, datetime]) -> float:
+        if isinstance(xdatetime, datetime):
+            return xdatetime.timestamp()
+        else:
+            return datetime(*xdatetime.timetuple()[:6]).timestamp()
 
     def destructure(self):
         return (
             TimeScale,
-            (
-                datetime(*self.low.timetuple()[:6]).timestamp(),
-                datetime(*self.high.timetuple()[:6]).timestamp(),
-                self.time_units.index(self.time_unit),
-            ),
+            (self.low, self.high,),
         )
+
+    @classmethod
+    def structure(cls, params):
+        low, high = params
+        low = low + 0.0
+        high = high + 0.0
+        return cls(low, high, direct_init=True)
 
 
 def scale_factory(class_name, params):
