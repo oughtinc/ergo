@@ -36,7 +36,7 @@ class HistogramDist(Distribution, Optimizable):
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
             self.bins = np.linspace(0, 1, self.logps.size + 1)
-        self.truebin_size = (self.scale.high - self.scale.low) / self.logps.size
+        self.truebin_size = self.scale.width / self.logps.size
 
     def __hash__(self):
         return hash(self.__key())
@@ -148,7 +148,7 @@ class HistogramDist(Distribution, Optimizable):
         target_xs = (bins[:-1] + bins[1:]) / 2  # get midpoint of each bin for x coord
         # interpolate ps at normalized x bins
         if not (
-            len(xs) == len(target_xs) and np.isclose(xs, target_xs, rtol=1e-04).all()
+            len(xs) == len(target_xs) and np.isclose(xs, target_xs, atol=1e-03).all()
         ):
             f = interp1d(xs, densities)
             densities = f(target_xs)
