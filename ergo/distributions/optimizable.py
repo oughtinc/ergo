@@ -105,12 +105,11 @@ class Optimizable(ABC):
             jitted_loss = static.condition_loss
             jitted_jac = static.condition_loss_grad
 
-        loss = lambda opt_params: jitted_loss(  # noqa: E731
-            cls, fixed_params, opt_params, cond_classes, cond_params
-        )
-        jac = lambda opt_params: jitted_jac(  # noqa: E731
-            cls, fixed_params, opt_params, cond_classes, cond_params
-        )
+        def loss(opt_params):
+            return jitted_loss(cls, fixed_params, opt_params, cond_classes, cond_params)
+
+        def jac(opt_params):
+            return jitted_jac(cls, fixed_params, opt_params, cond_classes, cond_params)
 
         normalized_dist = cls.from_loss(
             fixed_params=fixed_params,
