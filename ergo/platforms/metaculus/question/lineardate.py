@@ -34,7 +34,6 @@ class LinearDateQuestion(ContinuousQuestion):
             datetime.datetime.strptime(
                 self.possibilities["scale"]["max"], "%Y-%m-%d"
             ).date(),
-            "days",
         )
 
     def _scale_x(self, xmin: float = None, xmax: float = None):
