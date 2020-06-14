@@ -38,8 +38,12 @@ class Logistic(Distribution):
             self.metadata = metadata
             if scale is not None:
                 self.scale = scale
-                self.true_s = self.s * scale.width
-                self.true_loc = scale.denormalize_point(loc)
+                self.true_s = (
+                    self.s * scale.width
+                )  # convenience field only used in repr currently
+                self.true_loc = scale.denormalize_point(
+                    loc
+                )  # convenience field only used in repr currently
             else:
                 self.scale = Scale(0, 1)
         elif scale is None:
@@ -49,8 +53,8 @@ class Logistic(Distribution):
             self.s = np.max([s, 0.0000001]) / scale.width
             self.scale = scale
             self.metadata = metadata
-            self.true_s = s
-            self.true_loc = loc
+            self.true_s = s  # convenience field only used in repr currently
+            self.true_loc = loc # convenience field only used in repr currently
 
     def __repr__(self):
         return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
@@ -80,8 +84,7 @@ class Logistic(Distribution):
         # FIXME (#296): This needs to be compatible with ergo sampling
         return self.scale.denormalize_point(self.odist.rvs(loc=self.loc, scale=self.s))
 
-    # Note: this is not strictly necessary as the distribution params are
-    # always stored in normalized form
+    # Note: params are always stored in normalized form
     def normalize(self):
         """
         Return the normalized condition.
@@ -91,14 +94,12 @@ class Logistic(Distribution):
         """
         return self.__class__(self.loc, self.s, Scale(0, 1), self.metadata)
 
-    # Note: only the scale is necessary to change as the distribution params are
-    # always stored in normalized form.
+  
     def denormalize(self, scale: Scale):
         """
         Assume that the distribution has been normalized to be over [0,1].
         Return the distribution on the true scale
         :param scale: the true-scale
         """
-        denormalized_loc = scale.denormalize_point(self.loc)
-        denormalized_s = self.s * scale.width
-        return self.__class__(denormalized_loc, denormalized_s, scale, self.metadata)
+        
+        return self.__class__(self.loc, self.s, scale, self.metadata, normalized=True)
