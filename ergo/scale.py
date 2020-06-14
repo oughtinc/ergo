@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import time
 from typing import TypeVar, Union
 
@@ -148,6 +148,9 @@ class TimeScale(Scale):
             assert isinstance(self.high, float), f"high was {self.high}"
             assert isinstance(self.width, float), f"widht was {self.width}"
 
+    def __repr__(self):
+        return f"TimeScale(low={self.timestamp_to_str(self.low)}, high={self.timestamp_to_str(self.high)}, width={timedelta(seconds=self.width)})"
+
     def __hash__(self):
         return super.__hash__(self)
 
@@ -177,11 +180,7 @@ class TimeScale(Scale):
         """
         denormed_point = self.low + self.width * point  # type: ignore
         assert isinstance(denormed_point, float)
-        return (
-            time.strftime("%Y-%m-%d", time.localtime(denormed_point))
-            if as_string
-            else denormed_point
-        )
+        return self.timestamp_to_str(denormed_point) if as_string else denormed_point
 
     def str_to_datetime(self, date_string: str) -> datetime:
         try:
@@ -200,6 +199,11 @@ class TimeScale(Scale):
             return xdatetime.timestamp()
         else:
             return datetime(*xdatetime.timetuple()[:6]).timestamp()
+
+    def timestamp_to_str(self, timestamp: float) -> str:
+        return time.strftime(
+            "%Y-%m-%d", time.localtime(timestamp)
+        )  # expand this for datetimes if desirable
 
     def destructure(self):
         return (
