@@ -7,7 +7,7 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
 from ergo import conditions
-from ergo.scale import LogScale, Scale
+from ergo.scale import LogScale, Scale, TimeScale
 
 from .distribution import Distribution
 from .optimizable import Optimizable
@@ -156,20 +156,21 @@ class HistogramDist(Distribution, Optimizable):
         return cls(logps, scale)
 
     def to_lists(self, true_scale=True, verbose=False):
+
         bins = self.bins
         xs = (bins[:-1] + bins[1:]) / 2
 
         if true_scale:
-            xs = np.array(self.scale.denormalize_points(xs))
-            bins = np.array(self.scale.denormalize_points(self.bins))
+            xs = onp.array(self.scale.denormalize_points(xs))
 
-        if type(self.scale) != LogScale:
-            ps = np.divide(self.ps, bins[1:] - bins[:-1])
-
-        else:
+        if type(self.scale) == TimeScale:
+            ps = self.ps / (self.scale.width / self.ps.size)
+        elif type(self.scale) == LogScale:
             auc = trapz(self.ps, xs)
             ps = self.ps / auc
-
+        else:
+            bins = np.array(self.scale.denormalize_points(self.bins))
+            ps = np.divide(self.ps, bins[1:] - bins[:-1])
         if verbose:
             import pandas as pd
 
@@ -186,9 +187,12 @@ class HistogramDist(Distribution, Optimizable):
 
         xs, ps = self.to_lists(true_scale=True, verbose=False)
 
-        return [
-            {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
-        ]
+        if type(self.scale) == TimeScale:
+            return [{"x": x, "density": float(density)} for x, density in zip(xs, ps)]
+        else:
+            return [
+                {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
+            ]
 
     def to_arrays(self, normalized=False):
         # TODO: vectorize
