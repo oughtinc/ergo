@@ -105,14 +105,27 @@ class HistogramDist(Distribution, Optimizable):
                 "Can only rescale hist to a scale that includes all of its current scale"
             )
 
-        x_range_below = Scale(true_scale.low, self.scale.low)
+        # since the normalized scale is on [0,1],
+        # -1 * the normalized value of the low point of the true scale
+        # is the proportion of the true scale below the hist range
+        x_range_below_as_proportion_of_current_range = -self.scale.normalize_point(
+            true_scale.low
+        )
 
-        x_range_below_per_hist_range = x_range_below.width / self.scale.width
-        num_x_bins_below = round(self.size * x_range_below_per_hist_range)
+        num_x_bins_below = round(
+            self.size * x_range_below_as_proportion_of_current_range
+        )
 
-        x_range_above = Scale(self.scale.high, true_scale.high)
-        x_range_above_per_hist_range = x_range_above.width / self.scale.width
-        num_x_bins_above = round(self.size * x_range_above_per_hist_range)
+        # since the normalized scale is on [0,1],
+        # 1 - the normalized value of the high point of the true scale
+        # is the proportion of the true scale above the hist range
+        x_range_above_as_proportion_of_current_range = (
+            self.scale.normalize_point(true_scale.high) - 1
+        )
+
+        num_x_bins_above = round(
+            self.size * x_range_above_as_proportion_of_current_range
+        )
 
         bins_below = onp.full(num_x_bins_below, float("-inf"))
 
