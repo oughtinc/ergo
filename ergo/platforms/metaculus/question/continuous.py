@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 import textwrap
 from typing import Dict, Union
@@ -33,6 +34,8 @@ from .constants import (
 )
 from .question import MetaculusQuestion
 from .types import ArrayLikes
+
+Bounds = namedtuple("Bounds", ["floor", "ceiling"])
 
 
 class ContinuousQuestion(MetaculusQuestion):
@@ -284,14 +287,31 @@ class ContinuousQuestion(MetaculusQuestion):
         submission = self.get_submission_from_samples(samples, verbose=verbose)
         return self.submit(submission)
 
-    @staticmethod
-    def get_logistic_from_json(logistic_json: Dict) -> dist.Logistic:
-        return dist.Logistic(logistic_json["x0"], logistic_json["s"], normalized=True)
+    def get_bounds(self):
+        # Return true-scale bounds
+        floor, ceiling = None, None
+        possibilities = self.possibilities
+        if possibilities.get("low") != "tail":
+            floor = possibilities["scale"]["min"]
+        if possibilities.get("high") != "tail":
+            ceiling = possibilities["scale"]["max"]
+        return Bounds(floor=floor, ceiling=ceiling)
 
-    @classmethod
-    def get_submission_from_json(cls, submission_json: Dict) -> dist.LogisticMixture:
+    def get_logistic_from_json(self, logistic_json: Dict) -> dist.Logistic:
+        bounds = self.get_bounds()
+        normed_bounds = {}
+        if bounds.floor is not None:
+            normed_bounds["floor"] = self.scale.normalize_point(bounds.floor)
+        if bounds.ceiling is not None:
+            normed_bounds["ceiling"] = self.scale.normalize_point(bounds.ceiling)
+        return dist.Truncate(  # type: ignore
+            dist.Logistic(logistic_json["x0"], logistic_json["s"], normalized=True),
+            **normed_bounds,
+        )
+
+    def get_submission_from_json(self, submission_json: Dict) -> dist.LogisticMixture:
         components = [
-            cls.get_logistic_from_json(logistic_json)
+            self.get_logistic_from_json(logistic_json)
             for logistic_json in submission_json
         ]
 
