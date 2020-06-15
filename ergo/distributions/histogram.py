@@ -135,7 +135,7 @@ class HistogramDist(Distribution, Optimizable):
                 "cum_ps": hist_numeric[2],
                 "bins": hist_numeric[3],
                 "size": hist_numeric[4],
-                "scale": scale_classes[0].structure(scale_classes, scale_numeric),
+                "scale": scale_classes[0].structure((scale_classes, scale_numeric)),
             }
         )
 
