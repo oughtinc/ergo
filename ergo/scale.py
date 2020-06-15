@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import date, datetime, timedelta
 from typing import TypeVar, Union
 
@@ -57,8 +57,9 @@ class Scale:
         return ((Scale,), (self.low, self.high))
 
     def export(self):
-        cls, params = self.destructure()
-        return (cls.__name__, params)
+        export_dict = asdict(self)
+        export_dict["class"] = type(self).__name__
+        return export_dict
 
 
 ScaleClass = TypeVar("ScaleClass", bound=Scale)
@@ -149,10 +150,15 @@ class TimeScale(Scale):
         return ((TimeScale,), (self.low, self.high, self.time_unit))
 
 
-def scale_factory(class_name, params):
-    if type(class_name) == str:
-        if class_name == "Scale":
-            return Scale(*params)
-        elif class_name == "LogScale":
-            return LogScale(*params)
-    raise TypeError("cannot reconstruct Scale")
+def scale_factory(scale_dict):
+    scale_class = scale_dict["class"]
+    low = scale_dict["low"]
+    high = scale_dict["high"]
+
+    if scale_class == "Scale":
+        return Scale(low, high)
+    if scale_class == "LogScale":
+        return LogScale(low, high, scale_dict["log_base"])
+    raise NotImplementedError(
+        f"reconstructing scales of class {scale_class} is not implemented."
+    )
