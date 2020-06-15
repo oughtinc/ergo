@@ -21,18 +21,18 @@ class Truncate(Distribution):
             self.floor == -np.inf,
             0,
             self.base_dist.cdf(np.where(self.floor == -np.inf, 0, self.floor)),
-        )  # 0
+        )
         self.p_above = np.where(
             self.ceiling == np.inf,
             0,
             1.0 - self.base_dist.cdf(np.where(self.ceiling == np.inf, 1, self.ceiling)),
-        )  # 0
-        self.p_inside = 1.0 - (self.p_below + self.p_above)  # 1
+        )
+        self.p_inside = 1.0 - (self.p_below + self.p_above)
 
     # Distribution
 
     def pdf(self, x):
-        p_x = self.base_dist.pdf(x) / self.p_inside
+        p_x = np.exp(self.base_dist.logpdf(x) - np.log(self.p_inside))
         return np.where(x < self.floor, 0.0, np.where(x > self.ceiling, 0.0, p_x),)
 
     def logpdf(self, x):

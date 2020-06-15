@@ -108,13 +108,13 @@ class LogisticMixture(Distribution, Optimizable):
         floor = fixed_params.get("floor", -np.inf)
         ceiling = fixed_params.get("ceiling", np.inf)
         # Allow logistic center to exceed the range by 25%
-        loc_min = np.maximum(scale.low, floor) - 0.25 * scale.width
-        loc_max = np.minimum(scale.high, ceiling) + 0.25 * scale.width
+        loc_min = np.maximum(scale.low, floor) - 0.2 * scale.width
+        loc_max = np.minimum(scale.high, ceiling) + 0.2 * scale.width
         loc_range = loc_max - loc_min
         structured_params = opt_params.reshape((-1, 3))
         locs = loc_min + scipy.special.expit(structured_params[:, 0]) * loc_range
         # Allow logistic scales between 0.01 and 0.5
-        s_min = 0.01
+        s_min = 0.02
         s_max = 0.5
         s_range = s_max - s_min
         ss = s_min + scipy.special.expit(structured_params[:, 1]) * s_range
