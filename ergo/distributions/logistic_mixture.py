@@ -114,7 +114,12 @@ class LogisticMixture(Distribution, Optimizable):
         structured_params = opt_params.reshape((-1, 3))
         locs = loc_min + scipy.special.expit(structured_params[:, 0]) * loc_range
         # Allow logistic scales between 0.01 and 0.5
-        s_min = 0.02
+        # Don't allow tiny scales outside of the visible range
+        s_min = 0.01 + 0.1 * np.where(
+            (locs < scale.low),
+            scale.low - locs,
+            np.where(locs > scale.high, locs - scale.high, 0.0),
+        )
         s_max = 0.5
         s_range = s_max - s_min
         ss = s_min + scipy.special.expit(structured_params[:, 1]) * s_range
