@@ -9,7 +9,6 @@ import jax.numpy as np
 import scipy as oscipy
 
 from ergo.scale import Scale
-import ergo.static as static
 
 from .distribution import Distribution
 
@@ -49,9 +48,6 @@ class Logistic(Distribution):
             self.metadata = metadata
             self.true_s = s
             self.true_loc = loc
-
-    def _normed_logpdf(self, x):
-        return static.logistic_logpdf(x, self.loc, self.s)
 
     def __repr__(self):
         return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
