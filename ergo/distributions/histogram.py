@@ -117,22 +117,25 @@ class HistogramDist(Distribution, Optimizable):
         raise NotImplementedError
 
     def destructure(self):
-        scale_cls, scale_params = self.scale.destructure()
-        return (
-            (HistogramDist, scale_cls),
-            (self.logps, self.ps, self.cum_ps, self.bins, self.size, scale_params),
-        )
+        scale_classes, scale_numeric = self.scale.destructure()
+        class_params = (self.__class__, scale_classes)
+        self_numeric = self.logps, self.ps, self.cum_ps, self.bins, self.size
+        numeric_params = (self_numeric, scale_numeric)
+        return (class_params, numeric_params)
 
     @classmethod
     def structure(cls, params):
-        return cls(
+        class_params, numeric_params = params
+        hist_class, scale_classes = class_params
+        hist_numeric, scale_numeric = numeric_params
+        return hist_class(
             direct_init={
-                "logps": params[0],
-                "ps": params[1],
-                "cum_ps": params[2],
-                "bins": params[3],
-                "size": params[4],
-                "scale": params[6](*params[5]),
+                "logps": hist_numeric[0],
+                "ps": hist_numeric[1],
+                "cum_ps": hist_numeric[2],
+                "bins": hist_numeric[3],
+                "size": hist_numeric[4],
+                "scale": scale_classes[0].structure((scale_classes, scale_numeric)),
             }
         )
 

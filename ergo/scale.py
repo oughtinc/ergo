@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from typing import TypeVar, Union
 
@@ -48,8 +48,13 @@ class Scale:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
 
+    @classmethod
+    def structure(cls, params):
+        classes, numeric = params
+        return classes[0](*numeric)
+
     def destructure(self):
-        return (Scale, (self.low, self.high))
+        return ((Scale,), (self.low, self.high))
 
     def export(self):
         export_dict = asdict(self)
@@ -108,7 +113,7 @@ class LogScale(Scale):
         return (point * self.width) + self.low
 
     def destructure(self):
-        return (LogScale, (self.low, self.high, self.log_base))
+        return ((LogScale,), (self.low, self.high, self.log_base))
 
 
 @dataclass
@@ -142,7 +147,7 @@ class TimeScale(Scale):
         )
 
     def destructure(self):
-        return (TimeScale, (self.low, self.high, self.time_unit))
+        return ((TimeScale,), (self.low, self.high, self.time_unit))
 
 
 def scale_factory(scale_dict):

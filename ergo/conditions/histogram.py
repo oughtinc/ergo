@@ -51,10 +51,13 @@ class HistogramCondition(condition.Condition):
 
     def _describe_fit(self, dist):
         description = super()._describe_fit(dist)
-        entry_distance_fn = lambda x, density: abs(density - dist.pdf(x))  # noqa: E731
+
+        def entry_distance_fn(x, density):
+            return abs(1.0 - density / dist.pdf(x))
+
         distances = vmap(entry_distance_fn)(self.xs, self.densities)
         description["max_distance"] = np.max(distances)
-        description["95th_distance"] = np.percentile(distances, 90)
+        description["90th_distance"] = np.percentile(distances, 90)
         description["mean_distance"] = np.mean(distances)
         return description
 

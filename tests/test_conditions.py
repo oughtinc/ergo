@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import jax.numpy as np
 import pytest
 
-from ergo import HistogramDist, Logistic, LogisticMixture, TruncatedLogisticMixture
+from ergo import HistogramDist, Logistic, LogisticMixture
 from ergo.conditions import (
     HistogramCondition,
     IntervalCondition,
@@ -29,11 +29,12 @@ class Uniform:
         return lt_min * 0 + in_range * range_val + gt_max * 1
 
     def destructure(self):
-        return (Uniform, (self.min, self.max))
+        return ((Uniform,), (self.min, self.max))
 
     @classmethod
     def structure(self, params):
-        return Uniform(params[0], params[1])
+        numeric_params = params[1]
+        return Uniform(numeric_params[0], numeric_params[1])
 
 
 def test_interval_condition():
@@ -116,9 +117,9 @@ def test_mixture_from_percentile():
     for value in [0.01, 0.1, 1, 3]:
         conditions = [IntervalCondition(p=0.5, max=value)]
         dist = LogisticMixture.from_conditions(
-            conditions, {"num_components": 1}, verbose=True
+            conditions, {"num_components": 1}, verbose=True, scale=Scale(0, 3)
         )
-        loc = dist.components[0].loc
+        loc = dist.components[0].base_dist.true_loc
         assert loc == pytest.approx(value, rel=0.1), loc
 
 
@@ -129,7 +130,7 @@ def test_mixture_from_percentiles():
         IntervalCondition(p=0.6, max=3),
     ]
     dist = LogisticMixture.from_conditions(
-        conditions, {"num_components": 3}, verbose=True
+        conditions, {"num_components": 4}, verbose=False, scale=Scale(0, 3)
     )
     for condition in conditions:
         assert dist.cdf(condition.max) == pytest.approx(condition.p, rel=0.1)
@@ -143,7 +144,6 @@ def test_percentiles_from_mixture():
             Logistic(loc=2, s=0.1, scale=xscale),
         ],
         probs=[0.5, 0.5],
-        scale=xscale,
     )
     conditions = mixture.percentiles(percentiles=[0.1, 0.5, 0.9])
     for condition in conditions:
@@ -153,9 +153,10 @@ def test_percentiles_from_mixture():
 
 
 @pytest.mark.parametrize(
-    "LogisticMixtureClass", [LogisticMixture, TruncatedLogisticMixture]
+    "fixed_params",
+    [{"num_components": 4}, {"num_components": 4, "floor": 0, "ceiling": 4}],
 )
-def test_percentile_roundtrip(LogisticMixtureClass):
+def test_percentile_roundtrip(fixed_params):
     conditions = [
         IntervalCondition(p=0.01, max=0.61081324517545),
         IntervalCondition(p=0.1, max=0.8613634657212543),
@@ -166,11 +167,8 @@ def test_percentile_roundtrip(LogisticMixtureClass):
         IntervalCondition(p=0.99, max=2.3891870975494385),
     ]
 
-    mixture = LogisticMixtureClass.from_conditions(
-        conditions,
-        {"num_components": 4, "floor": 0, "ceiling": 4},
-        scale=Scale(0, 4),
-        verbose=True,
+    mixture = LogisticMixture.from_conditions(
+        conditions, fixed_params, scale=Scale(0, 4), verbose=True,
     )
     recovered_conditions = mixture.percentiles(
         percentiles=[condition.p for condition in conditions]
@@ -199,9 +197,9 @@ def test_weights_mixture():
         IntervalCondition(p=0.9, max=2.3, weight=0.01),
     ]
     dist = LogisticMixture.from_conditions(
-        conditions, {"num_components": 1}, verbose=True
+        conditions, {"num_components": 1}, verbose=True, scale=Scale(0, 3)
     )
-    assert dist.components[0].loc == pytest.approx(2, rel=0.1)
+    assert dist.components[0].base_dist.true_loc == pytest.approx(2, rel=0.1)
 
 
 def test_mode_condition():

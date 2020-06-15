@@ -48,6 +48,7 @@ jupyterlab = "^2.1.1"
 nbdime = "^2.0.0"
 jupytext = "^1.4.2"
 ipywidgets = "^7.5.1"
+pytest-sugar = "^0.9.3"
 
 [tool.poetry.extras]
 notebooks = [   

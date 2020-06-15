@@ -16,7 +16,6 @@ from .distributions import (
     LogisticMixture,
     LogNormalFromInterval,
     NormalFromInterval,
-    TruncatedLogisticMixture,
     bernoulli,
     beta,
     beta_from_hits,
