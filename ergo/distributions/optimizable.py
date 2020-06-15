@@ -53,12 +53,13 @@ class Optimizable(ABC):
         fixed_params = cls.normalize_fixed_params(fixed_params, scale)
         normalized_data = np.array(scale.normalize_points(data))
 
-        loss = lambda params: static.dist_logloss(  # noqa: E731
-            cls, fixed_params, params, normalized_data
-        )
-        jac = lambda params: static.dist_grad_logloss(  # noqa: E731
-            cls, fixed_params, params, normalized_data
-        )
+        def loss(opt_params):
+            return static.dist_logloss(cls, fixed_params, opt_params, normalized_data)
+
+        def jac(opt_params):
+            return static.dist_grad_logloss(
+                cls, fixed_params, opt_params, normalized_data
+            )
 
         normalized_dist = cls.from_loss(
             loss,
@@ -89,9 +90,7 @@ class Optimizable(ABC):
             scale = Scale(0, 1)  # assume a linear scale in [0,1]
 
         fixed_params = cls.normalize_fixed_params(fixed_params, scale)
-
         normalized_conditions = [condition.normalize(scale) for condition in conditions]
-
         cond_data = [condition.destructure() for condition in normalized_conditions]
         if cond_data:
             cond_classes, cond_params = zip(*cond_data)

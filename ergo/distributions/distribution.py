@@ -6,14 +6,12 @@ Specifies interface for specific Distribution Classes
 
 from abc import ABC, abstractmethod
 
-import jax.numpy as np
-
 from ergo.scale import Scale
 
 
 class Distribution(ABC):
     @abstractmethod
-    def logpdf(self, x):
+    def pdf(self, x):
         ...
 
     @abstractmethod
@@ -35,9 +33,6 @@ class Distribution(ABC):
     @abstractmethod
     def denormalize(self, scale: Scale):
         ...
-
-    def pdf(self, x):
-        return np.exp(self.logpdf(x))
 
     def percentiles(self, percentiles=None):
         from ergo.conditions import IntervalCondition

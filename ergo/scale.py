@@ -48,8 +48,13 @@ class Scale:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
 
+    @classmethod
+    def structure(cls, params):
+        classes, numeric = params
+        return classes[0](*numeric)
+
     def destructure(self):
-        return (Scale, (self.low, self.high))
+        return ((Scale,), (self.low, self.high))
 
     def export(self):
         cls, params = self.destructure()
@@ -107,7 +112,7 @@ class LogScale(Scale):
         return (point * self.width) + self.low
 
     def destructure(self):
-        return (LogScale, (self.low, self.high, self.log_base))
+        return ((LogScale,), (self.low, self.high, self.log_base))
 
 
 @dataclass
@@ -141,7 +146,7 @@ class TimeScale(Scale):
         )
 
     def destructure(self):
-        return (TimeScale, (self.low, self.high, self.time_unit))
+        return ((TimeScale,), (self.low, self.high, self.time_unit))
 
 
 def scale_factory(class_name, params):

@@ -8,6 +8,7 @@ conda/
 docs/build
 .env
 .coverage
+.coverage.*
 .ipynb_checkpoints
 **.ipynb_checkpoints
 **.ob-jupyter*

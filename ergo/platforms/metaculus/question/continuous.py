@@ -108,6 +108,9 @@ class ContinuousQuestion(MetaculusQuestion):
         :param dist: a (normalized) logistic distribution
         :return: a transformed logistic distribution
         """
+        if hasattr(normalized_dist, "base_dist"):
+            normalized_dist = normalized_dist.base_dist  # type: ignore
+
         if normalized_dist.s <= 0:
             raise ValueError("logistic_params.scale must be greater than 0")
 
@@ -143,8 +146,10 @@ class ContinuousQuestion(MetaculusQuestion):
         transformed_components = [
             self.prepare_logistic(c) for c in normalized_dist.components
         ]
+
         transformed_probs = onp.clip(normalized_dist.probs, 0.01, 0.99)  # type: ignore
-        return dist.LogisticMixture(transformed_components, transformed_probs, Scale(0, 1))  # type: ignore
+
+        return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
     def community_dist(self) -> dist.HistogramDist:
         """
@@ -291,7 +296,7 @@ class ContinuousQuestion(MetaculusQuestion):
         ]
 
         probs = [logistic_json["w"] for logistic_json in submission_json]
-        return dist.LogisticMixture(components, probs, Scale(0, 1))
+        return dist.LogisticMixture(components, probs)
 
     def get_latest_normalized_prediction(self) -> dist.LogisticMixture:
         latest_prediction = self.my_predictions["predictions"][-1]["d"]
