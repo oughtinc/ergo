@@ -187,7 +187,7 @@ class HistogramDist(Distribution, Optimizable):
         self, true_scale=True, verbose=False,
     ):
 
-        xs, ps = self.to_lists(true_scale=True, verbose=False)
+        xs, ps = self.to_lists(true_scale=True, verbose=verbose)
 
         return [
             {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)

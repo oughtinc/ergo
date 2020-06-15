@@ -69,7 +69,9 @@ class Logistic(Distribution):
         return scipy.stats.logistic.cdf(y)
 
     def ppf(self, q):
-        raise NotImplementedError
+        return self.scale.denormalize_point(
+            oscipy.stats.logistic(loc=self.loc, scale=self.s).ppf(q)
+        )
 
     def sample(self):
         return self.scale.denormalize_point(
