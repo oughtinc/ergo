@@ -8,8 +8,6 @@ from ergo.conditions import HistogramCondition
 from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
 
-# import scipy.stats
-
 
 @pytest.mark.parametrize("xscale", scales_to_test)
 def test_cdf(xscale: Scale):
@@ -61,7 +59,7 @@ def test_trucated_ppf(xscale: Scale):
 
     for x in np.linspace(0.01, 0.99, 8):
         assert dist_w_no_bounds.ppf(x) == pytest.approx(
-            xscale.denormalize_point(normed_baseline_dist.ppf(x))
+            xscale.denormalize_point(normed_baseline_dist.ppf(x)), rel=0.001
         )
 
     # Floor
@@ -81,7 +79,10 @@ def test_trucated_ppf(xscale: Scale):
     )
 
     for x in np.linspace(0.01, 0.99, 8):
-        assert dist_w_floor.ppf(x) == mix_w_floor.ppf(x)
+        assert dist_w_floor.ppf(x) == pytest.approx(mix_w_floor.ppf(x), rel=0.001)
+        assert dist_w_floor.ppf(x) == pytest.approx(
+            ppf_through_cdf(dist_w_floor, x), rel=0.001
+        )
 
     # Ceiling
     dist_w_ceiling = Truncate(
@@ -100,7 +101,10 @@ def test_trucated_ppf(xscale: Scale):
     )
 
     for x in np.linspace(0.01, 0.99, 8):
-        dist_w_ceiling.ppf(x) == mix_w_ceiling.ppf(x)
+        assert dist_w_ceiling.ppf(x) == pytest.approx(mix_w_ceiling.ppf(x), rel=0.001)
+        assert dist_w_ceiling.ppf(x) == pytest.approx(
+            ppf_through_cdf(dist_w_ceiling, x), rel=0.001
+        )
 
     # Floor and Ceiling
 
@@ -122,7 +126,12 @@ def test_trucated_ppf(xscale: Scale):
     )
 
     for x in np.linspace(0.01, 0.99, 8):
-        dist_w_floor_and_ceiling.ppf(x) == mix_w_floor_and_ceiling.ppf(x)
+        assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
+            mix_w_floor_and_ceiling.ppf(x), rel=0.001
+        )
+        assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
+            ppf_through_cdf(dist_w_floor_and_ceiling, x), rel=0.001
+        )
 
 
 @pytest.mark.parametrize("xscale", scales_to_test)
