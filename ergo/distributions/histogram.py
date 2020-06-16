@@ -73,7 +73,7 @@ class HistogramDist(Distribution, Optimizable):
 
     @staticmethod
     def initialize_optimizable_params(fixed_params):
-        num_xs = fixed_params.get("num_bins", 100)
+        num_xs = fixed_params.get("num_bins", 201)
         return onp.full(num_xs, -float(num_xs))
 
     def normalize(self):
@@ -207,3 +207,4 @@ class HistogramDist(Distribution, Optimizable):
     def to_arrays(self, normalized=False):
         # TODO: vectorize
         xs, densities = self.to_lists(normalized)
+        return np.array(xs), np.array(densities)
