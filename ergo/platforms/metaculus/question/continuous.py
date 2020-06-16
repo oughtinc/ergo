@@ -101,6 +101,15 @@ class ContinuousQuestion(MetaculusQuestion):
     def plot_title(self):
         return "\n".join(textwrap.wrap(self.name or self.data["title"], 60))  # type: ignore
 
+    @property
+    def latest_community_percentiles(self):
+        """
+        :return: Some percentiles for the metaculus commununity's latest rough
+            prediction. `prediction_histogram` returns a more fine-grained
+            histogram of the community prediction
+        """
+        return self.prediction_timeseries[-1]["community_prediction"]
+
     def prepare_logistic(self, normalized_dist: dist.Logistic) -> dist.Logistic:
         """
         Transform a single logistic distribution by clipping the
