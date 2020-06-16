@@ -189,6 +189,7 @@ class Metaculus:
             return (
                 data["possibilities"]["type"] == "continuous"
                 and data["possibilities"]["scale"]["deriv_ratio"] != 1
+                and data["possibilities"]["format"] == "date"
             )
 
         questions = []
