@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-from jax import scipy
 import jax.numpy as np
-import scipy as oscipy
 
 from ergo.scale import Scale
 
@@ -49,12 +47,7 @@ class Truncate(Distribution):
         """
         Percent point function (inverse of cdf) at q.
         """
-        return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q,
-            self.scale.low - self.scale.width,
-            self.scale.high + self.scale.width,
-            maxiter=1000,
-        )
+        return self.base_dist.ppf(self.p_below + q * self.p_inside)
 
     def sample(self):
         success = False
