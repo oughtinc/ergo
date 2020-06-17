@@ -1,7 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
 import textwrap
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 import jax.numpy as np
 import numpy as onp
@@ -75,6 +75,17 @@ class ContinuousQuestion(MetaculusQuestion):
         above the top of this question's range?
         """
         return self.side_open("high")
+
+    @property
+    def p_outside(self) -> Optional[float]:
+        """
+        How much probability mass is outside this question's range?
+        """
+        if self.latest_community_percentiles is None:
+            return None
+        return self.latest_community_percentiles["low"] + (
+            1 - self.latest_community_percentiles["high"]
+        )
 
     @property
     def has_predictions(self):

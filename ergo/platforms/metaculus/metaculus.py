@@ -69,6 +69,7 @@ class Metaculus:
 
     def __init__(self, username: str, password: str, api_domain: str = "www"):
         self.user_id = None
+        self.api_domain = api_domain
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
         self.login(username, password)
@@ -171,6 +172,7 @@ class Metaculus:
         cat: Union[str, None] = None,
         pages: int = 1,
         fail_silent: bool = False,
+        load_detail: bool = True,
     ) -> List["MetaculusQuestion"]:
         """
         Retrieve multiple questions from Metaculus API.
@@ -182,7 +184,11 @@ class Metaculus:
         """
 
         questions_json = self.get_questions_json(
-            question_status, player_status, cat, pages, False
+            question_status=question_status,
+            player_status=player_status,
+            cat=cat,
+            pages=pages,
+            load_detail=load_detail,
         )
 
         def is_log_date(data: Dict) -> bool:
