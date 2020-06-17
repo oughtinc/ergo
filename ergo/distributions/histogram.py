@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 from ergo import conditions
 from ergo.scale import LogScale, Scale
 
+from .constants import histogram_default_num_points
 from .distribution import Distribution
 from .optimizable import Optimizable
 
@@ -73,7 +74,7 @@ class HistogramDist(Distribution, Optimizable):
 
     @staticmethod
     def initialize_optimizable_params(fixed_params):
-        num_xs = fixed_params.get("num_points", 201)
+        num_xs = fixed_params.get("num_points", histogram_default_num_points)
         return onp.full(num_xs, -float(num_xs))
 
     def normalize(self):
@@ -146,7 +147,7 @@ class HistogramDist(Distribution, Optimizable):
         pairs,
         scale: Scale,
         normalized=False,
-        num_xs=201,
+        num_xs=histogram_default_num_points,
         allow_non_standard_pairs=False,
     ):
 
@@ -161,9 +162,9 @@ class HistogramDist(Distribution, Optimizable):
             target_xs = onp.linspace(0, 1, num_xs)
 
             # interpolate ps at target_xs
-            if not (
-                len(xs) == len(target_xs)
-                and np.isclose(xs, target_xs, rtol=1e-04).all()
+            if (
+                len(xs) != len(target_xs)
+                or not np.isclose(xs, target_xs, rtol=1e-04).all()
             ):
                 f = interp1d(xs, densities)
                 densities = f(target_xs)
