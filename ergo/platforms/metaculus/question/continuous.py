@@ -119,6 +119,9 @@ class ContinuousQuestion(MetaculusQuestion):
             prediction. `prediction_histogram` returns a more fine-grained
             histogram of the community prediction
         """
+        if len(self.prediction_timeseries) == 0:
+            return None
+
         return self.prediction_timeseries[-1]["community_prediction"]
 
     def prepare_logistic(self, normalized_dist: dist.Logistic) -> dist.Logistic:
