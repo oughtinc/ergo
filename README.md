@@ -69,7 +69,7 @@ The notebooks below have been created at different points in time and use Ergo i
 
 4. [Metaculus questions data](notebooks/metac_qs_data.ipynb)
 
-- Get rich metadata on open Metaculus questions
+   - Get rich metadata on open Metaculus questions
 
 5. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
 
