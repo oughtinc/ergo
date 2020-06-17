@@ -66,6 +66,10 @@ class MetaculusQuestion:
         self.metaculus = metaculus
         self.name = name
 
+    @property
+    def question_url(self):
+        return f"https://{self.metaculus.api_domain}.metaculus.com/questions/{self.id}"
+
     def __repr__(self):
         if self.name:
             return f'<MetaculusQuestion name="{self.name}">'
