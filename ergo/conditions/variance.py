@@ -25,7 +25,10 @@ class VarianceCondition(condition.Condition):
         return np.dot(dist.ps, np.square(xs - mean))
 
     def loss(self, dist) -> float:
-        return self.weight * (self.actual_variance(dist) - self.variance) ** 2
+        return (
+            self.weight
+            * (np.log(self.actual_variance(dist)) - np.log(self.variance)) ** 2
+        )
 
     def _describe_fit(self, dist):
         description = super()._describe_fit(dist)

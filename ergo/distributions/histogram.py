@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 from ergo import conditions
 from ergo.scale import LogScale, Scale
 
+from .constants import histogram_default_num_points
 from .distribution import Distribution
 from .optimizable import Optimizable
 
@@ -20,12 +21,12 @@ class HistogramDist(Distribution, Optimizable):
     def __init__(
         self, logps=None, scale=None, traceable=False, direct_init=None,
     ):
-        # We assume that bin sizes are all equal
+        # We assume that xs are evenly spaced in [0,1]
         if direct_init:
             self.logps = direct_init["logps"]
             self.ps = direct_init["ps"]
             self.cum_ps = direct_init["cum_ps"]
-            self.bins = direct_init["bins"]
+            self.xs = direct_init["xs"]
             self.size = direct_init["size"]
             self.scale = direct_init["scale"]
         else:
@@ -35,8 +36,9 @@ class HistogramDist(Distribution, Optimizable):
             self.cum_ps = np.array(init_numpy.cumsum(self.ps))
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
-            self.bins = np.linspace(0, 1, self.logps.size + 1)
-        self.truebin_size = (self.scale.high - self.scale.low) / self.logps.size
+            self.xs = np.linspace(0, 1, self.logps.size)
+
+        self.density_norm_term = self.scale.width / self.logps.size
 
     def __hash__(self):
         return hash(self.__key())
@@ -50,7 +52,7 @@ class HistogramDist(Distribution, Optimizable):
         return tuple(self.logps)
 
     def __repr__(self):
-        return f"{self.__class__}(size={self.size}, scale={self.scale}, bins={self.bins}, ps: {self.ps})"
+        return f"{self.__class__}(size={self.size}, scale={self.scale}, xs={self.xs}, ps: {self.ps})"
 
     def entropy(self):
         return -np.dot(self.ps, self.logps)
@@ -72,8 +74,8 @@ class HistogramDist(Distribution, Optimizable):
 
     @staticmethod
     def initialize_optimizable_params(fixed_params):
-        num_bins = fixed_params.get("num_bins", 100)
-        return onp.full(num_bins, -float(num_bins))
+        num_xs = fixed_params.get("num_points", histogram_default_num_points)
+        return onp.full(num_xs, -float(num_xs))
 
     def normalize(self):
         return HistogramDist(self.logps, scale=Scale(0, 1))
@@ -90,8 +92,8 @@ class HistogramDist(Distribution, Optimizable):
         :param x: The point in the distribution to get the density at
         """
         x = self.scale.normalize_point(x)
-        bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
-        return np.where((x < 0) | (x > 1), 0, self.ps[bin] / self.truebin_size)
+        bin = np.maximum(np.argmax(self.xs >= x) - 1, 0)
+        return np.where((x < 0) | (x > 1), 0, self.ps[bin] / self.density_norm_term)
 
     def cdf(self, x):
         """
@@ -102,7 +104,7 @@ class HistogramDist(Distribution, Optimizable):
         :param x: The point in the distribution to get the cumulative density at
         """
         x = self.scale.normalize_point(x)
-        bin = np.maximum(np.argmax(self.bins >= x) - 1, 0)
+        bin = np.maximum(np.argmax(self.xs >= x) - 1, 0)
         return np.where(x < 0, 0, np.where(x > 1, 1, self.cum_ps[bin]))
 
     def ppf(self, q):
@@ -119,7 +121,7 @@ class HistogramDist(Distribution, Optimizable):
     def destructure(self):
         scale_classes, scale_numeric = self.scale.destructure()
         class_params = (self.__class__, scale_classes)
-        self_numeric = self.logps, self.ps, self.cum_ps, self.bins, self.size
+        self_numeric = self.logps, self.ps, self.cum_ps, self.xs, self.size
         numeric_params = (self_numeric, scale_numeric)
         return (class_params, numeric_params)
 
@@ -133,41 +135,51 @@ class HistogramDist(Distribution, Optimizable):
                 "logps": hist_numeric[0],
                 "ps": hist_numeric[1],
                 "cum_ps": hist_numeric[2],
-                "bins": hist_numeric[3],
+                "xs": hist_numeric[3],
                 "size": hist_numeric[4],
                 "scale": scale_classes[0].structure((scale_classes, scale_numeric)),
             }
         )
 
     @classmethod
-    def from_pairs(cls, pairs, scale: Scale, normalized=False, bins=201):
+    def from_pairs(
+        cls,
+        pairs,
+        scale: Scale,
+        normalized=False,
+        num_xs=histogram_default_num_points,
+        allow_non_standard_pairs=False,
+    ):
+
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         if not normalized:
             xs = scale.normalize_points(xs)
         densities = [density for (x, density) in sorted_pairs]
 
-        bins = onp.linspace(0, 1, bins)
-        target_xs = (bins[:-1] + bins[1:]) / 2  # get midpoint of each bin for x coord
-        # interpolate ps at normalized x bins
-        if not (
-            len(xs) == len(target_xs) and np.isclose(xs, target_xs, rtol=1e-04).all()
-        ):
-            f = interp1d(xs, densities)
-            densities = f(target_xs)
+        # this is only necessary if we want to allow non-standard pairs (our current use-cases do not demand this)
+        if allow_non_standard_pairs:
+            target_xs = onp.linspace(0, 1, num_xs)
+
+            # interpolate ps at target_xs
+            if (
+                len(xs) != len(target_xs)
+                or not np.isclose(xs, target_xs, rtol=1e-04).all()
+            ):
+                f = interp1d(xs, densities)
+                densities = f(target_xs)
+
         logps = onp.log(onp.array(densities) / sum(densities))
         return cls(logps, scale)
 
     def to_lists(self, true_scale=True, verbose=False):
-        bins = self.bins
-        xs = (bins[:-1] + bins[1:]) / 2
+        xs = self.xs
 
         if true_scale:
             xs = np.array(self.scale.denormalize_points(xs))
-            bins = np.array(self.scale.denormalize_points(self.bins))
 
         if type(self.scale) != LogScale:
-            ps = np.divide(self.ps, bins[1:] - bins[:-1])
+            ps = self.ps / self.density_norm_term
 
         else:
             auc = trapz(self.ps, xs)
@@ -187,7 +199,7 @@ class HistogramDist(Distribution, Optimizable):
         self, true_scale=True, verbose=False,
     ):
 
-        xs, ps = self.to_lists(true_scale=True, verbose=False)
+        xs, ps = self.to_lists(true_scale=True, verbose=verbose)
 
         return [
             {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)

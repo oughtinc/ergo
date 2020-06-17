@@ -44,11 +44,26 @@ class LogisticMixture(Distribution, Optimizable):
     def ppf(self, q):
         """
         Percent point function (inverse of cdf) at q.
+
+        Returns the smallest x where the mixture_cdf(x) is greater
+        than the requested q provided:
+
+            argmin{x} where mixture_cdf(x) > q
+
+        The quantile of a mixture distribution can always be found
+        within the range of its components quantiles:
+        https://cran.r-project.org/web/packages/mistr/vignettes/mistr-introduction.pdf
         """
+        if len(self.components) == 1:
+            return self.components[0].ppf(q)
+        ppfs = [c.ppf(q) for c in self.components]
+        cmin = np.min(ppfs)
+        cmax = np.max(ppfs)
+
         return oscipy.optimize.bisect(
             lambda x: self.cdf(x) - q,
-            self.scale.low - self.scale.width,
-            self.scale.high + self.scale.width,
+            cmin - abs(cmin / 100),
+            cmax + abs(cmax / 100),
             maxiter=1000,
         )
 
@@ -107,7 +122,7 @@ class LogisticMixture(Distribution, Optimizable):
             scale = Scale(0, 1)
         floor = fixed_params.get("floor", -np.inf)
         ceiling = fixed_params.get("ceiling", np.inf)
-        # Allow logistic center to exceed the range by 25%
+        # Allow logistic center to exceed the range by 20%
         loc_min = np.maximum(scale.low, floor) - 0.2 * scale.width
         loc_max = np.minimum(scale.high, ceiling) + 0.2 * scale.width
         loc_range = loc_max - loc_min
