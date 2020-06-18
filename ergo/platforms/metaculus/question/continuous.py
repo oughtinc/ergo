@@ -77,15 +77,25 @@ class ContinuousQuestion(MetaculusQuestion):
         return self.side_open("high")
 
     @property
+    def p_above(self) -> Optional[float]:
+        if self.latest_community_percentiles is None:
+            return None
+        return 1 - self.latest_community_percentiles["high"]
+
+    @property
+    def p_below(self) -> Optional[float]:
+        if self.latest_community_percentiles is None:
+            return None
+        return self.latest_community_percentiles["low"]
+
+    @property
     def p_outside(self) -> Optional[float]:
         """
         How much probability mass is outside this question's range?
         """
-        if self.latest_community_percentiles is None:
+        if self.p_below is None or self.p_above is None:
             return None
-        return self.latest_community_percentiles["low"] + (
-            1 - self.latest_community_percentiles["high"]
-        )
+        return self.p_below + self.p_above
 
     @property
     def has_predictions(self):
