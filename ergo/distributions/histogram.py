@@ -4,7 +4,6 @@ from jax import nn
 import jax.numpy as np
 import numpy as onp
 from scipy.integrate import trapz
-from scipy.interpolate import interp1d
 
 from ergo import conditions
 from ergo.scale import LogScale, Scale
@@ -143,11 +142,7 @@ class HistogramDist(Distribution, Optimizable):
 
     @classmethod
     def from_pairs(
-        cls,
-        pairs,
-        scale: Scale,
-        normalized=False,
-        num_xs=histogram_default_num_points,
+        cls, pairs, scale: Scale, normalized=False, num_xs=histogram_default_num_points,
     ):
 
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
