@@ -1,7 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
 import textwrap
-from typing import Dict, Union, Optional
+from typing import Dict, List, Optional, Union
 
 import jax.numpy as np
 import numpy as onp
@@ -203,6 +203,46 @@ class ContinuousQuestion(MetaculusQuestion):
         ]
 
         return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
+
+    def community_conditions(self, crossentropy_weight=0.1, interval_weight=10.0):
+
+        from ergo.conditions import (
+            PartialCrossEntropyCondition,
+            IntervalCondition,
+            Condition,
+        )
+
+        xs = np.array(
+            self.scale.denormalize_points(
+                [float(v[0]) for v in self.prediction_histogram]
+            )
+        )
+        ps = np.array([float(v[2]) for v in self.prediction_histogram])
+
+        # This is a "partial" cross entropy since some of the density
+        # is outside of the prediction histogram bounds, so (xs, ps)
+        # doesn't describe a full distribution
+        cross_entropy_condition = PartialCrossEntropyCondition(
+            xs, ps, weight=crossentropy_weight
+        )
+
+        community_conditions: List[Condition] = [cross_entropy_condition]
+
+        if self.low_open:
+            community_conditions.append(
+                IntervalCondition(
+                    p=self.p_below, max=self.scale.low, weight=interval_weight
+                )
+            )
+
+        if self.high_open:
+            community_conditions.append(
+                IntervalCondition(
+                    p=self.p_above, min=self.scale.high, weight=interval_weight
+                )
+            )
+
+        return community_conditions
 
     @memoized_method(None)
     def community_dist_in_range(self):
