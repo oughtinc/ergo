@@ -53,22 +53,30 @@ This notebook is closest to a tutorial right now:
 The notebooks below have been created at different points in time and use Ergo in inconsistent ways. Most are rough scratchpads of work-in-progress and haven't been cleaned up for public consumption:
 
 1. [Relating Metaculus community distributions: Infections, Deaths, and IFR](notebooks/community-distributions.ipynb)
-    - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
+
+   - A notebook for the model shown above that uses a model to update Metaculus community distributions towards consistency
 
 2. [Model-based predictions of Covid-19 spread](notebooks/covid-19-metaculus.ipynb)
-   - End-to-end example: 
+
+   - End-to-end example:
      1. Load multiple questions from Metaculus
      2. Compute model predictions based on assumptions and external data
      3. Submit predictions to Metaculus
 
 3. [Model-based predictions of Covid-19 spread using inference from observed cases](notebooks/covid-19-inference.ipynb)
+
    - A version of the previous notebook that infers growth rates before and after lockdown decisions
 
-4. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
+4. [Metaculus questions data](notebooks/metac_qs_data.ipynb)
+
+   - Get rich metadata on open Metaculus questions
+
+5. [Prediction dashboard](notebooks/prediction-dashboard.ipynb)
+
    - Show Metaculus prediction results as a dataframe
    - Filter Metaculus questions by date and status.
 
-5. [El Paso questions](notebooks/el-paso.ipynb)
+6. [El Paso questions](notebooks/el-paso.ipynb)
    - Illustrates how to load all questions for a Metaculus category (in this case for the [El Paso series](https://pandemic.metaculus.com/questions/4161/el-paso-series-supporting-covid-19-response-planning-in-a-mid-sized-city/))
 
 Outdated Ergo notebooks:
@@ -121,25 +129,24 @@ See our [instructions for contributors](CONTRIBUTING.md) for more.
 The theory behind Ergo:
 
 1. Many of the pieces necessary for good forecasting work are out there:
-    - Prediction platforms
-    - Probabilistic programming languages
-    - Superforecasters + qualitative human judgments
-    - Data science tools like numpy and pandas
-    - Deep neural nets as expressive function approximators
+   - Prediction platforms
+   - Probabilistic programming languages
+   - Superforecasters + qualitative human judgments
+   - Data science tools like numpy and pandas
+   - Deep neural nets as expressive function approximators
 2. But they haven't been connected yet in a productive workflow:
-    - It's difficult to get data in and out of prediction platforms
-    - Submitting questions to these platforms takes a long time
-    - The questions on prediction platforms aren't connected to decisions, or even to other questions on the same platform
-    - Human judgments don't scale
-    - Models often can't take into account all relevant considerations
-    - Workflows aren't made explicit so they can't be automated
+   - It's difficult to get data in and out of prediction platforms
+   - Submitting questions to these platforms takes a long time
+   - The questions on prediction platforms aren't connected to decisions, or even to other questions on the same platform
+   - Human judgments don't scale
+   - Models often can't take into account all relevant considerations
+   - Workflows aren't made explicit so they can't be automated
 3. This limits their potential:
-    - Few people build models
-    - Few people submit questions to prediction platforms, or predict on these platforms
-    - Improvements to forecasting accrue slowly
-    - Most decisions are not informed by systematic forecasts
+   - Few people build models
+   - Few people submit questions to prediction platforms, or predict on these platforms
+   - Improvements to forecasting accrue slowly
+   - Most decisions are not informed by systematic forecasts
 4. Better infrastructure for forecasting can connect the pieces and help realize the potential of scalable high-quality forecasting
-
 
 ## Functionality
 
