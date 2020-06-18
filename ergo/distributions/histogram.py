@@ -148,7 +148,6 @@ class HistogramDist(Distribution, Optimizable):
         scale: Scale,
         normalized=False,
         num_xs=histogram_default_num_points,
-        allow_non_standard_pairs=False,
     ):
 
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
@@ -156,19 +155,6 @@ class HistogramDist(Distribution, Optimizable):
         if not normalized:
             xs = scale.normalize_points(xs)
         densities = [density for (x, density) in sorted_pairs]
-
-        # this is only necessary if we want to allow non-standard pairs (our current use-cases do not demand this)
-        if allow_non_standard_pairs:
-            target_xs = onp.linspace(0, 1, num_xs)
-
-            # interpolate ps at target_xs
-            if (
-                len(xs) != len(target_xs)
-                or not np.isclose(xs, target_xs, rtol=1e-04).all()
-            ):
-                f = interp1d(xs, densities)
-                densities = f(target_xs)
-
         logps = onp.log(onp.array(densities) / sum(densities))
         return cls(logps, scale)
 
