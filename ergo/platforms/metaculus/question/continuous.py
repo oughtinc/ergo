@@ -187,6 +187,20 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
+    def community_pairs(self, normalized=False):
+        if normalized:
+            return [
+                {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
+            ]
+        else:
+            return [
+                {
+                    "x": self.scale.denormalize_point(float(v[0])),
+                    "density": v[2] / self.scale.width,
+                }
+                for v in self.prediction_histogram
+            ]
+
     def community_dist(self) -> dist.HistogramDist:
         """
         Get the community distribution for this question
@@ -198,32 +212,24 @@ class ContinuousQuestion(MetaculusQuestion):
         # TODO (#307): Account for values out of range in
         #   ContinuousQuestion.community_dist()
 
-        histogram = [
-            {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
-        ]
-
+        histogram = self.community_pairs(normalized=True)
         return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
 
-    def community_conditions(self, crossentropy_weight=0.1, interval_weight=10.0):
+    def community_conditions(self, crossentropy_weight=0.1, interval_weight=10000.0):
 
         from ergo.conditions import (
-            PartialCrossEntropyCondition,
+            CrossEntropyCondition,
             IntervalCondition,
             Condition,
         )
 
-        xs = np.array(
-            self.scale.denormalize_points(
-                [float(v[0]) for v in self.prediction_histogram]
-            )
-        )
-        ps = np.array([float(v[2]) for v in self.prediction_histogram])
+        pairs = self.community_pairs(normalized=True)
 
-        # This is a "partial" cross entropy since some of the density
-        # is outside of the prediction histogram bounds, so (xs, ps)
-        # doesn't describe a full distribution
-        cross_entropy_condition = PartialCrossEntropyCondition(
-            xs, ps, weight=crossentropy_weight
+        # Note that this histogram is normalized - it sums to 1 even if the pairs don't!
+        hist = dist.HistogramDist.from_pairs(pairs, scale=self.scale, normalized=True)
+
+        cross_entropy_condition = CrossEntropyCondition(
+            hist, weight=crossentropy_weight
         )
 
         community_conditions: List[Condition] = [cross_entropy_condition]

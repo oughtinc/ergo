@@ -141,16 +141,13 @@ class HistogramDist(Distribution, Optimizable):
         )
 
     @classmethod
-    def from_pairs(
-        cls, pairs, scale: Scale, normalized=False, num_xs=histogram_default_num_points,
-    ):
-
+    def from_pairs(cls, pairs, scale: Scale, normalized=False):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         if not normalized:
             xs = scale.normalize_points(xs)
         densities = [density for (x, density) in sorted_pairs]
-        logps = onp.log(onp.array(densities) / sum(densities))
+        logps = onp.log(onp.array(densities))
         return cls(logps, scale)
 
     def to_lists(self, true_scale=True, verbose=False):
@@ -179,12 +176,11 @@ class HistogramDist(Distribution, Optimizable):
     def to_pairs(
         self, true_scale=True, verbose=False,
     ):
-
         xs, ps = self.to_lists(true_scale=True, verbose=verbose)
-
-        return [
+        pairs = [
             {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
         ]
+        return pairs
 
     def to_arrays(self, normalized=False):
         # TODO: vectorize

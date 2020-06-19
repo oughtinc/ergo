@@ -1,5 +1,3 @@
-import warnings
-
 from jax import vmap
 import jax.numpy as np
 
@@ -8,15 +6,14 @@ from ergo.scale import Scale
 
 from . import condition
 
+# TODO: Implement normalize/denormalize for CrossEntropyCondition
+
 
 class CrossEntropyCondition(condition.Condition):
     p_dist: "histogram.HistogramDist"
     weight: float = 1.0
 
     def __init__(self, p_dist, weight=1.0):
-        warnings.warn(
-            "CrossEntropyCondition doesn't implement normalize/denormalize. Don't use it."
-        )  # FIXME
         self.p_dist = p_dist
         super().__init__(weight)
 
