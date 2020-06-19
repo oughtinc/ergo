@@ -88,7 +88,7 @@ class LogScale(Scale):
         """
         if point is None:
             raise Exception("Point was None This shouldn't happen")
-        floored_point = np.amax(np.array([point, 1e-9]))
+        floored_point = np.maximum(point, 1e-9)
         return self.linear_scale.normalize_point(np.log(floored_point))
 
     # TODO do we still need this default?

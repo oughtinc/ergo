@@ -4,7 +4,6 @@ from jax import nn
 import jax.numpy as np
 import numpy as onp
 from scipy.integrate import trapz
-from scipy.interpolate import interp1d
 
 from ergo import conditions
 from ergo.scale import LogScale, Scale
@@ -142,34 +141,13 @@ class HistogramDist(Distribution, Optimizable):
         )
 
     @classmethod
-    def from_pairs(
-        cls,
-        pairs,
-        scale: Scale,
-        normalized=False,
-        num_xs=histogram_default_num_points,
-        allow_non_standard_pairs=False,
-    ):
-
+    def from_pairs(cls, pairs, scale: Scale, normalized=False):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         if not normalized:
             xs = scale.normalize_points(xs)
         densities = [density for (x, density) in sorted_pairs]
-
-        # this is only necessary if we want to allow non-standard pairs (our current use-cases do not demand this)
-        if allow_non_standard_pairs:
-            target_xs = onp.linspace(0, 1, num_xs)
-
-            # interpolate ps at target_xs
-            if (
-                len(xs) != len(target_xs)
-                or not np.isclose(xs, target_xs, rtol=1e-04).all()
-            ):
-                f = interp1d(xs, densities)
-                densities = f(target_xs)
-
-        logps = onp.log(onp.array(densities) / sum(densities))
+        logps = onp.log(onp.array(densities))
         return cls(logps, scale)
 
     def to_lists(self, true_scale=True, verbose=False):
@@ -198,12 +176,11 @@ class HistogramDist(Distribution, Optimizable):
     def to_pairs(
         self, true_scale=True, verbose=False,
     ):
-
         xs, ps = self.to_lists(true_scale=True, verbose=verbose)
-
-        return [
+        pairs = [
             {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
         ]
+        return pairs
 
     def to_arrays(self, normalized=False):
         # TODO: vectorize
