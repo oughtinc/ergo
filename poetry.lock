@@ -212,10 +212,10 @@ description = "Type stubs for Python machine learning libraries"
 name = "data-science-types"
 optional = false
 python-versions = ">=3.6"
-version = "0.2.12"
+version = "0.2.14"
 
 [package.extras]
-dev = ["black", "mypy"]
+dev = ["black", "mypy", "flake8", "flake8-pyi"]
 
 [[package]]
 category = "main"
@@ -1072,7 +1072,7 @@ description = "library with cross-python path, ini-parsing, io, code, log facili
 name = "py"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-version = "1.8.1"
+version = "1.8.2"
 
 [[package]]
 category = "dev"
@@ -1830,8 +1830,8 @@ cycler = [
     {file = "cycler-0.10.0.tar.gz", hash = "sha256:cd7b2d1018258d7247a71425e9f26463dfb444d411c39569972f4ce586b0c9d8"},
 ]
 data-science-types = [
-    {file = "data-science-types-0.2.12.tar.gz", hash = "sha256:9453855febad694428c3d20a1447f7d54cd824c28af13797485a404e38680609"},
-    {file = "data_science_types-0.2.12-py3-none-any.whl", hash = "sha256:4eeffad47f30427fdb82527954a726a7c94698a950ac5ebde74ec36b208a338a"},
+    {file = "data-science-types-0.2.14.tar.gz", hash = "sha256:eca61605204e74944aeb5b335721bf8c850c1af122082be491749a968143917f"},
+    {file = "data_science_types-0.2.14-py3-none-any.whl", hash = "sha256:c0bacff87884b79289331e56e0ace2d356af04c72e45c8daf8b18116b953ee3c"},
 ]
 dataclasses = [
     {file = "dataclasses-0.7-py3-none-any.whl", hash = "sha256:3459118f7ede7c8bea0fe795bff7c6c2ce287d01dd226202f7c9ebc0610a7836"},
@@ -2200,8 +2200,8 @@ ptyprocess = [
     {file = "ptyprocess-0.6.0.tar.gz", hash = "sha256:923f299cc5ad920c68f2bc0bc98b75b9f838b93b599941a6b63ddbc2476394c0"},
 ]
 py = [
-    {file = "py-1.8.1-py2.py3-none-any.whl", hash = "sha256:c20fdd83a5dbc0af9efd622bee9a5564e278f6380fffcacc43ba6f43db2813b0"},
-    {file = "py-1.8.1.tar.gz", hash = "sha256:5e27081401262157467ad6e7f851b7aa402c5852dbcb3dae06768434de5752aa"},
+    {file = "py-1.8.2-py2.py3-none-any.whl", hash = "sha256:a673fa23d7000440cc885c17dbd34fafcb7d7a6e230b29f6766400de36a33c44"},
+    {file = "py-1.8.2.tar.gz", hash = "sha256:f3b3a4c36512a4c4f024041ab51866f11761cc169670204b235f6b20523d4e6b"},
 ]
 pycodestyle = [
     {file = "pycodestyle-2.6.0-py2.py3-none-any.whl", hash = "sha256:2295e7b2f6b5bd100585ebcb1f616591b652db8a741695b3d8f5d28bdc934367"},

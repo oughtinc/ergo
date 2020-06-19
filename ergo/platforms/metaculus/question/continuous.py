@@ -1,7 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
 import textwrap
-from typing import Dict, Union, Optional
+from typing import Dict, List, Optional, Union
 
 import jax.numpy as np
 import numpy as onp
@@ -77,15 +77,25 @@ class ContinuousQuestion(MetaculusQuestion):
         return self.side_open("high")
 
     @property
+    def p_above(self) -> Optional[float]:
+        if self.latest_community_percentiles is None:
+            return None
+        return 1 - self.latest_community_percentiles["high"]
+
+    @property
+    def p_below(self) -> Optional[float]:
+        if self.latest_community_percentiles is None:
+            return None
+        return self.latest_community_percentiles["low"]
+
+    @property
     def p_outside(self) -> Optional[float]:
         """
         How much probability mass is outside this question's range?
         """
-        if self.latest_community_percentiles is None:
+        if self.p_below is None or self.p_above is None:
             return None
-        return self.latest_community_percentiles["low"] + (
-            1 - self.latest_community_percentiles["high"]
-        )
+        return self.p_below + self.p_above
 
     @property
     def has_predictions(self):
@@ -177,6 +187,20 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
+    def community_pairs(self, normalized=False):
+        if normalized:
+            return [
+                {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
+            ]
+        else:
+            return [
+                {
+                    "x": self.scale.denormalize_point(float(v[0])),
+                    "density": v[2] / self.scale.width,
+                }
+                for v in self.prediction_histogram
+            ]
+
     def community_dist(self) -> dist.HistogramDist:
         """
         Get the community distribution for this question
@@ -188,11 +212,43 @@ class ContinuousQuestion(MetaculusQuestion):
         # TODO (#307): Account for values out of range in
         #   ContinuousQuestion.community_dist()
 
-        histogram = [
-            {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
-        ]
-
+        histogram = self.community_pairs(normalized=True)
         return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
+
+    def community_conditions(self, crossentropy_weight=0.1, interval_weight=10000.0):
+
+        from ergo.conditions import (
+            CrossEntropyCondition,
+            IntervalCondition,
+            Condition,
+        )
+
+        pairs = self.community_pairs(normalized=True)
+
+        # Note that this histogram is normalized - it sums to 1 even if the pairs don't!
+        hist = dist.HistogramDist.from_pairs(pairs, scale=self.scale, normalized=True)
+
+        cross_entropy_condition = CrossEntropyCondition(
+            hist, weight=crossentropy_weight
+        )
+
+        community_conditions: List[Condition] = [cross_entropy_condition]
+
+        if self.low_open:
+            community_conditions.append(
+                IntervalCondition(
+                    p=self.p_below, max=self.scale.low, weight=interval_weight
+                )
+            )
+
+        if self.high_open:
+            community_conditions.append(
+                IntervalCondition(
+                    p=self.p_above, min=self.scale.high, weight=interval_weight
+                )
+            )
+
+        return community_conditions
 
     @memoized_method(None)
     def community_dist_in_range(self):
