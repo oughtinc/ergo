@@ -208,7 +208,6 @@ scales_to_test = [
     Scale(0, 1),
     Scale(0, 10000),
     Scale(-1, 1),
-    LogScale(0, 1, 10),
-    LogScale(-1, 1, 10),
-    LogScale(0, 1028, 2),
+    LogScale(0.01, 1, 10),
+    LogScale(0.01, 1028, 2),
 ]

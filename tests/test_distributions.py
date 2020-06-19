@@ -64,7 +64,5 @@ def test_hist_ppf(scale: Scale):
     uniform_dist = HistogramDist.from_conditions([], scale=scale)
 
     # Ends of scale; second is approx since implemented as start of last bin
-    assert uniform_dist.ppf(scale.denormalize_point(0)) == scale.low
-    assert uniform_dist.ppf(scale.denormalize_point(1)) == pytest.approx(
-        scale.high, rel=0.1
-    )
+    assert uniform_dist.ppf(0) == scale.low
+    assert uniform_dist.ppf(1) == pytest.approx(scale.high, rel=0.1)

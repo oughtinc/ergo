@@ -1,7 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
 import textwrap
-from typing import Dict, Union, Optional
+from typing import Dict, Optional, Union
 
 import jax.numpy as np
 import numpy as onp
