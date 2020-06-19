@@ -73,7 +73,6 @@ class LogScale(Scale):
         # if self.log_base < 1:
         #     raise ValueError(f"log_Base must be > 1, was {self.log_base}")
         self.width = self.high - self.low
-        self.linear_scale = Scale(np.log(self.low), np.log(self.high))
 
     def __hash__(self):
         return super.__hash__(self)
@@ -88,8 +87,14 @@ class LogScale(Scale):
         """
         if point is None:
             raise Exception("Point was None This shouldn't happen")
-        floored_point = np.maximum(point, 1e-9)
-        return self.linear_scale.normalize_point(np.log(floored_point))
+
+        shifted = point - self.low
+        numerator = shifted * (self.log_base - 1)
+        scaled = numerator / self.width
+        timber = 1 + scaled
+        floored_timber = np.maximum(timber, 1e-9)
+
+        return np.log(floored_timber) / np.log(self.log_base)
 
     # TODO do we still need this default?
     def denormalize_point(self, point):
@@ -103,7 +108,10 @@ class LogScale(Scale):
         """
         if point is None:
             raise Exception("Point was None This shouldn't happen")
-        return np.exp(self.linear_scale.denormalize_point(point))
+
+        deriv_term = (self.log_base ** point - 1) / (self.log_base - 1)
+        scaled = self.width * deriv_term
+        return self.low + scaled
 
     def destructure(self):
         return ((LogScale,), (self.low, self.high, self.log_base))

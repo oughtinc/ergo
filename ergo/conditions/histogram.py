@@ -2,6 +2,7 @@ from jax import vmap
 import jax.numpy as np
 
 from ergo.scale import Scale
+# from scipy.integrate import trapz
 
 from . import condition
 
@@ -54,7 +55,13 @@ class HistogramCondition(condition.Condition):
 
         def entry_distance_fn(x, density):
             return abs(1.0 - density / dist.pdf(x))
-
+        '''
+        pdfs = [dist.pdf(x) for x in self.xs]
+        for x,d,p in zip(self.xs, self.densities, pdfs):
+            print('x: {x} d: {d} p: {p}')
+        print(f'histAUC: {trapz(self.densities, self.xs)} pAUC: {trapz(self.pdfs, self.xs)}')
+        '''
+        
         distances = vmap(entry_distance_fn)(self.xs, self.densities)
         description["max_distance"] = np.max(distances)
         description["90th_distance"] = np.percentile(distances, 90)

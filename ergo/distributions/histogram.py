@@ -32,7 +32,7 @@ class HistogramDist(Distribution, Optimizable):
             init_numpy = np if traceable else onp
             self.logps = logps
             self.ps = np.exp(logps)
-            self.cum_ps = np.array(init_numpy.cumsum(self.ps))
+            self.cum_ps = np.array(init_numpy.cumsum(self.ps)) / logps.size
             self.size = logps.size
             self.scale = scale if scale else Scale(0, 1)
             self.xs = np.linspace(0, 1, self.logps.size)
@@ -68,14 +68,18 @@ class HistogramDist(Distribution, Optimizable):
 
     @classmethod
     def from_params(cls, fixed_params, opt_params, traceable=False):
-        logps = nn.log_softmax(opt_params)
-        return cls(logps, traceable=traceable)
+        # logps = nn.log_softmax(opt_params)
+        # return cls(logps, traceable=traceable)
+        ps = nn.softmax(opt_params) * opt_params.size
+        return cls(np.log(ps), traceable=traceable)
 
     @staticmethod
     def initialize_optimizable_params(fixed_params):
         num_xs = fixed_params.get("num_points", histogram_default_num_points)
-        return onp.full(num_xs, -float(num_xs))
+        # return onp.full(num_xs, -float(num_xs))
+        return onp.random.rand(num_xs)
 
+    
     def normalize(self):
         return HistogramDist(self.logps, scale=Scale(0, 1))
 
@@ -156,12 +160,13 @@ class HistogramDist(Distribution, Optimizable):
         if true_scale:
             xs = np.array(self.scale.denormalize_points(xs))
 
-        if type(self.scale) != LogScale:
-            ps = self.ps / self.density_norm_term
+            if type(self.scale) != LogScale:
+                ps = self.ps / self.density_norm_term
 
-        else:
-            auc = trapz(self.ps, xs)
-            ps = self.ps / auc
+            else:
+                # auc = trapz(self.ps, xs)
+                # ps = self.ps / auc
+                ps = self.ps / self.scale.width
 
         if verbose:
             import pandas as pd

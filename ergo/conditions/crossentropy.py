@@ -18,10 +18,18 @@ class CrossEntropyCondition(condition.Condition):
         super().__init__(weight)
 
     def loss(self, q_dist) -> float:
+        print(f'loss self.p_dist logps: {self.p_dist.logps}\n dist logps: {q_dist.logps})')
         return self.weight * self.p_dist.cross_entropy(q_dist)
 
     def destructure(self):
         return (CrossEntropyCondition, (np.array(self.p_dist.logps), self.weight))
+
+    def _describe_fit(self, dist):
+        description = super()._describe_fit(dist)
+        print(f'self.p_dist logps: {self.p_dist.logps}\n dist logps: {dist.logps})')
+        print(f'auc a: {np.sum(np.exp(self.p_dist.logps)) / self.p_dist.logps.size} auc b: {np.sum(np.exp(dist.logps)) / dist.logps.size}')
+        print(description)
+        return description
 
     @classmethod
     def structure(cls, params):
