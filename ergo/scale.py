@@ -94,11 +94,12 @@ class LogScale(Scale):
         """
         if point is None:
             raise Exception("Point was None This shouldn't happen")
+
         shifted = point - self.low
         numerator = shifted * (self.log_base - 1)
         scaled = numerator / self.width
         timber = 1 + scaled
-        floored_timber = np.amax([timber, 1e-9])
+        floored_timber = np.maximum(timber, 1e-9)
 
         return np.log(floored_timber) / np.log(self.log_base)
 
@@ -114,6 +115,7 @@ class LogScale(Scale):
         """
         if point is None:
             raise Exception("Point was None This shouldn't happen")
+
         deriv_term = (self.log_base ** point - 1) / (self.log_base - 1)
         scaled = self.width * deriv_term
         return self.low + scaled

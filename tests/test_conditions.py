@@ -339,7 +339,7 @@ def test_histogram_fit(histogram):
 
     dist = HistogramDist.from_conditions(
         conditions,
-        {"num_bins": 100},
+        {"num_points": 100},
         Scale(min(histogram["xs"]), max(histogram["xs"])),
         verbose=True,
     )

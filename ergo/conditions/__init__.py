@@ -1,5 +1,5 @@
 from .condition import Condition
-from .crossentropy import CrossEntropyCondition
+from .crossentropy import CrossEntropyCondition, PartialCrossEntropyCondition
 from .histogram import HistogramCondition
 from .interval import IntervalCondition
 from .maxentropy import MaxEntropyCondition

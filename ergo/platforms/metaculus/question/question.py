@@ -66,6 +66,10 @@ class MetaculusQuestion:
         self.metaculus = metaculus
         self.name = name
 
+    @property
+    def question_url(self):
+        return f"https://{self.metaculus.api_domain}.metaculus.com/questions/{self.id}"
+
     def __repr__(self):
         if self.name:
             return f'<MetaculusQuestion name="{self.name}">'
@@ -76,15 +80,6 @@ class MetaculusQuestion:
 
     def __str__(self):
         return repr(self)
-
-    @property
-    def latest_community_percentiles(self):
-        """
-        :return: Some percentiles for the metaculus commununity's latest rough
-            prediction. `prediction_histogram` returns a more fine-grained
-            histogram of the community prediction
-        """
-        return self.prediction_timeseries[-1]["community_prediction"]
 
     def __getattr__(self, name):
         """
