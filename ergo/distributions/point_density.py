@@ -61,18 +61,34 @@ class PointDensity(Distribution, Optimizable):
         :param x: The point in the distribution to get the density at
         """
         normed_x = self.scale.normalize_point(x)
-        bin = np.maximum(np.argmax(self.normed_xs >= normed_x), 0)
-        p = self.scale.denormalize_density(normed_x, self.normed_densities[bin])
-        return np.where((normed_x < 0) | (normed_x > 1), 0, p)
+
+        def in_range_pdf(normed_x):
+            low_idx = np.where(normed_x < self.normed_xs[-1], np.argmax(self.normed_xs > normed_x) - 1, self.normed_xs.size - 1)
+            high_idx = np.minimum(low_idx + 1, self.normed_xs.size - 1)
+            low_density = self.normed_densities[low_idx]
+            high_density = self.normed_densities[high_idx]
+            low_x = self.normed_xs[low_idx]
+            high_x = self.normed_xs[high_idx]
+            dist = high_x - low_x
+            normed_density = np.where(dist == 0, low_density, (normed_x - low_x) / dist * high_density + (high_x - normed_x) / dist * low_density)
+            return self.scale.denormalize_density(normed_x, normed_density)
+
+        return np.where((normed_x < 0) | (normed_x > 1), 0, in_range_pdf(normed_x))
 
     def logpdf(self, x):
         return np.log(self.pdf(x))
 
     def cdf(self, x):
         normed_x = self.scale.normalize_point(x)
-        bin = np.maximum(np.argmax(self.normed_xs >= normed_x), 0)
-        c = self.cumulative_normed_ps[bin]
-        return np.where(normed_x < 0, 0, np.where(normed_x > 1, 1, c))
+        x_normed_density = self.scale.normalize_density(x, self.pdf(x))
+
+        def in_range_cdf(normed_x):
+            bin = np.where(normed_x < self.normed_xs[-1], np.argmax(self.normed_xs > normed_x) - 1, self.normed_xs.size - 1)
+            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin-1], 0)
+            c_in_bin = (x_normed_density + self.normed_densities[bin]) / 2.0 * (normed_x - self.normed_xs[bin])
+            return c_below_bin + c_in_bin
+
+        return np.where(normed_x < 0, 0, np.where(normed_x > 1, 1, in_range_cdf(normed_x)))
 
     def ppf(self, q):
         return self.scale.denormalize_point(
