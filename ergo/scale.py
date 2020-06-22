@@ -146,7 +146,6 @@ class LogScale(Scale):
         deriv_term = (self.log_base ** point - 1) / (self.log_base - 1)
         scaled = self.width * deriv_term
         return self.low + scaled
-        return (point * self.width) + self.low
 
     def destructure(self):
         return ((LogScale,), (self.low, self.high, self.log_base))

@@ -13,7 +13,7 @@ from tests.conftest import scales_to_test
 
 
 @pytest.mark.parametrize(
-    "scale", [Scale(0, 5), Scale(-1, 6), Scale(-3, 10), LogScale(0.1, 5, 10)],
+    "scale", [Scale(0, 5), Scale(-1, 6), Scale(-3, 10), LogScale(0.1, 5, 50)],
 )
 @pytest.mark.parametrize(
     "dist_source",
@@ -51,7 +51,7 @@ def test_point_density(scale, dist_source):
 
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
-    assert dist_densities == pytest.approx(orig_densities, abs=0.01)
+    assert dist_densities == pytest.approx(orig_densities, abs=0.03)
 
     # CDF
     dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
