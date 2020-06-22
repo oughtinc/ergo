@@ -6,7 +6,7 @@ import numpy as onp
 from scipy.integrate import trapz
 
 from ergo import conditions
-from ergo.scale import LogScale, Scale, TimeScale
+from ergo.scale import LogScale, Scale
 
 from .constants import histogram_default_num_points
 from .distribution import Distribution
@@ -137,7 +137,6 @@ class HistogramDist(Distribution, Optimizable):
                 "xs": hist_numeric[3],
                 "size": hist_numeric[4],
                 "scale": scale_classes[0].structure((scale_classes, scale_numeric)),
-                #"scale": params[6].structure(params[5]),
             }
         )
 
@@ -155,7 +154,7 @@ class HistogramDist(Distribution, Optimizable):
         xs = self.xs
 
         if true_scale:
-            xs = onp.array(self.scale.denormalize_points(xs))
+            xs = onp.array(self.scale.denormalize_points(xs, as_string=True))
 
         if type(self.scale) != LogScale:
             ps = self.ps / self.density_norm_term
@@ -163,7 +162,7 @@ class HistogramDist(Distribution, Optimizable):
         else:
             auc = trapz(self.ps, xs)
             ps = self.ps / auc
-     
+
         if verbose:
             import pandas as pd
 
@@ -178,9 +177,7 @@ class HistogramDist(Distribution, Optimizable):
         self, true_scale=True, verbose=False,
     ):
         xs, ps = self.to_lists(true_scale=True, verbose=verbose)
-        pairs = [
-            {"x": x, "density": float(density)} for x, density in zip(xs, ps)
-        ]
+        pairs = [{"x": x, "density": float(density)} for x, density in zip(xs, ps)]
         return pairs
 
     def to_arrays(self, normalized=False):

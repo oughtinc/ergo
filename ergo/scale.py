@@ -28,10 +28,10 @@ class Scale:
         cls, params = self.destructure()
         return (cls, params)
 
-    def normalize_point(self, point):
+    def normalize_point(self, point, **kwargs):
         return (point - self.low) / self.width
 
-    def denormalize_point(self, point):
+    def denormalize_point(self, point, **kwargs):
         return (point * self.width) + self.low
 
     def denormalize_points(self, points, **kwargs):
@@ -80,7 +80,7 @@ class LogScale(Scale):
         return super.__hash__(self)
 
     # TODO do we still need this default?
-    def normalize_point(self, point):
+    def normalize_point(self, point, **kwargs):
         """
         Get a prediciton sample value on the normalized scale from a true-scale value
 
@@ -99,7 +99,7 @@ class LogScale(Scale):
         return np.log(floored_timber) / np.log(self.log_base)
 
     # TODO do we still need this default?
-    def denormalize_point(self, point):
+    def denormalize_point(self, point, **kwargs):
         """
         Get a value on the true scale from a normalized-scale value
 
@@ -132,7 +132,7 @@ class TimeScale(Scale):
             self.low = low
             self.high = high
             self.width = self.high - self.low
-            
+
         else:
             if isinstance(low, float):
                 self.low = low
@@ -143,7 +143,6 @@ class TimeScale(Scale):
             elif isinstance(low, (date, datetime)):
                 self.low = self.datetime_to_timestamp(low)
 
-                
             if isinstance(high, float):
                 self.high = high
             elif isinstance(high, int):
@@ -155,7 +154,9 @@ class TimeScale(Scale):
             self.width = self.high - self.low
             # if not isinstance(self.low, float):
             #     import ipdb; ipdb.set_trace()
-            assert isinstance(self.low, float), f"low was {self.low} type: {type(self.low)}"
+            assert isinstance(
+                self.low, float
+            ), f"low was {self.low} type: {type(self.low)}"
             assert isinstance(self.high, float), f"high was {self.high}"
             assert isinstance(self.width, float), f"widht was {self.width}"
 
@@ -165,7 +166,7 @@ class TimeScale(Scale):
     def __hash__(self):
         return super.__hash__(self)
 
-    def normalize_point(self, point) -> float:
+    def normalize_point(self, point, **kwargs) -> float:
         """
         Get a prediciton point on the normalized scale from a true-scale value
 
@@ -177,12 +178,11 @@ class TimeScale(Scale):
         if isinstance(point, (date, datetime)):
             point = self.datetime_to_timestamp(point)
 
-            
-        #assert isinstance(point, float), f"low was {point} type: {type(point)}"
+        # assert isinstance(point, float), f"low was {point} type: {type(point)}"
         return (point - self.low) / self.width  # type: ignore
 
     def denormalize_point(
-        self, point: float, as_string: bool = True
+        self, point: float, as_string: bool = False, **kwargs
     ) -> Union[str, float]:
         """
         Get a value on the true scale from a normalized-scale value
@@ -218,7 +218,7 @@ class TimeScale(Scale):
 
     def destructure(self):
         return (
-            (TimeScale, ),
+            (TimeScale,),
             (self.low, self.high,),
         )
 
@@ -229,7 +229,6 @@ class TimeScale(Scale):
         low = low + 0.0
         high = high + 0.0
         return classes[0](low, high, direct_init=True)
-
 
 
 def scale_factory(scale_dict):
@@ -246,15 +245,3 @@ def scale_factory(scale_dict):
     raise NotImplementedError(
         f"reconstructing scales of class {scale_class} is not implemented."
     )
-
-
-def scale_factory_II(class_name, params):
-    if type(class_name) == str:
-        if class_name == "Scale":
-            return Scale.structure(params)
-        elif class_name == "LogScale":
-            return LogScale.structure(params)
-        elif class_name == "TimeScale":
-            return TimeScale.structure(params)
-    raise TypeError("cannot reconstruct Scale")
-

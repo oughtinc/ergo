@@ -53,7 +53,7 @@ class Logistic(Distribution):
             self.scale = scale
             self.metadata = metadata
             self.true_s = s  # convenience field only used in repr currently
-            self.true_loc = loc # convenience field only used in repr currently
+            self.true_loc = loc  # convenience field only used in repr currently
 
     def __repr__(self):
         return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
