@@ -1,9 +1,9 @@
 import jax.numpy as np
 import numpy as onp
 import pytest
-import scipy.stats
+import scipy
 
-from ergo import Logistic, LogisticMixture, TruncatedLogisticMixture
+from ergo import Logistic, LogisticMixture, Truncate
 from ergo.conditions import HistogramCondition
 from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
@@ -39,7 +39,101 @@ def test_cdf(xscale: Scale):
 # TODO test truncated Logistic better in this file
 
 
-# @pytest.mark.slow
+@pytest.mark.look
+@pytest.mark.parametrize("xscale", scales_to_test)
+def test_trucated_ppf(xscale: Scale):
+    normed_test_loc = 0.5
+    normed_test_s = 0.1
+    test_loc = xscale.denormalize_point(normed_test_loc)
+    test_s = normed_test_s * xscale.width
+
+    normed_baseline_dist = scipy.stats.logistic(normed_test_loc, normed_test_s)
+
+    def ppf_through_cdf(dist, q):
+        return scipy.optimize.bisect(
+            lambda x: dist.cdf(x) - q, dist.ppf(0.0001), dist.ppf(0.9999), maxiter=1000
+        )
+
+    # No bounds
+    dist_w_no_bounds = Truncate(Logistic(loc=test_loc, s=test_s, scale=xscale))
+
+    for x in np.linspace(0.01, 0.99, 8):
+        assert dist_w_no_bounds.ppf(x) == pytest.approx(
+            xscale.denormalize_point(normed_baseline_dist.ppf(x)), rel=0.001
+        )
+
+    # Floor
+    dist_w_floor = Truncate(
+        Logistic(loc=test_loc, s=test_s, scale=xscale),
+        floor=xscale.denormalize_point(0.5),
+    )
+
+    mix_w_floor = LogisticMixture(
+        components=[
+            Truncate(  # type: ignore
+                Logistic(test_loc, s=test_s, scale=xscale),
+                floor=xscale.denormalize_point(0.5),
+            )
+        ],
+        probs=[1.0],
+    )
+
+    for x in np.linspace(0.01, 0.99, 8):
+        assert dist_w_floor.ppf(x) == pytest.approx(mix_w_floor.ppf(x), rel=0.001)
+        assert dist_w_floor.ppf(x) == pytest.approx(
+            ppf_through_cdf(dist_w_floor, x), rel=0.001
+        )
+
+    # Ceiling
+    dist_w_ceiling = Truncate(
+        Logistic(loc=test_loc, s=test_s, scale=xscale),
+        ceiling=xscale.denormalize_point(0.8),
+    )
+
+    mix_w_ceiling = LogisticMixture(
+        components=[
+            Truncate(  # type: ignore
+                Logistic(test_loc, s=test_s, scale=xscale),
+                ceiling=xscale.denormalize_point(0.8),
+            )
+        ],
+        probs=[1.0],
+    )
+
+    for x in np.linspace(0.01, 0.99, 8):
+        assert dist_w_ceiling.ppf(x) == pytest.approx(mix_w_ceiling.ppf(x), rel=0.001)
+        assert dist_w_ceiling.ppf(x) == pytest.approx(
+            ppf_through_cdf(dist_w_ceiling, x), rel=0.001
+        )
+
+    # Floor and Ceiling
+
+    dist_w_floor_and_ceiling = Truncate(
+        Logistic(loc=test_loc, s=test_s, scale=xscale),
+        floor=xscale.denormalize_point(0.2),
+        ceiling=xscale.denormalize_point(0.8),
+    )
+
+    mix_w_floor_and_ceiling = LogisticMixture(
+        components=[
+            Truncate(  # type: ignore
+                Logistic(test_loc, s=test_s, scale=xscale),
+                floor=xscale.denormalize_point(0.2),
+                ceiling=xscale.denormalize_point(0.8),
+            )
+        ],
+        probs=[1.0],
+    )
+
+    for x in np.linspace(0.01, 0.99, 8):
+        assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
+            mix_w_floor_and_ceiling.ppf(x), rel=0.001
+        )
+        assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
+            ppf_through_cdf(dist_w_floor_and_ceiling, x), rel=0.001
+        )
+
+
 @pytest.mark.parametrize("xscale", scales_to_test)
 def test_pdf(xscale: Scale):
     normed_test_loc = 0.8
@@ -52,10 +146,9 @@ def test_pdf(xscale: Scale):
             Logistic(
                 loc=xscale.denormalize_point(0.2), s=0.5 * xscale.width, scale=xscale,
             ),
-            Logistic(loc=test_loc, s=test_s, scale=xscale,),
+            Logistic(loc=test_loc, s=test_s, scale=xscale),
         ],
         probs=[1.8629593e-29, 1.0],
-        scale=xscale,
     )
     ergoLogistic = Logistic(loc=test_loc, s=test_s, scale=xscale)
 
@@ -85,38 +178,37 @@ def test_pdf(xscale: Scale):
 
 
 @pytest.mark.parametrize(
-    "LogisticMixtureClass", [LogisticMixture, TruncatedLogisticMixture]
+    "fixed_params",
+    [{"num_components": 2}, {"num_components": 2, "floor": -0.5, "ceiling": 1.5}],
 )
-def test_fit_mixture_small(LogisticMixtureClass):
-    xscale = Scale(-0.5, 1.5)
-    mixture = LogisticMixtureClass.from_samples(
-        data=np.array([0.1, 0.2, 0.8, 0.9]),
-        fixed_params={"num_components": 2, "floor": -0.5, "ceiling": 1.5},
-        scale=xscale,
+def test_fit_mixture_small(fixed_params):
+    xscale = Scale(0, 1)
+    mixture = LogisticMixture.from_samples(
+        data=np.array([0.1, 0.2, 0.8, 0.9]), fixed_params=fixed_params, scale=xscale,
     )
     for prob in mixture.probs:
         assert prob == pytest.approx(0.5, 0.1)
-    locs = sorted([component.loc for component in mixture.components])
-    assert locs[0] == pytest.approx(xscale.normalize_point(0.15), abs=0.1)
-    assert locs[1] == pytest.approx(xscale.normalize_point(0.85), abs=0.1)
+    locs = sorted([component.base_dist.loc for component in mixture.components])
+    assert locs[0] == pytest.approx(0.15, abs=0.1)
+    assert locs[1] == pytest.approx(0.85, abs=0.1)
 
 
 @pytest.mark.parametrize(
-    "LogisticMixtureClass", [LogisticMixture, TruncatedLogisticMixture]
+    "fixed_params",
+    [{"num_components": 2}, {"num_components": 2, "floor": -2, "ceiling": 3}],
 )
-def test_fit_mixture_large(LogisticMixtureClass):
+def test_fit_mixture_large(fixed_params):
     xscale = Scale(-2, 3)
     data1 = onp.random.logistic(loc=0.7, scale=0.1, size=1000)
     data2 = onp.random.logistic(loc=0.4, scale=0.2, size=1000)
     data = onp.concatenate([data1, data2])
-    mixture = LogisticMixtureClass.from_samples(
-        data=data,
-        fixed_params={"num_components": 2, "floor": -2, "ceiling": 3},
-        scale=xscale,
+    mixture = LogisticMixture.from_samples(
+        data=data, fixed_params=fixed_params, scale=xscale,
     )
+    # FIXME: What's going on below with scales?
     components = sorted(
         [
-            (component.loc, component.true_s, component.scale)
+            (component.base_dist.loc, component.base_dist.s)
             for component in mixture.components
         ]
     )
@@ -194,15 +286,12 @@ def test_logistic_mixture_normalization():
     scale = Scale(-50, 50)
     scalex2 = Scale(-100, 100)
     mixture = LogisticMixture(
-        components=[Logistic(-40, 1, scale), Logistic(50, 10, scale)],
-        probs=[0.5, 0.5],
-        scale=scale,
+        components=[Logistic(-40, 1, scale), Logistic(50, 10, scale)], probs=[0.5, 0.5],
     )
 
     mixturex2 = LogisticMixture(
         components=[Logistic(-80, 2, scalex2), Logistic(100, 20, scalex2)],
         probs=[0.5, 0.5],
-        scale=scalex2,
     )
 
     assert mixturex2 == mixture.normalize().denormalize(scalex2)
@@ -213,28 +302,18 @@ def test_logistic_mixture_normalization():
     )  # not necessary to normalize but here for readability
 
     assert normalized == LogisticMixture(
-        [Logistic(0.1, 0.01, Scale(0, 1)), Logistic(1, 0.1, Scale(0, 1))],
-        [0.5, 0.5],
-        Scale(0, 1),
+        [Logistic(0.1, 0.01, Scale(0, 1)), Logistic(1, 0.1, Scale(0, 1))], [0.5, 0.5],
     )
 
 
 def test_destructure(logistic_mixture10, truncated_logistic_mixture):
     for original_mixture in [logistic_mixture10, truncated_logistic_mixture]:
-        classes, params = original_mixture.destructure()
-        cls, scale_cls = classes
-        recovered_mixture = cls.structure((*params, scale_cls))
-        assert recovered_mixture.probs == pytest.approx(original_mixture.probs)
-        if hasattr(original_mixture, "floor"):
-            assert recovered_mixture.floor == pytest.approx(original_mixture.floor)
-            assert recovered_mixture.ceiling == pytest.approx(original_mixture.ceiling)
-        for recovered_component, orginal_component in zip(
-            recovered_mixture.components, original_mixture.components
-        ):
-            assert recovered_component.loc == pytest.approx(
-                float(orginal_component.loc)
-            )
-            assert recovered_component.scale == orginal_component.scale
+        params = original_mixture.destructure()
+        class_params, numeric_params = params
+        recovered_mixture = class_params[0].structure(params)
+        assert recovered_mixture.pdf(0.5) == pytest.approx(
+            float(original_mixture.pdf(0.5))
+        )
 
 
 def test_destructure_with_cond(truncated_logistic_mixture, histogram):

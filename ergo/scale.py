@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 import time
 from typing import TypeVar, Union
@@ -50,8 +50,13 @@ class Scale:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
 
+    @classmethod
+    def structure(cls, params):
+        classes, numeric = params
+        return classes[0](*numeric)
+
     def destructure(self):
-        return (Scale, (self.low, self.high))
+        return ((Scale,), (self.low, self.high))
 
     @classmethod
     def structure(cls, params):
@@ -59,8 +64,9 @@ class Scale:
         return cls(low, high)
 
     def export(self):
-        cls, params = self.destructure()
-        return (cls.__name__, params)
+        export_dict = asdict(self)
+        export_dict["class"] = type(self).__name__
+        return export_dict
 
 
 ScaleClass = TypeVar("ScaleClass", bound=Scale)
@@ -114,7 +120,7 @@ class LogScale(Scale):
         return (point * self.width) + self.low
 
     def destructure(self):
-        return (LogScale, (self.low, self.high, self.log_base))
+        return ((LogScale,), (self.low, self.high, self.log_base))
 
     @classmethod
     def structure(cls, params):
@@ -219,7 +225,22 @@ class TimeScale(Scale):
         return cls(low, high, direct_init=True)
 
 
-def scale_factory(class_name, params):
+
+def scale_factory(scale_dict):
+    scale_class = scale_dict["class"]
+    low = scale_dict["low"]
+    high = scale_dict["high"]
+
+    if scale_class == "Scale":
+        return Scale(low, high)
+    if scale_class == "LogScale":
+        return LogScale(low, high, scale_dict["log_base"])
+    raise NotImplementedError(
+        f"reconstructing scales of class {scale_class} is not implemented."
+    )
+
+
+def scale_factory_II(class_name, params):
     if type(class_name) == str:
         if class_name == "Scale":
             return Scale.structure(params)
@@ -228,3 +249,4 @@ def scale_factory(class_name, params):
         elif class_name == "TimeScale":
             return TimeScale.structure(params)
     raise TypeError("cannot reconstruct Scale")
+

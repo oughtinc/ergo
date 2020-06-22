@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 import ergo
-from ergo.distributions import Logistic, LogisticMixture, TruncatedLogisticMixture
+from ergo.distributions import Logistic, LogisticMixture, Truncate
 from ergo.scale import LogScale, Scale
 
 
@@ -30,7 +30,6 @@ def normalized_logistic_mixture():
             Logistic(loc=0.85, s=0.032395907, scale=Scale(0, 1)),
         ],
         probs=[0.6, 0.4],
-        scale=Scale(0, 1),
     )
 
 
@@ -43,7 +42,6 @@ def logistic_mixture():
             Logistic(loc=100000, s=10000, scale=xscale),
         ],
         probs=[0.8, 0.2],
-        scale=xscale,
     )
 
 
@@ -56,7 +54,6 @@ def logistic_mixture10():
             Logistic(loc=5, s=2.3658268, scale=xscale),
         ],
         probs=[0.5, 0.5],
-        scale=xscale,
     )
 
 
@@ -69,22 +66,22 @@ def logistic_mixture_p_uneven():
             Logistic(loc=5, s=5, scale=xscale),
         ],
         probs=[1.8629593e-29, 1.0],
-        scale=xscale,
     )
 
 
 @pytest.fixture(scope="module")
 def truncated_logistic_mixture():
     xscale = Scale(5000, 120000)
-    return TruncatedLogisticMixture(
+    return LogisticMixture(
         components=[
-            Logistic(loc=10000, s=1000, scale=xscale),
-            Logistic(loc=100000, s=10000, scale=xscale),
+            Truncate(
+                Logistic(loc=10000, s=1000, scale=xscale), floor=5000, ceiling=500000
+            ),
+            Truncate(
+                Logistic(loc=100000, s=10000, scale=xscale), floor=5000, ceiling=500000
+            ),
         ],
         probs=[0.8, 0.2],
-        floor=5000,
-        ceiling=500000,
-        scale=xscale,
     )
 
 
@@ -97,7 +94,6 @@ def logistic_mixture_p_overlapping():
             Logistic(4000000.0329152746, 200000.0, xscale),
         ],
         probs=[0.5, 0.5],
-        scale=xscale,
     )
 
 
@@ -107,7 +103,6 @@ def logistic_mixture_norm_test():
     return LogisticMixture(
         components=[Logistic(-40, 1, xscale), Logistic(50, 10, xscale)],
         probs=[0.5, 0.5],
-        scale=xscale,
     )
 
 
@@ -120,7 +115,6 @@ def logistic_mixture15():
             Logistic(loc=20, s=3.658268, scale=xscale),
         ],
         probs=[0.5, 0.5],
-        scale=xscale,
     )
 
 

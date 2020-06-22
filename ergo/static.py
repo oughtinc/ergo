@@ -79,11 +79,8 @@ single_condition_loss_grad = jit(
 
 @partial(jit, static_argnums=(0, 2))
 def describe_fit(dist_classes, dist_params, cond_class, cond_params):
-    if isinstance(dist_classes, type):
-        dist = dist_classes.structure(dist_params)
-    else:
-        dist_class, scale_class = dist_classes
-        dist = dist_class.structure((*dist_params, scale_class))
+    dist_class = dist_classes[0]
+    dist = dist_class.structure((dist_classes, dist_params))
     condition = cond_class.structure(cond_params)
     return condition._describe_fit(dist)
 
@@ -94,7 +91,10 @@ def describe_fit(dist_classes, dist_params, cond_class, cond_params):
 @partial(jit, static_argnums=0)
 def dist_logloss(dist_class, fixed_params, opt_params, data):
     dist = dist_class.from_params(fixed_params, opt_params, traceable=True)
-    return -np.sum(dist.logpdf(data))
+    if data.size == 1:
+        return -dist.logpdf(data)
+    scores = vmap(dist.logpdf)(data)
+    return -np.sum(scores)
 
 
 dist_grad_logloss = jit(grad(dist_logloss, argnums=2), static_argnums=0)
@@ -125,12 +125,10 @@ def logistic_mixture_logpdf1(params, datum):
     # params are assumed to be normalized
     structured_params = params.reshape((-1, 3))
     component_scores = []
-    probs = np.array([p[2] for p in structured_params])
-    logprobs = np.log(probs)
-    for p, weight in zip(structured_params, logprobs):
-        loc = p[0]
-        scale = np.max([p[1], 0.01])  # Find a better solution?
-        component_scores.append(logistic_logpdf(datum, loc, scale) + weight)
+    for (loc, scale, component_prob) in structured_params:
+        component_scores.append(
+            logistic_logpdf(datum, loc, scale) + np.log(component_prob)
+        )
     return scipy.special.logsumexp(np.array(component_scores))
 
 
