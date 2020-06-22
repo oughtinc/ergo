@@ -50,18 +50,13 @@ class Scale:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
 
-    @classmethod
-    def structure(cls, params):
-        classes, numeric = params
-        return classes[0](*numeric)
-
     def destructure(self):
         return ((Scale,), (self.low, self.high))
 
     @classmethod
     def structure(cls, params):
-        low, high = params
-        return cls(low, high)
+        classes, numeric = params
+        return classes[0](*numeric)
 
     def export(self):
         export_dict = asdict(self)
@@ -137,22 +132,30 @@ class TimeScale(Scale):
             self.low = low
             self.high = high
             self.width = self.high - self.low
+            
         else:
-            if isinstance(low, (float, int)):
+            if isinstance(low, float):
                 self.low = low
+            elif isinstance(low, int):
+                self.low = float(low)
             elif isinstance(low, str):
                 self.low = self.str_to_timestamp(low)
             elif isinstance(low, (date, datetime)):
                 self.low = self.datetime_to_timestamp(low)
-            if isinstance(high, (float, int)):
+
+                
+            if isinstance(high, float):
                 self.high = high
+            elif isinstance(high, int):
+                self.high = float(high)
             elif isinstance(high, str):
                 self.high = self.str_to_timestamp(high)
             elif isinstance(high, (date, datetime)):
                 self.high = self.datetime_to_timestamp(high)
             self.width = self.high - self.low
-
-            assert isinstance(self.low, float), f"low was {self.low}"
+            # if not isinstance(self.low, float):
+            #     import ipdb; ipdb.set_trace()
+            assert isinstance(self.low, float), f"low was {self.low} type: {type(self.low)}"
             assert isinstance(self.high, float), f"high was {self.high}"
             assert isinstance(self.width, float), f"widht was {self.width}"
 
@@ -174,7 +177,8 @@ class TimeScale(Scale):
         if isinstance(point, (date, datetime)):
             point = self.datetime_to_timestamp(point)
 
-        assert isinstance(point, float)
+            
+        #assert isinstance(point, float), f"low was {point} type: {type(point)}"
         return (point - self.low) / self.width  # type: ignore
 
     def denormalize_point(
@@ -187,7 +191,6 @@ class TimeScale(Scale):
         :return: a point on the true scale
         """
         denormed_point = self.low + self.width * point  # type: ignore
-        assert isinstance(denormed_point, float)
         return self.timestamp_to_str(denormed_point) if as_string else denormed_point
 
     def str_to_datetime(self, date_string: str) -> datetime:
@@ -215,16 +218,17 @@ class TimeScale(Scale):
 
     def destructure(self):
         return (
-            TimeScale,
+            (TimeScale, ),
             (self.low, self.high,),
         )
 
     @classmethod
     def structure(cls, params):
-        low, high = params
+        classes, numeric = params
+        low, high = numeric
         low = low + 0.0
         high = high + 0.0
-        return cls(low, high, direct_init=True)
+        return classes[0](low, high, direct_init=True)
 
 
 

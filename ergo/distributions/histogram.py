@@ -155,7 +155,7 @@ class HistogramDist(Distribution, Optimizable):
         xs = self.xs
 
         if true_scale:
-            xs = np.array(self.scale.denormalize_points(xs))
+            xs = onp.array(self.scale.denormalize_points(xs))
 
         if type(self.scale) != LogScale:
             ps = self.ps / self.density_norm_term
@@ -179,7 +179,7 @@ class HistogramDist(Distribution, Optimizable):
     ):
         xs, ps = self.to_lists(true_scale=True, verbose=verbose)
         pairs = [
-            {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
+            {"x": x, "density": float(density)} for x, density in zip(xs, ps)
         ]
         return pairs
 
