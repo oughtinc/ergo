@@ -12,8 +12,7 @@ from .optimizable import Optimizable
 @dataclass
 class PointDensity(Distribution, Optimizable):
     """
-
-    Internally, we always represent the distribution on 0 to 1.
+    A distribution specified through a number of density points.
     """
 
     normed_xs: np.DeviceArray
