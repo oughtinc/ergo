@@ -235,6 +235,8 @@ def scale_factory(scale_dict):
         return Scale(low, high)
     if scale_class == "LogScale":
         return LogScale(low, high, scale_dict["log_base"])
+    if scale_class == "TimeScale":
+        return TimeScale(low, high)
     raise NotImplementedError(
         f"reconstructing scales of class {scale_class} is not implemented."
     )
