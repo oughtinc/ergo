@@ -89,4 +89,5 @@ class Condition(ABC):
 
     @classmethod
     def structure(cls, params) -> "Condition":
-        return cls(*params)
+        class_params, numeric_params = params
+        return cls(*numeric_params)

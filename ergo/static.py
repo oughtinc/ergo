@@ -13,12 +13,12 @@ def jitted_condition_loss(
     dist_class, dist_fixed_params, dist_opt_params, cond_classes, cond_params
 ):
     print(
-        f"Tracing {dist_class.__name__} ({dist_fixed_params}) loss for {[c.__name__ for c in cond_classes]} ({str(cond_params)[:60]})"
+        f"Tracing {dist_class.__name__} ({dist_fixed_params}) loss for {[c[0].__name__ for c in cond_classes]} ({str(cond_params)[:60]})"
     )
     dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     total_loss = 0.0
     for (cond_class, cond_param) in zip(cond_classes, cond_params):
-        condition = cond_class.structure(cond_param)
+        condition = cond_class[0].structure((cond_class, cond_param))
         total_loss += condition.loss(dist)
     return total_loss * 100
 
@@ -59,13 +59,13 @@ def single_condition_loss(
     dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
 ):
     print(
-        f"Tracing {dist_class.__name__} condition loss for {cond_class.__name__}:\n"
+        f"Tracing {dist_class.__name__} condition loss for {cond_class[0].__name__}:\n"
         f"- Fixed: {dist_fixed_params}\n"
         f"- Optim: {dist_opt_params}\n"
         f"- Cond: {cond_param}\n\n"
     )
     dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
-    condition = cond_class.structure(cond_param)
+    condition = cond_class[0].structure((cond_class, cond_param))
     return condition.loss(dist) * 100
 
 
@@ -81,7 +81,7 @@ single_condition_loss_grad = jit(
 def describe_fit(dist_classes, dist_params, cond_class, cond_params):
     dist_class = dist_classes[0]
     dist = dist_class.structure((dist_classes, dist_params))
-    condition = cond_class.structure(cond_params)
+    condition = cond_class[0].structure((cond_class, cond_params))
     return condition._describe_fit(dist)
 
 

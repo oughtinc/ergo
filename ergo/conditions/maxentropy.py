@@ -6,7 +6,7 @@ class MaxEntropyCondition(condition.Condition):
         return -self.weight * dist.entropy()
 
     def destructure(self):
-        return (MaxEntropyCondition, (self.weight,))
+        return ((MaxEntropyCondition,), (self.weight,))
 
     def __str__(self):
         return "Maximize the entropy of the distribution"

@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import jax.numpy as np
 import pytest
 
-from ergo import HistogramDist, Logistic, LogisticMixture
 from ergo.conditions import (
     HistogramCondition,
     IntervalCondition,
@@ -13,6 +12,7 @@ from ergo.conditions import (
     SmoothnessCondition,
     VarianceCondition,
 )
+from ergo.distributions import Logistic, LogisticMixture, PointDensity
 from ergo.scale import Scale
 
 
@@ -204,17 +204,17 @@ def test_weights_mixture():
 
 def test_mode_condition():
     base_conditions = [IntervalCondition(p=0.4, max=0.5)]
-    base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
+    base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
 
     # Most likely condition should increase chance of specified outcome
     outcome_conditions = base_conditions + [ModeCondition(outcome=0.25)]
-    outcome_dist = HistogramDist.from_conditions(outcome_conditions, verbose=True)
+    outcome_dist = PointDensity.from_conditions(outcome_conditions, verbose=True)
     assert outcome_dist.pdf(0.25) > base_dist.pdf(0.25)
 
     # Highly weighted most likely condition should make specified outcome most likely
     strong_condition = ModeCondition(outcome=0.25, weight=1000)
     strong_outcome_conditions = base_conditions + [strong_condition]
-    strong_outcome_dist = HistogramDist.from_conditions(
+    strong_outcome_dist = PointDensity.from_conditions(
         strong_outcome_conditions, verbose=True
     )
     assert strong_condition.loss(strong_outcome_dist) == pytest.approx(0, abs=0.001)
@@ -222,22 +222,22 @@ def test_mode_condition():
 
 def test_mean_condition():
     def get_mean(dist):
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.ps.size)
-        return np.dot(dist.ps, xs)
+        xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
+        return np.dot(dist.normed_densities, xs)
 
     base_conditions = [MaxEntropyCondition(weight=0.1)]
-    base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
+    base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
     base_mean = get_mean(base_dist)
 
     # Mean condition should move mean closer to specified mean
     mean_conditions = base_conditions + [MeanCondition(mean=0.25, weight=1)]
-    mean_dist = HistogramDist.from_conditions(mean_conditions, verbose=True)
+    mean_dist = PointDensity.from_conditions(mean_conditions, verbose=True)
     assert abs(get_mean(mean_dist) - 0.25) < abs(base_mean - 0.25)
 
     # Highly weighted mean condition should make mean very close to specified mean
     strong_condition = MeanCondition(mean=0.25, weight=1000)
     strong_mean_conditions = base_conditions + [strong_condition]
-    strong_mean_dist = HistogramDist.from_conditions(
+    strong_mean_dist = PointDensity.from_conditions(
         strong_mean_conditions, verbose=True
     )
     assert get_mean(strong_mean_dist) == pytest.approx(0.25, rel=0.01)
@@ -245,29 +245,29 @@ def test_mean_condition():
 
 def test_variance_condition():
     def get_variance(dist):
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.ps.size)
-        mean = np.dot(dist.ps, xs)
-        return np.dot(dist.ps, np.square(xs - mean))
+        xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
+        mean = np.dot(dist.normed_densities, xs)
+        return np.dot(dist.normed_densities, np.square(xs - mean))
 
     base_conditions = [
         MaxEntropyCondition(weight=0.1),
         SmoothnessCondition(),
         IntervalCondition(p=0.95, min=0.3, max=0.7),
     ]
-    base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
+    base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
     base_variance = get_variance(base_dist)
     increased_variance = base_variance + 0.01
 
     # Increase in variance should decrease peak
     var_condition = VarianceCondition(variance=increased_variance, weight=1)
     var_conditions = base_conditions + [var_condition]
-    var_dist = HistogramDist.from_conditions(var_conditions, verbose=True)
-    assert np.max(var_dist.ps) < np.max(base_dist.ps)
+    var_dist = PointDensity.from_conditions(var_conditions, verbose=True)
+    assert np.max(var_dist.normed_densities) < np.max(base_dist.normed_densities)
 
     # Highly weighted variance condition should make var very close to specified var
     strong_condition = VarianceCondition(variance=increased_variance, weight=1000)
     strong_var_conditions = base_conditions + [strong_condition]
-    strong_var_dist = HistogramDist.from_conditions(strong_var_conditions, verbose=True)
+    strong_var_dist = PointDensity.from_conditions(strong_var_conditions, verbose=True)
     assert get_variance(strong_var_dist) == pytest.approx(
         float(increased_variance), abs=0.001
     )
@@ -337,10 +337,9 @@ def test_histogram_fit(histogram):
     condition = HistogramCondition(histogram["xs"], histogram["densities"])
     conditions = (condition,)
 
-    dist = HistogramDist.from_conditions(
+    dist = PointDensity.from_conditions(
         conditions,
-        {"num_points": 100},
-        Scale(min(histogram["xs"]), max(histogram["xs"])),
+        scale=Scale(min(histogram["xs"]), max(histogram["xs"])),
         verbose=True,
     )
     for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):

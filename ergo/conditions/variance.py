@@ -18,11 +18,11 @@ class VarianceCondition(condition.Condition):
         super().__init__(weight)
 
     def actual_variance(self, dist) -> float:
-        # FIXME: Should be interacting with HistogramDist via pdf
+        # FIXME: Should be interacting with PointDensity via pdf
         #        or similar public interface
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.ps.size)
-        mean = np.dot(dist.ps, xs)
-        return np.dot(dist.ps, np.square(xs - mean))
+        xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
+        mean = np.dot(dist.normed_densities, xs)
+        return np.dot(dist.normed_densities, np.square(xs - mean))
 
     def loss(self, dist) -> float:
         return (
@@ -44,7 +44,7 @@ class VarianceCondition(condition.Condition):
         return self.__class__(denormalized_variance, self.weight)
 
     def destructure(self):
-        return (VarianceCondition, (self.variance, self.weight))
+        return ((VarianceCondition,), (self.variance, self.weight))
 
     def __str__(self):
         return f"The variance is {self.variance}."

@@ -19,7 +19,7 @@ from .base import (
     uniform,
 )
 from .distribution import Distribution
-from .histogram import HistogramDist
 from .logistic import Logistic
 from .logistic_mixture import LogisticMixture
+from .point_density import PointDensity
 from .truncate import Truncate

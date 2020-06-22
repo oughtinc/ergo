@@ -11,11 +11,11 @@ import ergo.utils
 
 from .distributions import (
     BetaFromHits,
-    HistogramDist,
     Logistic,
     LogisticMixture,
     LogNormalFromInterval,
     NormalFromInterval,
+    PointDensity,
     Truncate,
     bernoulli,
     beta,

@@ -1,7 +1,7 @@
 from jax import vmap
 import jax.numpy as np
 
-from ergo.distributions import histogram
+from ergo.distributions import point_density
 from ergo.scale import Scale
 
 from . import condition
@@ -10,7 +10,7 @@ from . import condition
 
 
 class CrossEntropyCondition(condition.Condition):
-    p_dist: "histogram.HistogramDist"
+    p_dist: "point_density.PointDensity"
     weight: float = 1.0
 
     def __init__(self, p_dist, weight=1.0):
@@ -21,11 +21,18 @@ class CrossEntropyCondition(condition.Condition):
         return self.weight * self.p_dist.cross_entropy(q_dist)
 
     def destructure(self):
-        return (CrossEntropyCondition, (np.array(self.p_dist.logps), self.weight))
+        dist_classes, dist_numeric = self.p_dist.destructure()
+        cond_numeric = (self.weight,)
+        return ((CrossEntropyCondition, dist_classes), (cond_numeric, dist_numeric))
 
     @classmethod
     def structure(cls, params):
-        return cls(histogram.HistogramDist(params[0], traceable=True), params[1])
+        class_params, numeric_params = params
+        cond_class, dist_classes = class_params
+        cond_numeric, dist_numeric = numeric_params
+        dist_params = (dist_classes, dist_numeric)
+        dist = dist_classes[0].structure(dist_params)
+        return cls(dist, cond_numeric[0])
 
     def __str__(self):
         return "Minimize the cross-entropy of the two distributions"

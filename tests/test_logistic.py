@@ -41,7 +41,7 @@ def test_cdf(xscale: Scale):
 
 @pytest.mark.look
 @pytest.mark.parametrize("xscale", scales_to_test)
-def test_trucated_ppf(xscale: Scale):
+def test_truncated_ppf(xscale: Scale):
     normed_test_loc = 0.5
     normed_test_s = 0.1
     test_loc = xscale.denormalize_point(normed_test_loc)
@@ -59,7 +59,7 @@ def test_trucated_ppf(xscale: Scale):
 
     for x in np.linspace(0.01, 0.99, 8):
         assert dist_w_no_bounds.ppf(x) == pytest.approx(
-            xscale.denormalize_point(normed_baseline_dist.ppf(x)), rel=0.001
+            float(xscale.denormalize_point(normed_baseline_dist.ppf(x))), rel=0.001
         )
 
     # Floor
@@ -79,9 +79,11 @@ def test_trucated_ppf(xscale: Scale):
     )
 
     for x in np.linspace(0.01, 0.99, 8):
-        assert dist_w_floor.ppf(x) == pytest.approx(mix_w_floor.ppf(x), rel=0.001)
         assert dist_w_floor.ppf(x) == pytest.approx(
-            ppf_through_cdf(dist_w_floor, x), rel=0.001
+            float(mix_w_floor.ppf(x)), rel=0.001
+        )
+        assert dist_w_floor.ppf(x) == pytest.approx(
+            float(ppf_through_cdf(dist_w_floor, x)), rel=0.001
         )
 
     # Ceiling
@@ -101,9 +103,11 @@ def test_trucated_ppf(xscale: Scale):
     )
 
     for x in np.linspace(0.01, 0.99, 8):
-        assert dist_w_ceiling.ppf(x) == pytest.approx(mix_w_ceiling.ppf(x), rel=0.001)
         assert dist_w_ceiling.ppf(x) == pytest.approx(
-            ppf_through_cdf(dist_w_ceiling, x), rel=0.001
+            float(mix_w_ceiling.ppf(x)), rel=0.001
+        )
+        assert dist_w_ceiling.ppf(x) == pytest.approx(
+            float(ppf_through_cdf(dist_w_ceiling, x)), rel=0.001
         )
 
     # Floor and Ceiling
@@ -127,10 +131,10 @@ def test_trucated_ppf(xscale: Scale):
 
     for x in np.linspace(0.01, 0.99, 8):
         assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
-            mix_w_floor_and_ceiling.ppf(x), rel=0.001
+            float(mix_w_floor_and_ceiling.ppf(x)), rel=0.001
         )
         assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
-            ppf_through_cdf(dist_w_floor_and_ceiling, x), rel=0.001
+            float(ppf_through_cdf(dist_w_floor_and_ceiling, x)), rel=0.001
         )
 
 

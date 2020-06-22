@@ -33,10 +33,10 @@ class Scale:
         return (point * self.width) + self.low
 
     def denormalize_points(self, points):
-        return [self.denormalize_point(point) for point in points]
+        return np.array([self.denormalize_point(point) for point in points])
 
     def normalize_points(self, points):
-        return [self.normalize_point(point) for point in points]
+        return np.array([self.normalize_point(point) for point in points])
 
     def normalize_variance(self, variance):
         if variance is None:
@@ -47,6 +47,28 @@ class Scale:
         if variance is None:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
+
+    def normalize_density(self, original_x, density):
+        return density * self.width
+
+    def denormalize_density(self, normed_x, density):
+        return density / self.width
+
+    def normalize_densities(self, original_xs, densities):
+        return np.array(
+            [
+                self.normalize_density(original_x, density)
+                for (original_x, density) in zip(original_xs, densities)
+            ]
+        )
+
+    def denormalize_densities(self, normed_xs, densities):
+        return np.array(
+            [
+                self.denormalize_density(normed_x, density)
+                for (normed_x, density) in zip(normed_xs, densities)
+            ]
+        )
 
     @classmethod
     def structure(cls, params):
@@ -77,10 +99,23 @@ class LogScale(Scale):
     def __hash__(self):
         return super.__hash__(self)
 
-    # TODO do we still need this default?
+    def normalize_density(self, original_x, density):
+        normed_x = self.normalize_point(original_x)
+        normed_xbar = normed_x + 0.001
+        original_xbar = self.denormalize_point(normed_xbar)
+        density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
+        return density * density_ratio
+
+    def denormalize_density(self, normed_x, density):
+        original_x = self.denormalize_point(normed_x)
+        normed_xbar = normed_x + 0.001
+        original_xbar = self.denormalize_point(normed_xbar)
+        density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
+        return density * density_ratio
+
     def normalize_point(self, point):
         """
-        Get a prediciton sample value on the normalized scale from a true-scale value
+        Get a prediction sample value on the normalized scale from a true-scale value
 
         :param true_value: a sample value on the true scale
         :return: a sample value on the normalized scale
@@ -96,7 +131,6 @@ class LogScale(Scale):
 
         return np.log(floored_timber) / np.log(self.log_base)
 
-    # TODO do we still need this default?
     def denormalize_point(self, point):
         """
         Get a value on the true scale from a normalized-scale value

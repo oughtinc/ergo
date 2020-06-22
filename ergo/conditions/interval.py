@@ -57,7 +57,7 @@ class IntervalCondition(condition.Condition):
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
 
     def destructure(self):
-        return (IntervalCondition, (self.p, self.min, self.max, self.weight))
+        return ((IntervalCondition,), (self.p, self.min, self.max, self.weight))
 
     def shape_key(self):
         return (self.__class__.__name__, self.min is None, self.max is None)

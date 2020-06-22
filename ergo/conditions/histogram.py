@@ -41,7 +41,7 @@ class HistogramCondition(condition.Condition):
         return self.__class__(denormalized_xs, denormalized_densities, self.weight)
 
     def destructure(self):
-        return (HistogramCondition, (self.xs, self.densities, self.weight))
+        return ((HistogramCondition,), (self.xs, self.densities, self.weight))
 
     def __key(self):
         return (
