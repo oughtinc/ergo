@@ -1,2 +1,2 @@
-# The default number of points PointDensitys use to represent a distribution
-histogram_default_num_points = 201
+# The default number of points PointDensity uses to represent a distribution
+point_density_default_num_points = 201
