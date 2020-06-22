@@ -163,9 +163,7 @@ class HistogramDist(Distribution, Optimizable):
         else:
             auc = trapz(self.ps, xs)
             ps = self.ps / auc
-        else:
-            bins = np.array(self.scale.denormalize_points(self.bins))
-            ps = np.divide(self.ps, bins[1:] - bins[:-1])
+     
         if verbose:
             import pandas as pd
 
