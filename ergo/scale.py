@@ -182,7 +182,7 @@ class TimeScale(Scale):
         return (point - self.low) / self.width  # type: ignore
 
     def denormalize_point(
-        self, point: float, as_string: bool = False, **kwargs
+        self, point: float, as_string: bool = True, **kwargs
     ) -> Union[str, float]:
         """
         Get a value on the true scale from a normalized-scale value

@@ -154,7 +154,7 @@ class HistogramDist(Distribution, Optimizable):
         xs = self.xs
 
         if true_scale:
-            xs = onp.array(self.scale.denormalize_points(xs, as_string=True))
+            xs = onp.array(self.scale.denormalize_points(xs))
 
         if type(self.scale) != LogScale:
             ps = self.ps / self.density_norm_term
