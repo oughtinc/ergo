@@ -5,6 +5,7 @@ import numpy as onp
 
 from ergo.scale import Scale
 
+from . import constants
 from .distribution import Distribution
 from .optimizable import Optimizable
 
@@ -119,10 +120,26 @@ class PointDensity(Distribution, Optimizable):
     # Optimizable
 
     @classmethod
+    def from_conditions(cls, *args, fixed_params=None, scale=None, **kwargs):
+        if scale is None:
+            # TODO: Should we do this?
+            scale = Scale(0, 1)
+        if fixed_params is None:
+            fixed_params = {
+                "xs": np.linspace(
+                    scale.low, scale.high, constants.point_density_default_num_points
+                )
+            }
+        return super(PointDensity, cls).from_conditions(
+            *args, fixed_params=fixed_params, scale=scale, **kwargs
+        )
+
+    @classmethod
     def from_params(cls, fixed_params, opt_params, scale=None, traceable=True):
-        if not scale:
-            scale = Scale(0, 1)  # TODO: Should we do this?
-        # traceable is always True here
+        # TODO: traceable is always True here
+        if scale is None:
+            # TODO: Should we do this?
+            scale = Scale(0, 1)
         xs = fixed_params["xs"]
         ps = np.abs(opt_params)
         Z = np.sum(cls.normed_bin_probs(xs, ps))

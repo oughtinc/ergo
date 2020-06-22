@@ -88,7 +88,7 @@ class Optimizable(ABC):
             scale = Scale(0, 1)  # assume a linear scale in [0,1]
 
         if fixed_params is None:
-            fixed_params = {"xs": np.linspace(scale.low, scale.high, 100)}
+            fixed_params = {}
 
         fixed_params = cls.normalize_fixed_params(fixed_params, scale)
         normalized_conditions = [condition.normalize(scale) for condition in conditions]
