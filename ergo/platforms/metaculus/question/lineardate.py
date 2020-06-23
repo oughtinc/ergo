@@ -28,16 +28,15 @@ class LinearDateQuestion(ContinuousQuestion):
     ):
         super().__init__(id, metaculus, data, name)
         self.scale = TimeScale(
-            datetime.datetime.strptime(
-                self.possibilities["scale"]["min"], "%Y-%m-%d"
-            ).date(),
-            datetime.datetime.strptime(
-                self.possibilities["scale"]["max"], "%Y-%m-%d"
-            ).date(),
+            self.date_to_timestamp(self.possibilities["scale"]["min"]),
+            self.date_to_timestamp(self.possibilities["scale"]["max"]),
         )
 
     def _scale_x(self, xmin: float = None, xmax: float = None):
         return scale_x_datetime(limits=(xmin, xmax))
+
+    def date_to_timestamp(self, date: str):
+        return datetime.datetime.strptime(date, "%Y-%m-%d").timestamp()
 
     # TODO enforce return type date/datetime
     def sample_community(self):

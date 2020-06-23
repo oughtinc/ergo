@@ -1,16 +1,15 @@
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 import time
-from typing import TypeVar, Union
+from typing import TypeVar
 
-from dateutil.parser import parse
 import jax.numpy as np
 
 
 @dataclass
 class Scale:
-    low: Union[date, datetime, float]
-    high: Union[date, datetime, float]
+    low: float
+    high: float
     width: float = field(init=False)
 
     def __post_init__(self):
@@ -28,17 +27,17 @@ class Scale:
         cls, params = self.destructure()
         return (cls, params)
 
-    def normalize_point(self, point, **kwargs):
+    def normalize_point(self, point):
         return (point - self.low) / self.width
 
-    def denormalize_point(self, point, **kwargs):
+    def denormalize_point(self, point):
         return (point * self.width) + self.low
 
-    def denormalize_points(self, points, **kwargs):
-        return [self.denormalize_point(point, **kwargs) for point in points]
+    def denormalize_points(self, points):
+        return [self.denormalize_point(point) for point in points]
 
-    def normalize_points(self, points, **kwargs):
-        return [self.normalize_point(point, **kwargs) for point in points]
+    def normalize_points(self, points):
+        return [self.normalize_point(point) for point in points]
 
     def normalize_variance(self, variance):
         if variance is None:
@@ -79,8 +78,7 @@ class LogScale(Scale):
     def __hash__(self):
         return super.__hash__(self)
 
-    # TODO do we still need this default?
-    def normalize_point(self, point, **kwargs):
+    def normalize_point(self, point):
         """
         Get a prediciton sample value on the normalized scale from a true-scale value
 
@@ -98,8 +96,7 @@ class LogScale(Scale):
 
         return np.log(floored_timber) / np.log(self.log_base)
 
-    # TODO do we still need this default?
-    def denormalize_point(self, point, **kwargs):
+    def denormalize_point(self, point):
         """
         Get a value on the true scale from a normalized-scale value
 
@@ -127,38 +124,11 @@ class LogScale(Scale):
 
 @dataclass
 class TimeScale(Scale):
-    def __init__(self, low, high, direct_init=False):
-        if direct_init:
-            self.low = low
-            self.high = high
-            self.width = self.high - self.low
+    def __init__(self, low, high):
 
-        else:
-            if isinstance(low, float):
-                self.low = low
-            elif isinstance(low, int):
-                self.low = float(low)
-            elif isinstance(low, str):
-                self.low = self.str_to_timestamp(low)
-            elif isinstance(low, (date, datetime)):
-                self.low = self.datetime_to_timestamp(low)
-
-            if isinstance(high, float):
-                self.high = high
-            elif isinstance(high, int):
-                self.high = float(high)
-            elif isinstance(high, str):
-                self.high = self.str_to_timestamp(high)
-            elif isinstance(high, (date, datetime)):
-                self.high = self.datetime_to_timestamp(high)
-            self.width = self.high - self.low
-            # if not isinstance(self.low, float):
-            #     import ipdb; ipdb.set_trace()
-            assert isinstance(
-                self.low, float
-            ), f"low was {self.low} type: {type(self.low)}"
-            assert isinstance(self.high, float), f"high was {self.high}"
-            assert isinstance(self.width, float), f"widht was {self.width}"
+        self.low = low
+        self.high = high
+        self.width = self.high - self.low
 
     def __repr__(self):
         return f"TimeScale(low={self.timestamp_to_str(self.low)}, high={self.timestamp_to_str(self.high)}, width={timedelta(seconds=self.width)})"
@@ -166,55 +136,24 @@ class TimeScale(Scale):
     def __hash__(self):
         return super.__hash__(self)
 
-    def normalize_point(self, point, **kwargs) -> float:
+    def normalize_point(self, point) -> float:
         """
         Get a prediciton point on the normalized scale from a true-scale value
 
         :param point: a point on the true scale
         :return: a sample value on the normalized scale
         """
-        if isinstance(point, str):
-            point = self.str_to_timestamp(point)
-        if isinstance(point, (date, datetime)):
-            point = self.datetime_to_timestamp(point)
 
-        # assert isinstance(point, float), f"low was {point} type: {type(point)}"
-        return (point - self.low) / self.width  # type: ignore
+        return (point - self.low) / self.width
 
-    def denormalize_point(
-        self, point: float, as_string: bool = True, **kwargs
-    ) -> Union[str, float]:
+    def denormalize_point(self, point: float) -> float:
         """
         Get a value on the true scale from a normalized-scale value
 
         :param point: a point on the normalized scale
         :return: a point on the true scale
         """
-        denormed_point = self.low + self.width * point  # type: ignore
-        return self.timestamp_to_str(denormed_point) if as_string else denormed_point
-
-    def str_to_datetime(self, date_string: str) -> datetime:
-        try:
-            return parse(date_string)
-        except ValueError as e:
-            print(str(e))
-            raise TypeError(
-                "Datetimes in string format must be in ISO format: e.g. '2011-11-04' or '2011-11-04 00:05:23.283+00:00'"
-            )
-
-    def str_to_timestamp(self, date_string: str) -> float:
-        return self.str_to_datetime(date_string).timestamp()
-
-    def datetime_to_timestamp(self, xdatetime: Union[date, datetime]) -> float:
-        if isinstance(xdatetime, datetime):
-            return xdatetime.timestamp()
-        else:
-            return datetime(*xdatetime.timetuple()[:6]).timestamp()
-
-    def timestamp_to_str(self, timestamp: float) -> str:
-        return time.strftime(
-            "%Y-%m-%d", time.localtime(timestamp)
-        )  # expand this for datetimes if desirable
+        return self.low + self.width * point
 
     def destructure(self):
         return (
@@ -222,13 +161,10 @@ class TimeScale(Scale):
             (self.low, self.high,),
         )
 
-    @classmethod
-    def structure(cls, params):
-        classes, numeric = params
-        low, high = numeric
-        low = low + 0.0
-        high = high + 0.0
-        return classes[0](low, high, direct_init=True)
+    def timestamp_to_str(self, timestamp: float) -> str:
+        return time.strftime(
+            "%Y-%m-%d", time.localtime(timestamp)
+        )  # expand this for datetimes if desirable
 
 
 def scale_factory(scale_dict):

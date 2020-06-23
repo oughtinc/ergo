@@ -82,12 +82,10 @@ class Truncate(Distribution):
     def denormalize(self, scale: Scale):
         denormed_base_dist = self.base_dist.denormalize(scale)
         denormed_floor = (
-            scale.denormalize_point(self.floor, as_string=False)
-            if self.floor != -np.inf
-            else self.floor
+            scale.denormalize_point(self.floor) if self.floor != -np.inf else self.floor
         )
         denormed_ceiling = (
-            scale.denormalize_point(self.ceiling, as_string=False)
+            scale.denormalize_point(self.ceiling)
             if self.ceiling != np.inf
             else self.ceiling
         )

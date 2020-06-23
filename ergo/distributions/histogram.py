@@ -177,7 +177,9 @@ class HistogramDist(Distribution, Optimizable):
         self, true_scale=True, verbose=False,
     ):
         xs, ps = self.to_lists(true_scale=True, verbose=verbose)
-        pairs = [{"x": x, "density": float(density)} for x, density in zip(xs, ps)]
+        pairs = [
+            {"x": float(x), "density": float(density)} for x, density in zip(xs, ps)
+        ]
         return pairs
 
     def to_arrays(self, normalized=False):
