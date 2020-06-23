@@ -221,11 +221,6 @@ def test_mode_condition():
 
 
 def test_mean_condition():
-    def get_mean(dist):
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
-        print(f'xs: {xs} dnd: {dist.normed_densities}')
-        return np.dot(dist.normed_densities, xs)
-
     base_conditions = [MaxEntropyCondition(weight=0.1)]
     base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
     base_mean = base_dist.mean()
@@ -245,12 +240,6 @@ def test_mean_condition():
 
 
 def test_variance_condition():
-    def get_variance(dist):
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
-        mean = np.dot(dist.normed_densities, xs)
-        print(f'mean: {mean} xs: {xs} dnd: {dist.normed_densities}')
-        return np.dot(dist.normed_densities, np.square(xs - mean))
-
     base_conditions = [
         MaxEntropyCondition(weight=0.1),
         SmoothnessCondition(),

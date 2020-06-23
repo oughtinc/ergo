@@ -18,7 +18,9 @@ class CrossEntropyCondition(condition.Condition):
         super().__init__(weight)
 
     def loss(self, q_dist) -> float:
-        return self.weight * self.p_dist.cross_entropy(q_dist)
+        loss = self.weight * self.p_dist.cross_entropy(q_dist)
+        print(f'pnd: {self.p_dist.normed_densities} qnd: {q_dist.normed_densities} loss: {loss}')
+        return loss
 
     def destructure(self):
         dist_classes, dist_numeric = self.p_dist.destructure()

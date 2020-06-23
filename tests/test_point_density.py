@@ -45,12 +45,18 @@ def test_point_density(scale, dist_source):
         dist = direct_dist.normalize().denormalize(scale)
     elif dist_source == "from_conditions":
         condition = CrossEntropyCondition(p_dist=direct_dist)
-        dist = PointDensity.from_conditions(
-            [condition], fixed_params={"xs": xs}, scale=scale
-        )
         if isinstance(scale, LogScale):
+            import jax
+            with jax.disable_jit():
+                dist = PointDensity.from_conditions(
+                    [condition], fixed_params={"xs": xs}, scale=scale
+                )
             print(f'dir: {direct_dist.normed_xs} {direct_dist.normed_densities} dist: {dist.normed_xs} {dist.normed_densities}')
-            print(f'dir sum: {np.sum(direct_dist.normed_bin_probs())} dist sum: {np.sum(dist.normed_bin_probs())}')
+            print(f'dir sum: {np.sum(direct_dist.normed_bin_probs(direct_dist.normed_xs, direct_dist.normed_densities))} dist sum: {np.sum(dist.normed_bin_probs(dist.normed_xs, dist.normed_densities))}')
+        else:
+            dist = PointDensity.from_conditions(
+                [condition], fixed_params={"xs": xs}, scale=scale
+            )
 
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
@@ -76,7 +82,6 @@ def test_density_frompairs():
         {"x": 1, "density": 1},
     ]
     dist = PointDensity.from_pairs(pairs, scale=Scale(0, 1))
-    print(f'dist xs: {dist.normed_xs} ds: {dist.normed_densities} cum: {dist.cumulative_normed_ps}')
     for condition in dist.percentiles():
         assert condition.max == pytest.approx(condition.p, abs=0.01)
 

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import jax.numpy as np
+import jax.nn as nn
 import numpy as onp
 
 from ergo.scale import Scale
@@ -33,8 +34,8 @@ class PointDensity(Distribution, Optimizable):
             raise ValueError
         init_np = np if traceable else onp
         if normalized:
-            self.normed_xs = xs
-            self.normed_densities = densities
+            self.normed_xs = np.array(xs)
+            self.normed_densities = np.array(densities)
         else:
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(xs, densities)
@@ -165,7 +166,8 @@ class PointDensity(Distribution, Optimizable):
             # TODO: Should we do this?
             scale = Scale(0, 1)
         xs = fixed_params["xs"]
-        ps = np.abs(opt_params)
+        # ps = np.abs(opt_params)
+        ps = nn.softmax(opt_params)
         Z = np.sum(cls.normed_bin_probs(xs, ps))
         densities = ps / Z
         # print(np.sum(cls.normed_bin_probs(xs, densities)))
