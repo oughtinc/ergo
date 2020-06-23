@@ -76,7 +76,7 @@ class LogScale(Scale):
         self.width = self.high - self.low
 
     def __hash__(self):
-        return super.__hash__(self)
+        return super().__hash__()
 
     def normalize_point(self, point):
         """
@@ -134,7 +134,7 @@ class TimeScale(Scale):
         return f"TimeScale(low={self.timestamp_to_str(self.low)}, high={self.timestamp_to_str(self.high)}, width={timedelta(seconds=self.width)})"
 
     def __hash__(self):
-        return super.__hash__(self)
+        return super().__hash__()
 
     def destructure(self):
         return (
