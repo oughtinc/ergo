@@ -10,7 +10,7 @@ import pytest
 
 import ergo
 from ergo.distributions import Logistic, LogisticMixture, Truncate
-from ergo.scale import LogScale, Scale
+from ergo.scale import LogScale, Scale, TimeScale
 
 
 def three_sd_scale(loc, s):
@@ -211,4 +211,6 @@ scales_to_test = [
     LogScale(0, 1, 10),
     LogScale(-1, 1, 10),
     LogScale(0, 1028, 2),
+    TimeScale(631152000, 946684800),
+    TimeScale(2000, 2051222400),
 ]
