@@ -141,10 +141,11 @@ class PointDensity(Distribution, Optimizable):
             # TODO: Should we do this?
             scale = Scale(0, 1)
         if fixed_params is None:
+            # TODO: Seems weird to denormalize when will be normalized in normalize_fixed_params
             fixed_params = {
-                "xs": np.linspace(
-                    scale.low, scale.high, constants.point_density_default_num_points
-                )
+                "xs": scale.denormalize_points(np.linspace(
+                    0, 1, constants.point_density_default_num_points
+                ))
             }
         return super(PointDensity, cls).from_conditions(
             *args, fixed_params=fixed_params, scale=scale, **kwargs
