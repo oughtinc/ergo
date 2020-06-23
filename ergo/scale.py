@@ -136,25 +136,6 @@ class TimeScale(Scale):
     def __hash__(self):
         return super.__hash__(self)
 
-    def normalize_point(self, point) -> float:
-        """
-        Get a prediciton point on the normalized scale from a true-scale value
-
-        :param point: a point on the true scale
-        :return: a sample value on the normalized scale
-        """
-
-        return (point - self.low) / self.width
-
-    def denormalize_point(self, point: float) -> float:
-        """
-        Get a value on the true scale from a normalized-scale value
-
-        :param point: a point on the normalized scale
-        :return: a point on the true scale
-        """
-        return self.low + self.width * point
-
     def destructure(self):
         return (
             (TimeScale,),
