@@ -212,7 +212,7 @@ def test_mode_condition():
     assert outcome_dist.pdf(0.25) > base_dist.pdf(0.25)
 
     # Highly weighted most likely condition should make specified outcome most likely
-    strong_condition = ModeCondition(outcome=0.25, weight=1000)
+    strong_condition = ModeCondition(outcome=0.25, weight=100000)
     strong_outcome_conditions = base_conditions + [strong_condition]
     strong_outcome_dist = PointDensity.from_conditions(
         strong_outcome_conditions, verbose=True
@@ -223,30 +223,32 @@ def test_mode_condition():
 def test_mean_condition():
     def get_mean(dist):
         xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
+        print(f'xs: {xs} dnd: {dist.normed_densities}')
         return np.dot(dist.normed_densities, xs)
 
     base_conditions = [MaxEntropyCondition(weight=0.1)]
     base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
-    base_mean = get_mean(base_dist)
+    base_mean = base_dist.mean()
 
     # Mean condition should move mean closer to specified mean
     mean_conditions = base_conditions + [MeanCondition(mean=0.25, weight=1)]
     mean_dist = PointDensity.from_conditions(mean_conditions, verbose=True)
-    assert abs(get_mean(mean_dist) - 0.25) < abs(base_mean - 0.25)
+    assert abs(mean_dist.mean() - 0.25) < abs(base_mean - 0.25)
 
     # Highly weighted mean condition should make mean very close to specified mean
-    strong_condition = MeanCondition(mean=0.25, weight=1000)
+    strong_condition = MeanCondition(mean=0.25, weight=100000)
     strong_mean_conditions = base_conditions + [strong_condition]
     strong_mean_dist = PointDensity.from_conditions(
         strong_mean_conditions, verbose=True
     )
-    assert get_mean(strong_mean_dist) == pytest.approx(0.25, rel=0.01)
+    assert strong_mean_dist.mean() == pytest.approx(0.25, rel=0.01)
 
 
 def test_variance_condition():
     def get_variance(dist):
         xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
         mean = np.dot(dist.normed_densities, xs)
+        print(f'mean: {mean} xs: {xs} dnd: {dist.normed_densities}')
         return np.dot(dist.normed_densities, np.square(xs - mean))
 
     base_conditions = [
@@ -255,7 +257,7 @@ def test_variance_condition():
         IntervalCondition(p=0.95, min=0.3, max=0.7),
     ]
     base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
-    base_variance = get_variance(base_dist)
+    base_variance = base_dist.variance()
     increased_variance = base_variance + 0.01
 
     # Increase in variance should decrease peak
@@ -265,10 +267,10 @@ def test_variance_condition():
     assert np.max(var_dist.normed_densities) < np.max(base_dist.normed_densities)
 
     # Highly weighted variance condition should make var very close to specified var
-    strong_condition = VarianceCondition(variance=increased_variance, weight=1000)
+    strong_condition = VarianceCondition(variance=increased_variance, weight=100000)
     strong_var_conditions = base_conditions + [strong_condition]
     strong_var_dist = PointDensity.from_conditions(strong_var_conditions, verbose=True)
-    assert get_variance(strong_var_dist) == pytest.approx(
+    assert strong_var_dist.variance() == pytest.approx(
         float(increased_variance), abs=0.001
     )
 
@@ -334,14 +336,19 @@ def test_mixed_2(histogram):
 
 
 def test_histogram_fit(histogram):
+    print(f'hist: {histogram}')
     condition = HistogramCondition(histogram["xs"], histogram["densities"])
     conditions = (condition,)
 
-    dist = PointDensity.from_conditions(
-        conditions,
-        scale=Scale(min(histogram["xs"]), max(histogram["xs"])),
-        verbose=True,
-    )
+    import jax
+    with jax.disable_jit():
+        dist = PointDensity.from_conditions(
+            conditions,
+            scale=Scale(min(histogram["xs"]), max(histogram["xs"])),
+            verbose=True,
+        )
+    print(f'dist densities: {dist.normed_densities}')
+    print(f'fit: {condition._describe_fit(dist)}')
     for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 

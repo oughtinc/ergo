@@ -91,9 +91,16 @@ class PointDensity(Distribution, Optimizable):
         return np.where(normed_x < 0, 0, np.where(normed_x > 1, 1, in_range_cdf(normed_x)))
 
     def ppf(self, q):
-        return self.scale.denormalize_point(
-            self.normed_xs[np.argmax(self.cumulative_normed_ps >= q)]
-        )
+        low_idx = np.argmax(self.cumulative_normed_ps >= q)
+        high_idx = low_idx + 1
+        low_x = self.normed_xs[low_idx]
+        high_x = self.normed_xs[np.minimum(high_idx, self.normed_xs.size - 1)]
+        low_cum = np.where(low_idx==0, 0, self.cumulative_normed_ps[low_idx-1])
+        high_cum = self.cumulative_normed_ps[high_idx-1]
+        dist = high_cum - low_cum
+        # print(f'lx: {low_x} lc: {low_cum} hx: {high_x} hc: {high_cum}')
+        normed_x = np.where(dist == 0, low_x, (q - low_cum) / dist * high_x + (high_cum - q) / dist * low_x)
+        return self.scale.denormalize_point(normed_x)
 
     def sample(self):
         raise NotImplementedError
@@ -214,3 +221,19 @@ class PointDensity(Distribution, Optimizable):
         bin_sizes = numpy.diff(normed_xs)
         bin_probs = (normed_densities[1:] + normed_densities[:-1]) / 2.0 * bin_sizes
         return bin_probs
+
+    def mean(self):
+        bin_sizes = np.diff(self.normed_xs)
+        bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
+        bin_probs = (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+        normed_mean = np.dot(bin_xs, bin_probs)
+        return self.scale.denormalize_point(normed_mean)
+
+    def variance(self):
+        bin_sizes = np.diff(self.normed_xs)
+        bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
+        bin_probs = (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+        normed_mean = np.dot(bin_xs, bin_probs)
+        normed_variance = np.dot(bin_probs, np.square(bin_xs - normed_mean))
+        return self.scale.denormalize_variance(normed_variance) 
+         
