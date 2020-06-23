@@ -125,13 +125,16 @@ class LogScale(Scale):
 @dataclass
 class TimeScale(Scale):
     def __init__(self, low, high):
-
         self.low = low
         self.high = high
         self.width = self.high - self.low
 
     def __repr__(self):
-        return f"TimeScale(low={self.timestamp_to_str(self.low)}, high={self.timestamp_to_str(self.high)}, width={timedelta(seconds=self.width)})"
+        return (
+            f"TimeScale(low={self.timestamp_to_str(self.low)}, "
+            f"high={self.timestamp_to_str(self.high)}, "
+            f"width={timedelta(seconds=self.width)})"
+        )
 
     def __hash__(self):
         return super.__hash__(self)
@@ -143,9 +146,7 @@ class TimeScale(Scale):
         )
 
     def timestamp_to_str(self, timestamp: float) -> str:
-        return time.strftime(
-            "%Y-%m-%d", time.localtime(timestamp)
-        )  # expand this for datetimes if desirable
+        return time.strftime("%Y-%m-%d", time.localtime(timestamp))
 
 
 def scale_factory(scale_dict):

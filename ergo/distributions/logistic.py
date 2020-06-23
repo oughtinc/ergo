@@ -35,12 +35,6 @@ class Logistic(Distribution):
             self.metadata = metadata
             if scale is not None:
                 self.scale = scale
-                self.true_s = (
-                    self.s * scale.width
-                )  # convenience field only used in repr currently
-                self.true_loc = scale.denormalize_point(
-                    loc
-                )  # convenience field only used in repr currently
             else:
                 self.scale = Scale(0, 1)
             self.true_s = self.s * self.scale.width
@@ -56,7 +50,11 @@ class Logistic(Distribution):
             self.true_loc = loc  # convenience field only used in repr currently
 
     def __repr__(self):
-        return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
+        return (
+            f"Logistic(scale={self.scale}, true_loc={self.true_loc}, "
+            f"true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s},"
+            f" metadata={self.metadata})"
+        )
 
     # Distribution
 

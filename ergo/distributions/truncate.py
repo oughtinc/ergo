@@ -65,16 +65,8 @@ class Truncate(Distribution):
 
     def normalize(self):
         normed_base_dist = self.base_dist.normalize()
-        normed_floor = (
-            self.scale.normalize_point(self.floor)
-            if self.floor != -np.inf
-            else self.floor
-        )
-        normed_ceiling = (
-            self.scale.normalize_point(self.ceiling)
-            if self.ceiling != np.inf
-            else self.ceiling
-        )
+        normed_floor = self.scale.normalize_point(self.floor)
+        normed_ceiling = self.scale.normalize_point(self.ceiling)
         return self.__class__(
             base_dist=normed_base_dist, floor=normed_floor, ceiling=normed_ceiling,
         )
