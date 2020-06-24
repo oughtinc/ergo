@@ -125,10 +125,6 @@ class LogScale(Scale):
 @dataclass
 class TimeScale(Scale):
     def __init__(self, low, high):
-        assert (
-            low < high
-        ), f"The first timestamp: {low} must be earlier than the second timestamp:g {high}"
-
         self.low = low
         self.high = high
         self.width = self.high - self.low
