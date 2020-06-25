@@ -360,10 +360,7 @@ def test_fit_hist_regression_1():
     ]
 
     histogram_dist = HistogramDist.from_conditions(
-        conditions,
-        scale=Scale(low=0, high=52),
-        fixed_params={"num_points": 201},
-        jit_all=False,
+        conditions, scale=Scale(low=0, high=52)
     )
 
     assert histogram_dist.cdf(2) == pytest.approx(0.25, abs=0.05)
