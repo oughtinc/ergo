@@ -63,24 +63,19 @@ class Scale:
         return variance * (self.width ** 2)
 
     # TODO I'm not sure if we will need this anywhere
-
-    # def normalize_density(self, density):
-    #     return density * self.norm_term
+    def normalize_density(self, density):
+        return density * self.norm_term
 
     def denormalize_density(self, density):
         return density / self.norm_term
 
     # TODO I think we can simply do this in the function inits, but perhaps having logic here is more consistent?
+    def normalize_densities(self, densities):
+        return densities * self.norm_term
 
-    # def normalize_densities(self, densities):
-    #     return np.array(
-    #         [
-    #             densities * self.norm_term
-    #         ]
-    #     )
-
+    # TODO should this call normalized_density? It is probably faster this way...
     def denormalize_densities(self, densities):
-        return np.array([densities / self.norm_term])
+        return densities / self.norm_term
 
     @classmethod
     def structure(cls, params):
@@ -117,8 +112,11 @@ class LogScale(Scale):
 
     @norm_term.setter
     def norm_term(self, points):
-        true_xs, density = points
-        self.__norm_term = trapz(density, x=true_xs)
+        xs, density, normed = points
+        if normed:
+            self.__norm_term = 1 / trapz(density, x=xs)
+        else:
+            self.__norm_term = trapz(density, x=xs)
 
     # TODO I think we can retire this:
 

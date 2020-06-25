@@ -37,6 +37,9 @@ class PointDensity(Distribution, Optimizable):
         self.scale = scale
         init_np = np if traceable else onp
 
+        xs = np.array(xs)
+        densities = np.array(densities)
+
         # Ensure AUC is 1
         auc = trapz(densities, x=xs)
         densities /= auc
@@ -45,15 +48,15 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = np.array(xs)
             denormalized_xs = scale.denormalize_points(xs)
 
+            self.scale.norm_term = (denormalized_xs, densities, normalized)
             self.normed_densities = densities
-            self.scale.norm_term = (denormalized_xs, self.normed_densities)
 
         else:
             self.normed_xs = scale.normalize_points(xs)
             denormalized_xs = xs
 
-            self.normed_densities = densities / trapz(densities, x=self.normed_xs)
-            self.scale.norm_term = (denormalized_xs, self.normed_densities)
+            self.scale.norm_term = (denormalized_xs, densities, normalized)
+            self.normed_densities = densities * self.scale.norm_term
 
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
@@ -97,7 +100,7 @@ class PointDensity(Distribution, Optimizable):
                 (normed_x - low_x) / dist * high_density
                 + (high_x - normed_x) / dist * low_density,
             )
-            return normed_density / self.scale.norm_term
+            return scale.denormalize_densities(normed_density)
 
         return np.where((normed_x < 0) | (normed_x > 1), 0, in_range_pdf(normed_x))
 
@@ -106,7 +109,7 @@ class PointDensity(Distribution, Optimizable):
 
     def cdf(self, x):
         normed_x = self.scale.normalize_point(x)
-        x_normed_density = self.pdf(x) * self.scale.norm_term
+        x_normed_density = self.scale.normalize_density(self.pdf(x))
 
         def in_range_cdf(normed_x):
             bin = np.where(
@@ -235,7 +238,7 @@ class PointDensity(Distribution, Optimizable):
 
     def to_lists(self):
         xs = self.scale.denormalize_points(self.normed_xs)
-        densities = self.normed_densities / self.scale.norm_term
+        densities = self.scale.denormalize_densities(self.normed_densities)
         return xs, densities
 
     def to_pairs(self):
@@ -247,8 +250,9 @@ class PointDensity(Distribution, Optimizable):
         return pairs
 
     def to_arrays(self):
+
         xs, densities = self.to_lists()
-        return np.array(xs), np.array(densities)
+        return xs, densities
 
     def entropy(self):
         # We assume that the distributions are on the same scale!
