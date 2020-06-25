@@ -37,9 +37,6 @@ class Scale:
     def norm_term(self, pairs):
         pass
 
-    # def get_norm_term(self, original_xs, density):
-    #     return self.width
-
     def normalize_point(self, point):
         return (point - self.low) / self.width
 

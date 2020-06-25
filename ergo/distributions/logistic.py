@@ -39,6 +39,7 @@ class Logistic(Distribution):
                 self.scale = Scale(0, 1)
             self.true_s = self.s * self.scale.width
             self.true_loc = self.scale.denormalize_point(loc)
+
         elif scale is None:
             raise ValueError("Either a Scale or normalized parameters are required")
         else:
@@ -49,6 +50,16 @@ class Logistic(Distribution):
             self.true_s = s
             self.true_loc = loc
 
+        # TODO figure out a way to use the logistic function intregral in log-space to obviate this griding
+        _xs = np.linspace(0, 1, 100)
+        _true_xs = self.scale.denormalize_points(_xs)
+        _densities =  np.exp(scipy.stats.logistic.logpdf((_xs - self.loc) / self.s)) - np.log(self.s)
+        self.scale.norm_term = (
+            _true_xs,
+            _densities, # these densities are norm-scaled normalized
+            True, # the densities are norm-scaled normalized
+        )
+
     def __repr__(self):
         return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
 
@@ -57,12 +68,12 @@ class Logistic(Distribution):
     def pdf(self, x):
         y = (self.scale.normalize_point(x) - self.loc) / self.s
         p = np.exp(scipy.stats.logistic.logpdf(y) - np.log(self.s))
-        return p / self.scale.width
+        return p / self.scale.norm_term
 
     def logpdf(self, x):
         y = (self.scale.normalize_point(x) - self.loc) / self.s
         logp = scipy.stats.logistic.logpdf(y) - np.log(self.s)
-        return logp - np.log(self.scale.width)
+        return logp - np.log(self.scale.norm_term)
 
     def cdf(self, x):
         y = (self.scale.normalize_point(x) - self.loc) / self.s
