@@ -100,7 +100,7 @@ class PointDensity(Distribution, Optimizable):
                 (normed_x - low_x) / dist * high_density
                 + (high_x - normed_x) / dist * low_density,
             )
-            return scale.denormalize_densities(normed_density)
+            return self.scale.denormalize_densities(normed_density)
 
         return np.where((normed_x < 0) | (normed_x > 1), 0, in_range_pdf(normed_x))
 
