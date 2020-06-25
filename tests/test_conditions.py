@@ -356,10 +356,14 @@ def test_fit_hist_regression_1():
         IntervalCondition(p=0.25, max=2.0),
         IntervalCondition(p=0.75, max=4.0),
         IntervalCondition(p=0.9, max=6.0),
+        MaxEntropyCondition(weight=0.1),
     ]
 
     histogram_dist = HistogramDist.from_conditions(
-        conditions, scale=Scale(low=0, high=52)
+        conditions,
+        scale=Scale(low=0, high=52),
+        fixed_params={"num_points": 201},
+        jit_all=False,
     )
 
     assert histogram_dist.cdf(2) == pytest.approx(0.25, abs=0.05)
