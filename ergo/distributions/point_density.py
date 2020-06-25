@@ -45,17 +45,26 @@ class PointDensity(Distribution, Optimizable):
         densities /= auc
 
         if normalized:
+
             self.normed_xs = np.array(xs)
             denormalized_xs = scale.denormalize_points(xs)
 
-            self.scale.norm_term = (denormalized_xs, densities, normalized)
+            self.scale.norm_term = (
+                denormalized_xs,
+                densities,
+                normalized,
+            )  # these densities are norm-scaled normalized
             self.normed_densities = densities
 
         else:
             self.normed_xs = scale.normalize_points(xs)
             denormalized_xs = xs
 
-            self.scale.norm_term = (denormalized_xs, densities, normalized)
+            self.scale.norm_term = (
+                self.normed_xs,
+                densities,
+                normalized,
+            )  # these densities are true-scaled normalized
             self.normed_densities = densities * self.scale.norm_term
 
         if cumulative_normed_ps is not None:
