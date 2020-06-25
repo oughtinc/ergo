@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-import jax.numpy as np
 import jax.nn as nn
+import jax.numpy as np
 import numpy as onp
 
 from ergo.scale import Scale
@@ -33,6 +33,8 @@ class PointDensity(Distribution, Optimizable):
     ):
         if scale is None:
             raise ValueError
+
+        self.scale = scale
         init_np = np if traceable else onp
 
         # Ensure AUC is 1
@@ -41,13 +43,17 @@ class PointDensity(Distribution, Optimizable):
 
         if normalized:
             self.normed_xs = np.array(xs)
-            self.normed_densities = densities
             denormalized_xs = scale.denormalize_points(xs)
-            self.density_norm_term = trapz(densities, x=denormalized_xs)
+
+            self.normed_densities = densities
+            self.scale.norm_term = (denormalized_xs, self.normed_densities)
+
         else:
             self.normed_xs = scale.normalize_points(xs)
-            self.density_norm_term = 1 / trapz(densities, x=self.normed_xs)
-            self.normed_densities = densities * self.density_norm_term
+            denormalized_xs = xs
+
+            self.normed_densities = densities / trapz(densities, x=self.normed_xs)
+            self.scale.norm_term = (denormalized_xs, self.normed_densities)
 
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
@@ -58,9 +64,8 @@ class PointDensity(Distribution, Optimizable):
             self.cumulative_normed_ps = init_np.append(
                 init_np.cumsum(bin_probs), init_np.array([1.0])
             )
-        self.scale = scale
-        self.normed_log_densities = np.log(self.normed_densities)
 
+        self.normed_log_densities = np.log(self.normed_densities)
 
     # Distribution
 
@@ -75,15 +80,24 @@ class PointDensity(Distribution, Optimizable):
         normed_x = self.scale.normalize_point(x)
 
         def in_range_pdf(normed_x):
-            low_idx = np.where(normed_x < self.normed_xs[-1], np.argmax(self.normed_xs > normed_x) - 1, self.normed_xs.size - 1)
+            low_idx = np.where(
+                normed_x < self.normed_xs[-1],
+                np.argmax(self.normed_xs > normed_x) - 1,
+                self.normed_xs.size - 1,
+            )
             high_idx = np.minimum(low_idx + 1, self.normed_xs.size - 1)
             low_density = self.normed_densities[low_idx]
             high_density = self.normed_densities[high_idx]
             low_x = self.normed_xs[low_idx]
             high_x = self.normed_xs[high_idx]
             dist = high_x - low_x
-            normed_density = np.where(dist == 0, low_density, (normed_x - low_x) / dist * high_density + (high_x - normed_x) / dist * low_density)
-            return normed_density / self.density_norm_term
+            normed_density = np.where(
+                dist == 0,
+                low_density,
+                (normed_x - low_x) / dist * high_density
+                + (high_x - normed_x) / dist * low_density,
+            )
+            return normed_density / self.scale.norm_term
 
         return np.where((normed_x < 0) | (normed_x > 1), 0, in_range_pdf(normed_x))
 
@@ -92,26 +106,40 @@ class PointDensity(Distribution, Optimizable):
 
     def cdf(self, x):
         normed_x = self.scale.normalize_point(x)
-        x_normed_density = self.pdf(x) * self.density_norm_term
+        x_normed_density = self.pdf(x) * self.scale.norm_term
 
         def in_range_cdf(normed_x):
-            bin = np.where(normed_x < self.normed_xs[-1], np.argmax(self.normed_xs > normed_x) - 1, self.normed_xs.size - 1)
-            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin-1], 0)
-            c_in_bin = (x_normed_density + self.normed_densities[bin]) / 2.0 * (normed_x - self.normed_xs[bin])
+            bin = np.where(
+                normed_x < self.normed_xs[-1],
+                np.argmax(self.normed_xs > normed_x) - 1,
+                self.normed_xs.size - 1,
+            )
+            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin - 1], 0)
+            c_in_bin = (
+                (x_normed_density + self.normed_densities[bin])
+                / 2.0
+                * (normed_x - self.normed_xs[bin])
+            )
             return c_below_bin + c_in_bin
 
-        return np.where(normed_x < 0, 0, np.where(normed_x > 1, 1, in_range_cdf(normed_x)))
+        return np.where(
+            normed_x < 0, 0, np.where(normed_x > 1, 1, in_range_cdf(normed_x))
+        )
 
     def ppf(self, q):
         low_idx = np.argmax(self.cumulative_normed_ps >= q)
         high_idx = low_idx + 1
         low_x = self.normed_xs[low_idx]
         high_x = self.normed_xs[np.minimum(high_idx, self.normed_xs.size - 1)]
-        low_cum = np.where(low_idx==0, 0, self.cumulative_normed_ps[low_idx-1])
-        high_cum = self.cumulative_normed_ps[high_idx-1]
+        low_cum = np.where(low_idx == 0, 0, self.cumulative_normed_ps[low_idx - 1])
+        high_cum = self.cumulative_normed_ps[high_idx - 1]
         dist = high_cum - low_cum
         # print(f'lx: {low_x} lc: {low_cum} hx: {high_x} hc: {high_cum}')
-        normed_x = np.where(dist == 0, low_x, (q - low_cum) / dist * high_x + (high_cum - q) / dist * low_x)
+        normed_x = np.where(
+            dist == 0,
+            low_x,
+            (q - low_cum) / dist * high_x + (high_cum - q) / dist * low_x,
+        )
         return self.scale.denormalize_point(normed_x)
 
     def sample(self):
@@ -162,9 +190,9 @@ class PointDensity(Distribution, Optimizable):
         if fixed_params is None:
             # TODO: Seems weird to denormalize when will be normalized in normalize_fixed_params
             fixed_params = {
-                "xs": scale.denormalize_points(np.linspace(
-                    0, 1, constants.point_density_default_num_points
-                ))
+                "xs": scale.denormalize_points(
+                    np.linspace(0, 1, constants.point_density_default_num_points)
+                )
             }
         return super(PointDensity, cls).from_conditions(
             *args, fixed_params=fixed_params, scale=scale, **kwargs
@@ -180,7 +208,7 @@ class PointDensity(Distribution, Optimizable):
         ps = np.abs(opt_params)
         # ps = nn.softmax(opt_params)
         # Z = np.sum(cls.normed_bin_probs(xs, ps))
-        densities = ps # / Z
+        densities = ps  # / Z
         # print(np.sum(cls.normed_bin_probs(xs, densities)))
         return cls(
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
@@ -202,11 +230,12 @@ class PointDensity(Distribution, Optimizable):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         densities = [density for (x, density) in sorted_pairs]
+        print(f"This is the sum of the densities {sum(densities)}")
         return cls(xs, densities, scale=scale, normalized=normalized)
 
     def to_lists(self):
         xs = self.scale.denormalize_points(self.normed_xs)
-        densities = self.scale.denormalize_densities(self.normed_xs, self.normed_densities)
+        densities = self.normed_densities / self.scale.norm_term
         return xs, densities
 
     def to_pairs(self):
@@ -238,15 +267,18 @@ class PointDensity(Distribution, Optimizable):
     def mean(self):
         bin_sizes = np.diff(self.normed_xs)
         bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
-        bin_probs = (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+        bin_probs = (
+            (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+        )
         normed_mean = np.dot(bin_xs, bin_probs)
         return self.scale.denormalize_point(normed_mean)
 
     def variance(self):
         bin_sizes = np.diff(self.normed_xs)
         bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
-        bin_probs = (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+        bin_probs = (
+            (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+        )
         normed_mean = np.dot(bin_xs, bin_probs)
         normed_variance = np.dot(bin_probs, np.square(bin_xs - normed_mean))
-        return self.scale.denormalize_variance(normed_variance) 
-         
+        return self.scale.denormalize_variance(normed_variance)

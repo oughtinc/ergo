@@ -27,22 +27,14 @@ class HistogramCondition(condition.Condition):
         return self.weight * total_loss / self.xs.size
 
     def normalize(self, scale: Scale):
-        # TODO: Should we really just returns self here? Because the pdf and returned density are
-        # both denormalized
-        return self
-        '''
         normalized_xs = scale.normalize_points(self.xs)
         normalized_densities = scale.normalize_densities(self.xs, self.densities)
         return self.__class__(normalized_xs, normalized_densities, self.weight)
-        '''
 
     def denormalize(self, scale: Scale):
-        return self
-        '''
         denormalized_xs = scale.denormalize_points(self.xs)
         denormalized_densities = scale.denormalize_densities(self.xs, self.densities)
         return self.__class__(denormalized_xs, denormalized_densities, self.weight)
-        '''
 
     def destructure(self):
         return ((HistogramCondition,), (self.xs, self.densities, self.weight))
@@ -54,7 +46,7 @@ class HistogramCondition(condition.Condition):
         )
 
     def _describe_fit(self, dist):
-        print(f'cond xs: {self.xs} cond densities: {self.densities}')
+        print(f"cond xs: {self.xs} cond densities: {self.densities}")
         description = super()._describe_fit(dist)
 
         def entry_distance_fn(x, density):

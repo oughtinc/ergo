@@ -4,6 +4,8 @@ from typing import TypeVar, Union
 
 import jax.numpy as np
 
+from ergo.utils import trapz
+
 
 @dataclass
 class Scale:
@@ -13,6 +15,7 @@ class Scale:
 
     def __post_init__(self):
         self.width = self.high - self.low
+        self.__norm_term = self.width
 
     def __hash__(self):
         return hash(self.__key())
@@ -25,6 +28,17 @@ class Scale:
     def __key(self):
         cls, params = self.destructure()
         return (cls, params)
+
+    @property
+    def norm_term(self):
+        return self.__norm_term
+
+    @norm_term.setter
+    def norm_term(self, pairs):
+        pass
+
+    # def get_norm_term(self, original_xs, density):
+    #     return self.width
 
     def normalize_point(self, point):
         return (point - self.low) / self.width
@@ -48,27 +62,25 @@ class Scale:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
 
-    def normalize_density(self, original_x, density):
-        return density * self.width
+    # TODO I'm not sure if we will need this anywhere
 
-    def denormalize_density(self, normed_x, density):
-        return density / self.width
+    # def normalize_density(self, density):
+    #     return density * self.norm_term
 
-    def normalize_densities(self, original_xs, densities):
-        return np.array(
-            [
-                self.normalize_density(original_x, density)
-                for (original_x, density) in zip(original_xs, densities)
-            ]
-        )
+    def denormalize_density(self, density):
+        return density / self.norm_term
 
-    def denormalize_densities(self, normed_xs, densities):
-        return np.array(
-            [
-                self.denormalize_density(normed_x, density)
-                for (normed_x, density) in zip(normed_xs, densities)
-            ]
-        )
+    # TODO I think we can simply do this in the function inits, but perhaps having logic here is more consistent?
+
+    # def normalize_densities(self, densities):
+    #     return np.array(
+    #         [
+    #             densities * self.norm_term
+    #         ]
+    #     )
+
+    def denormalize_densities(self, densities):
+        return np.array([densities / self.norm_term])
 
     @classmethod
     def structure(cls, params):
@@ -99,19 +111,30 @@ class LogScale(Scale):
     def __hash__(self):
         return super.__hash__(self)
 
-    def normalize_density(self, original_x, density):
-        normed_x = self.normalize_point(original_x)
-        normed_xbar = normed_x + 0.001
-        original_xbar = self.denormalize_point(normed_xbar)
-        density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
-        return density * density_ratio
+    @property
+    def norm_term(self):
+        return self.__norm_term
 
-    def denormalize_density(self, normed_x, density):
-        original_x = self.denormalize_point(normed_x)
-        normed_xbar = normed_x + 0.001
-        original_xbar = self.denormalize_point(normed_xbar)
-        density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
-        return density * density_ratio
+    @norm_term.setter
+    def norm_term(self, points):
+        true_xs, density = points
+        self.__norm_term = trapz(density, x=true_xs)
+
+    # TODO I think we can retire this:
+
+    # def normalize_density(self, original_x, density):
+    #     normed_x = self.normalize_point(original_x)
+    #     normed_xbar = normed_x + 0.001
+    #     original_xbar = self.denormalize_point(normed_xbar)
+    #     density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
+    #     return density * density_ratio
+
+    # def denormalize_density(self, normed_x, density):
+    #     original_x = self.denormalize_point(normed_x)
+    #     normed_xbar = normed_x + 0.001
+    #     original_xbar = self.denormalize_point(normed_xbar)
+    #     density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
+    #     return density * density_ratio
 
     def normalize_point(self, point):
         """
