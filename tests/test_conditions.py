@@ -347,6 +347,25 @@ def test_histogram_fit(histogram):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 
 
+def test_fit_hist_regression_1():
+    """
+    Regression test for bug: "This custom question has a weird histogram - why?"
+    https://elicit.ought.org/builder/gflpsSBAb
+    """
+    conditions = [
+        IntervalCondition(p=0.25, max=2.0),
+        IntervalCondition(p=0.75, max=4.0),
+        IntervalCondition(p=0.9, max=6.0),
+    ]
+
+    histogram_dist = HistogramDist.from_conditions(
+        conditions, scale=Scale(low=0, high=52)
+    )
+
+    assert histogram_dist.cdf(2) == pytest.approx(0.25, abs=0.05)
+    assert histogram_dist.ppf(0.9) == pytest.approx(6, abs=1)
+
+
 def compare_runtimes():
     from tests.conftest import make_histogram
 
