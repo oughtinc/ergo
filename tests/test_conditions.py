@@ -347,6 +347,22 @@ def test_histogram_fit(histogram):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 
 
+def test_histogram_fit_regression_p_in_range():
+    """
+    Regression test for a bug where:
+    1. < 100% of p is in the entire range, for a closed-bound question
+    2. the p is smashed up against the edges of the range
+    rather than distributed evenly over the whole range
+
+    e.g. see https://elicit.ought.org/builder/Mib4yBPDE
+    """
+    histogram_dist = HistogramDist.from_conditions(
+        conditions=[IntervalCondition(min=0, max=1, p=0.5)]
+    )
+
+    assert histogram_dist.cdf(1) == 1
+
+
 def compare_runtimes():
     from tests.conftest import make_histogram
 
