@@ -356,6 +356,9 @@ def test_histogram_fit_regression_p_in_range():
     rather than distributed evenly over the whole range
 
     e.g. see https://elicit.ought.org/builder/Mib4yBPDE
+
+    For more on the bug, see
+    https://docs.google.com/document/d/1CFklTKtbKzXi6-lRaEsX4ZiY3Yzpbfdg7i2j1NvKP34/edit#heading=h.lypz52bknpyq
     """
     histogram_dist = HistogramDist.from_conditions(
         conditions=[IntervalCondition(min=0, max=1, p=0.5)]
@@ -368,7 +371,11 @@ def test_histogram_fit_regression_p_in_range():
 def test_fit_hist_regression_1():
     """
     Regression test for bug: "This custom question has a weird histogram - why?"
-    https://elicit.ought.org/builder/gflpsSBAb
+    
+    see https://elicit.ought.org/builder/gflpsSBAb
+
+    for more on the bug, see
+    https://docs.google.com/document/d/1CFklTKtbKzXi6-lRaEsX4ZiY3Yzpbfdg7i2j1NvKP34/edit#heading=h.ph1huakxn33f
     """
     conditions = [
         IntervalCondition(p=0.25, max=2.0),
