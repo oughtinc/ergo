@@ -371,7 +371,7 @@ def test_histogram_fit_regression_p_in_range():
 def test_fit_hist_regression_1():
     """
     Regression test for bug: "This custom question has a weird histogram - why?"
-    
+
     see https://elicit.ought.org/builder/gflpsSBAb
 
     for more on the bug, see
