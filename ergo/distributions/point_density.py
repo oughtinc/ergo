@@ -45,7 +45,6 @@ class PointDensity(Distribution, Optimizable):
         densities /= auc
 
         if normalized:
-
             self.normed_xs = np.array(xs)
             denormalized_xs = scale.denormalize_points(xs)
 
@@ -89,36 +88,41 @@ class PointDensity(Distribution, Optimizable):
 
         :param x: The point in the distribution to get the density at
         """
-        normed_x = self.scale.normalize_point(x)
+        normed_x = self.scale.normalize_points(np.array([x]))
 
         def in_range_pdf(normed_x):
-            low_idx = np.where(
-                normed_x < self.normed_xs[-1],
-                np.argmax(self.normed_xs > normed_x) - 1,
-                self.normed_xs.size - 1,
-            )
-            high_idx = np.minimum(low_idx + 1, self.normed_xs.size - 1)
+            low_idx = np.argmax(self.normed_xs > normed_x) - 1
+            high_idx = low_idx + 1
             low_density = self.normed_densities[low_idx]
             high_density = self.normed_densities[high_idx]
             low_x = self.normed_xs[low_idx]
             high_x = self.normed_xs[high_idx]
             dist = high_x - low_x
-            normed_density = np.where(
-                dist == 0,
-                low_density,
-                (normed_x - low_x) / dist * high_density
-                + (high_x - normed_x) / dist * low_density,
-            )
+            normed_density = (normed_x - low_x) / dist * high_density + (high_x - normed_x) / dist * low_density
             return self.scale.denormalize_densities(normed_density)
+            '''
+            return self.scale.denormalize_densities(self.normed_densities[low_idx])
+            '''
 
-        return np.where((normed_x < 0) | (normed_x > 1), 0, in_range_pdf(normed_x))
+        def out_of_range_pdf(normed_x):
+            return np.where(
+                normed_x == self.normed_xs[0],
+                self.normed_densities[0],
+                np.where(
+                    normed_x == self.normed_xs[-1],
+                    self.normed_densities[-1],
+                    0
+                )
+            )
+
+        return np.where((normed_x <= self.normed_xs[0]) | (normed_x >= self.normed_xs[-1]), out_of_range_pdf(normed_x), in_range_pdf(normed_x))
 
     def logpdf(self, x):
         return np.log(self.pdf(x))
 
     def cdf(self, x):
-        normed_x = self.scale.normalize_point(x)
-        x_normed_density = self.scale.normalize_density(self.pdf(x))
+        normed_x = self.scale.normalize_points(np.array([x]))
+        x_normed_density = self.scale.normalize_densities(self.pdf(x))
 
         def in_range_cdf(normed_x):
             bin = np.where(
@@ -126,7 +130,7 @@ class PointDensity(Distribution, Optimizable):
                 np.argmax(self.normed_xs > normed_x) - 1,
                 self.normed_xs.size - 1,
             )
-            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin - 1], 0)
+            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[tuple(bin - 1)], 0)
             c_in_bin = (
                 (x_normed_density + self.normed_densities[bin])
                 / 2.0
@@ -135,7 +139,7 @@ class PointDensity(Distribution, Optimizable):
             return c_below_bin + c_in_bin
 
         return np.where(
-            normed_x < 0, 0, np.where(normed_x > 1, 1, in_range_cdf(normed_x))
+            normed_x < self.normed_xs[0], 0, np.where(normed_x > self.normed_xs[-1], 1, in_range_cdf(normed_x))
         )
 
     def ppf(self, q):
@@ -146,12 +150,12 @@ class PointDensity(Distribution, Optimizable):
         low_cum = np.where(low_idx == 0, 0, self.cumulative_normed_ps[low_idx - 1])
         high_cum = self.cumulative_normed_ps[high_idx - 1]
         dist = high_cum - low_cum
-        # print(f'lx: {low_x} lc: {low_cum} hx: {high_x} hc: {high_cum}')
         normed_x = np.where(
             dist == 0,
             low_x,
             (q - low_cum) / dist * high_x + (high_cum - q) / dist * low_x,
         )
+        # TODO: change to denomrlize_points maybe?
         return self.scale.denormalize_point(normed_x)
 
     def sample(self):
