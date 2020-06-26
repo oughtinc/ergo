@@ -347,6 +347,51 @@ def test_histogram_fit(histogram):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 
 
+@pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
+def test_histogram_fit_regression_p_in_range():
+    """
+    Regression test for a bug where:
+    1. < 100% of p is in the entire range, for a closed-bound question
+    2. the p is smashed up against the edges of the range
+    rather than distributed evenly over the whole range
+
+    e.g. see https://elicit.ought.org/builder/Mib4yBPDE
+
+    For more on the bug, see
+    https://docs.google.com/document/d/1CFklTKtbKzXi6-lRaEsX4ZiY3Yzpbfdg7i2j1NvKP34/edit#heading=h.lypz52bknpyq
+    """
+    histogram_dist = HistogramDist.from_conditions(
+        conditions=[IntervalCondition(min=0, max=1, p=0.5)]
+    )
+
+    assert histogram_dist.cdf(1) == 1
+
+
+@pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
+def test_fit_hist_regression_1():
+    """
+    Regression test for bug: "This custom question has a weird histogram - why?"
+
+    see https://elicit.ought.org/builder/gflpsSBAb
+
+    for more on the bug, see
+    https://docs.google.com/document/d/1CFklTKtbKzXi6-lRaEsX4ZiY3Yzpbfdg7i2j1NvKP34/edit#heading=h.ph1huakxn33f
+    """
+    conditions = [
+        IntervalCondition(p=0.25, max=2.0),
+        IntervalCondition(p=0.75, max=4.0),
+        IntervalCondition(p=0.9, max=6.0),
+        MaxEntropyCondition(weight=0.1),
+    ]
+
+    histogram_dist = HistogramDist.from_conditions(
+        conditions, scale=Scale(low=0, high=52)
+    )
+
+    assert histogram_dist.cdf(2) == pytest.approx(0.25, abs=0.05)
+    assert histogram_dist.ppf(0.9) == pytest.approx(6, abs=1)
+
+
 def compare_runtimes():
     from tests.conftest import make_histogram
 
