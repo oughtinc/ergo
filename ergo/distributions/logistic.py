@@ -34,7 +34,7 @@ class Logistic(Distribution):
             self.s = np.max([s, 0.0000001])
             self.metadata = metadata
             if scale is not None:
-                self.scale = scale
+                self.scale = scale.copy()
             else:
                 self.scale = Scale(0, 1)
             self.true_s = self.s * self.scale.width
@@ -45,7 +45,7 @@ class Logistic(Distribution):
         else:
             self.loc = scale.normalize_point(loc)
             self.s = np.max([s, 0.0000001]) / scale.width
-            self.scale = scale
+            self.scale = scale.copy()
             self.metadata = metadata
             self.true_s = s
             self.true_loc = loc
@@ -53,11 +53,13 @@ class Logistic(Distribution):
         # TODO figure out a way to use the logistic function intregral in log-space to obviate this griding
         _xs = np.linspace(0, 1, 100)
         _true_xs = self.scale.denormalize_points(_xs)
-        _densities =  np.exp(scipy.stats.logistic.logpdf((_xs - self.loc) / self.s)) - np.log(self.s)
+        _densities = np.exp(
+            scipy.stats.logistic.logpdf((_xs - self.loc) / self.s)
+        ) - np.log(self.s)
         self.scale.norm_term = (
             _true_xs,
-            _densities, # these densities are norm-scaled normalized
-            True, # the densities are norm-scaled normalized
+            _densities,  # these densities are norm-scaled normalized
+            True,  # the densities are norm-scale normalized
         )
 
     def __repr__(self):

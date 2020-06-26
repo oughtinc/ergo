@@ -34,7 +34,7 @@ class PointDensity(Distribution, Optimizable):
         if scale is None:
             raise ValueError
 
-        self.scale = scale
+        self.scale = scale.copy()
         init_np = np if traceable else onp
 
         xs = np.array(xs)
@@ -45,26 +45,25 @@ class PointDensity(Distribution, Optimizable):
         densities /= auc
 
         if normalized:
-            self.normed_xs = np.array(xs)
-            denormalized_xs = scale.denormalize_points(xs)
+            self.normed_xs = xs
+            self.normed_densities = densities
 
+            denormalized_xs = self.scale.denormalize_points(xs)
             self.scale.norm_term = (
                 denormalized_xs,
                 densities,  # these densities are norm-scaled normalized
                 normalized,
             )
-            self.normed_densities = densities
 
         else:
             self.normed_xs = scale.normalize_points(xs)
-            denormalized_xs = xs
 
             self.scale.norm_term = (
                 self.normed_xs,
                 densities,  # these densities are true-scaled normalized
                 normalized,
             )
-            self.normed_densities = densities * self.scale.norm_term
+            self.normed_densities = self.scale.normalize_densities(densities)
 
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
@@ -98,24 +97,23 @@ class PointDensity(Distribution, Optimizable):
             low_x = self.normed_xs[low_idx]
             high_x = self.normed_xs[high_idx]
             dist = high_x - low_x
-            normed_density = (normed_x - low_x) / dist * high_density + (high_x - normed_x) / dist * low_density
+            normed_density = (normed_x - low_x) / dist * high_density + (
+                high_x - normed_x
+            ) / dist * low_density
             return self.scale.denormalize_densities(normed_density)
-            '''
-            return self.scale.denormalize_densities(self.normed_densities[low_idx])
-            '''
 
         def out_of_range_pdf(normed_x):
             return np.where(
                 normed_x == self.normed_xs[0],
                 self.normed_densities[0],
-                np.where(
-                    normed_x == self.normed_xs[-1],
-                    self.normed_densities[-1],
-                    0
-                )
+                np.where(normed_x == self.normed_xs[-1], self.normed_densities[-1], 0),
             )
 
-        return np.where((normed_x <= self.normed_xs[0]) | (normed_x >= self.normed_xs[-1]), out_of_range_pdf(normed_x), in_range_pdf(normed_x))
+        return np.where(
+            (normed_x <= self.normed_xs[0]) | (normed_x >= self.normed_xs[-1]),
+            out_of_range_pdf(normed_x),
+            in_range_pdf(normed_x),
+        )
 
     def logpdf(self, x):
         return np.log(self.pdf(x))
@@ -130,7 +128,9 @@ class PointDensity(Distribution, Optimizable):
                 np.argmax(self.normed_xs > normed_x) - 1,
                 self.normed_xs.size - 1,
             )
-            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[tuple(bin - 1)], 0)
+            c_below_bin = np.where(
+                bin > 0, self.cumulative_normed_ps[tuple(bin - 1)], 0
+            )
             c_in_bin = (
                 (x_normed_density + self.normed_densities[bin])
                 / 2.0
@@ -139,7 +139,9 @@ class PointDensity(Distribution, Optimizable):
             return c_below_bin + c_in_bin
 
         return np.where(
-            normed_x < self.normed_xs[0], 0, np.where(normed_x > self.normed_xs[-1], 1, in_range_cdf(normed_x))
+            normed_x < self.normed_xs[0],
+            0,
+            np.where(normed_x > self.normed_xs[-1], 1, in_range_cdf(normed_x)),
         )
 
     def ppf(self, q):
@@ -246,7 +248,7 @@ class PointDensity(Distribution, Optimizable):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         densities = [density for (x, density) in sorted_pairs]
-        print(f"This is the sum of the densities {sum(densities)}")
+        # print(f"This is the sum of the densities {sum(densities)}")
         return cls(xs, densities, scale=scale, normalized=normalized)
 
     def to_lists(self):

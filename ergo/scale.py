@@ -74,6 +74,9 @@ class Scale:
     def denormalize_densities(self, densities):
         return densities / self.norm_term
 
+    def copy(self):
+        return self.structure(self.destructure())
+
     @classmethod
     def structure(cls, params):
         classes, numeric = params
@@ -108,12 +111,14 @@ class LogScale(Scale):
         return self.__norm_term
 
     @norm_term.setter
-    def norm_term(self, points):
-        xs, density, normed = points
-        if normed:
-            self.__norm_term = 1 / trapz(density, x=xs)
+    def norm_term(self, params):
+        # The params are either normalized xs and denormalized densities or
+        # denormalized xs and normalized densities.
+        xs, densities, densities_normed = params
+        if densities_normed:
+            self.__norm_term = trapz(densities, x=xs)
         else:
-            self.__norm_term = trapz(density, x=xs)
+            self.__norm_term = 1 / trapz(densities, x=xs)
 
     # TODO I think we can retire this:
 
