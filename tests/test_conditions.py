@@ -325,19 +325,20 @@ def test_mixed_2(histogram):
 
 
 def test_histogram_fit(histogram):
-    print(f'hist: {histogram}')
+    print(f"hist: {histogram}")
     condition = HistogramCondition(histogram["xs"], histogram["densities"])
     conditions = (condition,)
 
     import jax
+
     with jax.disable_jit():
         dist = PointDensity.from_conditions(
             conditions,
             scale=Scale(min(histogram["xs"]), max(histogram["xs"])),
             verbose=True,
         )
-    print(f'dist densities: {dist.normed_densities}')
-    print(f'fit: {condition._describe_fit(dist)}')
+    print(f"dist densities: {dist.normed_densities}")
+    print(f"fit: {condition._describe_fit(dist)}")
     for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 

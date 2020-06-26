@@ -68,6 +68,7 @@ def minimize(fun, *args, init=None, init_tries=1, opt_tries=1, verbose=False, **
 def shift(xs, k, fill_value):
     return np.concatenate((np.full(k, fill_value), xs[:-k]))
 
+
 # Taken form https://github.com/google/jax/pull/3042/files (has been merged but not released)
 def trapz(y, x=None, dx=1.0):
     if x is not None:

@@ -20,12 +20,12 @@ class MeanCondition(condition.Condition):
     def actual_mean(self, dist) -> float:
         # FIXME: Should be interacting with PointDensity via pdf
         #        or similar public interface
-        '''
+        """
         xs = np.linspace(
             dist.scale.low, dist.scale.high, dist.normed_densities.size
         )  # FIXME: Denormalize densities?
         return np.dot(dist.normed_densities, xs)
-        '''
+        """
         return dist.mean()
 
     def loss(self, dist) -> float:
