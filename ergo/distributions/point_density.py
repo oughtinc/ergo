@@ -50,9 +50,9 @@ class PointDensity(Distribution, Optimizable):
 
             self.scale.norm_term = (
                 denormalized_xs,
-                densities,
+                densities,  # these densities are norm-scaled normalized
                 normalized,
-            )  # these densities are norm-scaled normalized
+            )
             self.normed_densities = densities
 
         else:
@@ -61,9 +61,9 @@ class PointDensity(Distribution, Optimizable):
 
             self.scale.norm_term = (
                 self.normed_xs,
-                densities,
+                densities,  # these densities are true-scaled normalized
                 normalized,
-            )  # these densities are true-scaled normalized
+            )
             self.normed_densities = densities * self.scale.norm_term
 
         if cumulative_normed_ps is not None:
