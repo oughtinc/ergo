@@ -87,7 +87,7 @@ class PointDensity(Distribution, Optimizable):
 
         :param x: The point in the distribution to get the density at
         """
-        normed_x = self.scale.normalize_points(np.array([x]))
+        normed_x = self.scale.normalize_point(x)
 
         def in_range_pdf(normed_x):
             low_idx = np.argmax(self.normed_xs > normed_x) - 1
@@ -100,7 +100,7 @@ class PointDensity(Distribution, Optimizable):
             normed_density = (normed_x - low_x) / dist * high_density + (
                 high_x - normed_x
             ) / dist * low_density
-            return self.scale.denormalize_densities(normed_density)
+            return self.scale.denormalize_density(normed_density)
 
         def out_of_range_pdf(normed_x):
             return np.where(
@@ -119,8 +119,8 @@ class PointDensity(Distribution, Optimizable):
         return np.log(self.pdf(x))
 
     def cdf(self, x):
-        normed_x = self.scale.normalize_points(np.array([x]))
-        x_normed_density = self.scale.normalize_densities(self.pdf(x))
+        normed_x = self.scale.normalize_point(x)
+        x_normed_density = self.scale.normalize_density(self.pdf(x))
 
         def in_range_cdf(normed_x):
             bin = np.where(
@@ -129,7 +129,7 @@ class PointDensity(Distribution, Optimizable):
                 self.normed_xs.size - 1,
             )
             c_below_bin = np.where(
-                bin > 0, self.cumulative_normed_ps[tuple(bin - 1)], 0
+                bin > 0, self.cumulative_normed_ps[bin - 1], 0
             )
             c_in_bin = (
                 (x_normed_density + self.normed_densities[bin])
