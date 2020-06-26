@@ -4,7 +4,7 @@ import pytest
 import scipy
 
 from ergo import Logistic, LogisticMixture, Truncate
-from ergo.conditions import HistogramCondition
+from ergo.conditions import PointDensityCondition
 from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
 
@@ -321,6 +321,6 @@ def test_destructure(logistic_mixture10, truncated_logistic_mixture):
 
 
 def test_destructure_with_cond(truncated_logistic_mixture, histogram):
-    HistogramCondition(histogram["xs"], histogram["densities"]).describe_fit(
+    PointDensityCondition(histogram["xs"], histogram["densities"]).describe_fit(
         truncated_logistic_mixture
     )

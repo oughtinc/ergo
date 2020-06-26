@@ -105,8 +105,12 @@ class PointDensity(Distribution, Optimizable):
         def out_of_range_pdf(normed_x):
             return np.where(
                 normed_x == self.normed_xs[0],
-                self.normed_densities[0],
-                np.where(normed_x == self.normed_xs[-1], self.normed_densities[-1], 0),
+                self.scale.denormalize_density(self.normed_densities[0]),
+                np.where(
+                    normed_x == self.normed_xs[-1],
+                    self.scale.denormalize_density(self.normed_densities[-1]),
+                    0,
+                ),
             )
 
         return np.where(
@@ -128,9 +132,7 @@ class PointDensity(Distribution, Optimizable):
                 np.argmax(self.normed_xs > normed_x) - 1,
                 self.normed_xs.size - 1,
             )
-            c_below_bin = np.where(
-                bin > 0, self.cumulative_normed_ps[bin - 1], 0
-            )
+            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin - 1], 0)
             c_in_bin = (
                 (x_normed_density + self.normed_densities[bin])
                 / 2.0

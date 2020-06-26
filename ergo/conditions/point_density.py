@@ -6,7 +6,7 @@ from ergo.scale import Scale
 from . import condition
 
 
-class HistogramCondition(condition.Condition):
+class PointDensityCondition(condition.Condition):
     """
     The distribution should fit the specified histogram as closely as
     possible
@@ -41,11 +41,11 @@ class HistogramCondition(condition.Condition):
         return self.__class__(denormed_xs, denormed_densities, self.weight)
 
     def destructure(self):
-        return ((HistogramCondition,), (self.xs, self.densities, self.weight))
+        return ((PointDensityCondition,), (self.xs, self.densities, self.weight))
 
     def __key(self):
         return (
-            HistogramCondition,
+            PointDensityCondition,
             (tuple(self.xs), tuple(self.densities), self.weight),
         )
 

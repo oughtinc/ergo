@@ -172,11 +172,11 @@ def date_samples(metaculus_questions, normalized_logistic_mixture):
 
 
 @pytest.fixture(scope="module")
-def histogram():
-    return make_histogram()
+def point_densities():
+    return make_point_densities()
 
 
-def make_histogram():
+def make_point_densities():
     xs = np.array(
         [
             -0.22231131421566422,

@@ -4,11 +4,11 @@ import jax.numpy as np
 import pytest
 
 from ergo.conditions import (
-    HistogramCondition,
     IntervalCondition,
     MaxEntropyCondition,
     MeanCondition,
     ModeCondition,
+    PointDensityCondition,
     SmoothnessCondition,
     VarianceCondition,
 )
@@ -89,16 +89,18 @@ def test_normalization_interval_condition():
     ) == IntervalCondition(p=0.5, min=0, max=0.5)
 
 
-def test_normalization_histogram_condition(histogram):
-    original = HistogramCondition(histogram["xs"], histogram["densities"])
+def test_normalization_point_densities_condition(point_densities):
+    original = PointDensityCondition(
+        point_densities["xs"], point_densities["densities"]
+    )
     normalized_denormalized = original.normalize(Scale(10, 1000)).denormalize(
         Scale(10, 1000)
     )
     for (density, norm_denorm_density) in zip(
-        histogram["densities"], normalized_denormalized.densities
+        point_densities["densities"], normalized_denormalized.densities
     ):
         assert density == pytest.approx(norm_denorm_density, rel=0.001,)
-    for (x, norm_denorm_x) in zip(histogram["xs"], normalized_denormalized.xs):
+    for (x, norm_denorm_x) in zip(point_densities["xs"], normalized_denormalized.xs):
         assert x == pytest.approx(norm_denorm_x, rel=0.001,)
 
     # half-assed test that xs and densities are at least
@@ -107,8 +109,8 @@ def test_normalization_histogram_condition(histogram):
     for idx, (normalized_x, normalized_density) in enumerate(
         zip(normalized.xs, normalized.densities)
     ):
-        orig_x = histogram["xs"][idx]
-        orig_density = histogram["densities"][idx]
+        orig_x = point_densities["xs"][idx]
+        orig_density = point_densities["densities"][idx]
         assert orig_x > normalized_x
         assert orig_density < normalized_density
 
@@ -177,15 +179,17 @@ def test_percentile_roundtrip(fixed_params):
         assert recovered_condition.max == pytest.approx(condition.max, rel=0.1)
 
 
-def test_mixture_from_histogram(histogram):
-    conditions = [HistogramCondition(histogram["xs"], histogram["densities"])]
+def test_mixture_from_point_densities(point_densities):
+    conditions = [
+        PointDensityCondition(point_densities["xs"], point_densities["densities"])
+    ]
 
     mixture = LogisticMixture.from_conditions(
         conditions,
         {"num_components": 3},
-        Scale(min(histogram["xs"]), max(histogram["xs"])),
+        Scale(min(point_densities["xs"]), max(point_densities["xs"])),
     )
-    for (x, density) in zip(histogram["xs"], histogram["densities"]):
+    for (x, density) in zip(point_densities["xs"], point_densities["densities"]):
         assert mixture.pdf(x) == pytest.approx(density, abs=0.2)
 
 
@@ -264,7 +268,7 @@ def test_variance_condition():
     )
 
 
-def test_mixed_1(histogram):
+def test_mixed_1(point_densities):
     conditions = (
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
@@ -272,7 +276,7 @@ def test_mixed_1(histogram):
         IntervalCondition(p=0.5, max=2),
         IntervalCondition(p=0.8, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
     )
     dist = LogisticMixture.from_conditions(
         conditions, {"num_components": 3}, verbose=True
@@ -288,15 +292,15 @@ def test_mixed_1(histogram):
         IntervalCondition(p=0.5, max=2),
         IntervalCondition(p=0.8, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
     )
     assert hash(conditions) == hash(conditions_2)
     assert my_cache[conditions_2] == 2
 
 
-def test_mixed_2(histogram):
+def test_mixed_2(point_densities):
     conditions = (
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
         IntervalCondition(p=0.48, max=1.3),
@@ -312,7 +316,7 @@ def test_mixed_2(histogram):
     my_cache = {}
     my_cache[conditions] = 3
     conditions_2 = (
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
         IntervalCondition(p=0.48, max=1.3),
@@ -324,34 +328,30 @@ def test_mixed_2(histogram):
     assert my_cache[conditions_2] == 3
 
 
-def test_histogram_fit(histogram):
-    print(f"hist: {histogram}")
-    condition = HistogramCondition(histogram["xs"], histogram["densities"])
+def test_point_densities_fit(point_densities):
+    condition = PointDensityCondition(
+        point_densities["xs"], point_densities["densities"]
+    )
     conditions = (condition,)
 
-    import jax
+    dist = PointDensity.from_conditions(
+        conditions,
+        scale=Scale(min(point_densities["xs"]), max(point_densities["xs"])),
+        verbose=True,
+    )
 
-    with jax.disable_jit():
-        dist = PointDensity.from_conditions(
-            conditions,
-            scale=Scale(min(histogram["xs"]), max(histogram["xs"])),
-            verbose=True,
-        )
-    print(f"dist densities: {dist.normed_densities}")
-    print(f"fit: {condition._describe_fit(dist)}")
-    for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):
+    for (original_x, original_density) in zip(
+        point_densities["xs"], point_densities["densities"]
+    ):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 
 
-def compare_runtimes():
-    from tests.conftest import make_histogram
-
-    histogram = make_histogram()
+def compare_runtimes(point_densities):
     import time
 
     start = time.time()
-    test_mixed_1(histogram)
+    test_mixed_1(point_densities)
     mid = time.time()
     print(f"Total time (1): {mid - start:.2f}s")
-    test_mixed_2(histogram)
+    test_mixed_2(point_densities)
     print(f"Total time (2): {time.time() - mid:.2f}s")

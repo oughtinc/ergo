@@ -4,9 +4,9 @@ from scipy.stats import logistic
 
 from ergo.conditions import (
     CrossEntropyCondition,
-    HistogramCondition,
     IntervalCondition,
     MaxEntropyCondition,
+    PointDensityCondition,
 )
 from ergo.distributions.point_density import PointDensity
 from ergo.scale import LogScale, Scale
@@ -47,7 +47,7 @@ def test_point_density(scale, dist_source):
     elif dist_source == "from_conditions":
         # condition = CrossEntropyCondition(p_dist=direct_dist)
         xs, densities = direct_dist.to_lists()
-        condition = HistogramCondition(xs, densities)
+        condition = PointDensityCondition(xs, densities)
         dist = PointDensity.from_conditions(
             [condition], fixed_params={"xs": xs}, scale=scale
         )
