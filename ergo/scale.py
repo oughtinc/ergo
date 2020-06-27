@@ -62,18 +62,18 @@ class Scale:
 
     # TODO I'm not sure if we will need this anywhere
     def normalize_density(self, _, density):
-        return density * self.norm_term
+        return density * self.width
 
     def denormalize_density(self, _, density):
-        return density / self.norm_term
+        return density / self.width
 
     # TODO I think we can simply do this in the function inits, but perhaps having logic here is more consistent?
     def normalize_densities(self, _, densities):
-        return densities * self.norm_term
+        return densities * self.width
 
     # TODO should this call normalized_density? It is probably faster this way...
     def denormalize_densities(self, _, densities):
-        return densities / self.norm_term
+        return densities / self.width
 
     def copy(self):
         return self.structure(self.destructure())
