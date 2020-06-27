@@ -48,11 +48,11 @@ def test_point_density(scale, dist_source):
         # condition = CrossEntropyCondition(p_dist=direct_dist)
         xs, densities = direct_dist.to_lists()
         cond = PointDensityCondition(xs, densities)
-        import jax
-        with jax.disable_jit():
-            dist = PointDensity.from_conditions(
-                [cond], fixed_params={"xs": xs}, scale=scale
-            )
+        #import jax
+        #with jax.disable_jit():
+        dist = PointDensity.from_conditions(
+            [cond], fixed_params={"xs": xs}, scale=scale
+        )
         # print(f'dirds: {direct_dist.normed_densities} distds: {dist.normed_densities}')
 
     # PDF
@@ -60,7 +60,7 @@ def test_point_density(scale, dist_source):
     dd_densities = np.array([float(direct_dist.pdf(x)) for x in xs])
     print(f'scale: {scale} dist_source: {dist_source}')
     print(f'max pdf diff: {np.max(np.abs(orig_densities-dist_densities))}')
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     assert dist_densities == pytest.approx(orig_densities, abs=1)
 
     # CDF

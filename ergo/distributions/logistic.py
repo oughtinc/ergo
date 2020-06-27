@@ -47,8 +47,8 @@ class Logistic(Distribution):
             self.s = np.max([s, 0.0000001]) / scale.width
             self.scale = scale.copy()
             self.metadata = metadata
-            self.true_s = s
-            self.true_loc = loc
+            self.true_s = s  # convenience field only used in repr currently
+            self.true_loc = loc  # convenience field only used in repr currently
 
         # TODO figure out a way to use the logistic function intregral in log-space to obviate this griding
         # _xs = np.linspace(0, 1, 100)
@@ -65,7 +65,11 @@ class Logistic(Distribution):
         '''
 
     def __repr__(self):
-        return f"Logistic(scale={self.scale}, true_loc={self.true_loc}, true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s}, metadata={self.metadata})"
+        return (
+            f"Logistic(scale={self.scale}, true_loc={self.true_loc}, "
+            f"true_s={self.true_s}, normed_loc={self.loc}, normed_s={self.s},"
+            f" metadata={self.metadata})"
+        )
 
     # Distribution
 
@@ -115,6 +119,7 @@ class Logistic(Distribution):
 
         :param scale: the true scale
         """
+
         return self.__class__(self.loc, self.s, scale, self.metadata, normalized=True)
 
     # Structured

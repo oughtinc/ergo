@@ -1,6 +1,7 @@
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime, timedelta
-from typing import TypeVar, Union
+from datetime import timedelta
+import time
+from typing import TypeVar
 
 import jax.numpy as np
 
@@ -9,8 +10,8 @@ from ergo.utils import trapz
 
 @dataclass
 class Scale:
-    low: Union[date, datetime, float]
-    high: Union[date, datetime, float]
+    low: float
+    high: float
     width: float = field(init=False)
 
     def __post_init__(self):
@@ -77,13 +78,13 @@ class Scale:
     def copy(self):
         return self.structure(self.destructure())
 
+    def destructure(self):
+        return ((Scale,), (self.low, self.high))
+
     @classmethod
     def structure(cls, params):
         classes, numeric = params
         return classes[0](*numeric)
-
-    def destructure(self):
-        return ((Scale,), (self.low, self.high))
 
     def export(self):
         export_dict = asdict(self)
@@ -104,7 +105,7 @@ class LogScale(Scale):
         self.width = self.high - self.low
 
     def __hash__(self):
-        return super.__hash__(self)
+        return super().__hash__()
 
     @property
     def norm_term(self):
@@ -179,39 +180,38 @@ class LogScale(Scale):
     def destructure(self):
         return ((LogScale,), (self.low, self.high, self.log_base))
 
+    @classmethod
+    def structure(cls, params):
+        classes, numeric = params
+        low, high, log_base = numeric
+        return cls(low, high, log_base)
+
 
 @dataclass
 class TimeScale(Scale):
-    time_unit: str  # function that returns timedelta in desired scale units e.g. seconds, days, months, years
+    def __init__(self, low, high):
+        self.low = low
+        self.high = high
+        self.width = self.high - self.low
 
-    def __post_init__(self):
-        self.width = getattr(self.high - self.low, self.time_unit)
-
-    def __hash__(self):
-        return super.__hash__(self)
-
-    def normalize_point(self, point: Union[date, datetime]) -> float:
-        """
-        Get a prediciton point on the normalized scale from a true-scale value
-
-        :param point: a point on the true scale
-        :return: a sample value on the normalized scale
-        """
-        return float(getattr(point - self.low, self.time_unit) / self.width)  # type: ignore
-
-    def denormalize_point(self, point: float) -> Union[date, datetime]:
-        """
-        Get a value on the true scale from a normalized-scale value
-
-        :param point: a point on the normalized scale
-        :return: a point on the true scale
-        """
-        return self.low + timedelta(  # type: ignore
-            **{self.time_unit: round(self.width * point)}
+    def __repr__(self):
+        return (
+            f"TimeScale(low={self.timestamp_to_str(self.low)}, "
+            f"high={self.timestamp_to_str(self.high)}, "
+            f"width={timedelta(seconds=self.width)})"
         )
 
+    def __hash__(self):
+        return super().__hash__()
+
     def destructure(self):
-        return ((TimeScale,), (self.low, self.high, self.time_unit))
+        return (
+            (TimeScale,),
+            (self.low, self.high,),
+        )
+
+    def timestamp_to_str(self, timestamp: float) -> str:
+        return time.strftime("%Y-%m-%d", time.localtime(timestamp))
 
 
 def scale_factory(scale_dict):
@@ -223,6 +223,8 @@ def scale_factory(scale_dict):
         return Scale(low, high)
     if scale_class == "LogScale":
         return LogScale(low, high, scale_dict["log_base"])
+    if scale_class == "TimeScale":
+        return TimeScale(low, high)
     raise NotImplementedError(
         f"reconstructing scales of class {scale_class} is not implemented."
     )
