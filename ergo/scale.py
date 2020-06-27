@@ -60,18 +60,18 @@ class Scale:
         return variance * (self.width ** 2)
 
     # TODO I'm not sure if we will need this anywhere
-    def normalize_density(self, density):
+    def normalize_density(self, _, density):
         return density * self.norm_term
 
-    def denormalize_density(self, density):
+    def denormalize_density(self, _, density):
         return density / self.norm_term
 
     # TODO I think we can simply do this in the function inits, but perhaps having logic here is more consistent?
-    def normalize_densities(self, densities):
+    def normalize_densities(self, _, densities):
         return densities * self.norm_term
 
     # TODO should this call normalized_density? It is probably faster this way...
-    def denormalize_densities(self, densities):
+    def denormalize_densities(self, _, densities):
         return densities / self.norm_term
 
     def copy(self):
@@ -122,19 +122,25 @@ class LogScale(Scale):
 
     # TODO I think we can retire this:
 
-    # def normalize_density(self, original_x, density):
-    #     normed_x = self.normalize_point(original_x)
-    #     normed_xbar = normed_x + 0.001
-    #     original_xbar = self.denormalize_point(normed_xbar)
-    #     density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
-    #     return density * density_ratio
+    def normalize_density(self, original_x, density):
+        normed_x = self.normalize_point(original_x)
+        normed_xbar = normed_x + 0.001
+        original_xbar = self.denormalize_point(normed_xbar)
+        density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
+        return density * density_ratio
 
-    # def denormalize_density(self, normed_x, density):
-    #     original_x = self.denormalize_point(normed_x)
-    #     normed_xbar = normed_x + 0.001
-    #     original_xbar = self.denormalize_point(normed_xbar)
-    #     density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
-    #     return density * density_ratio
+    def denormalize_density(self, normed_x, density):
+        original_x = self.denormalize_point(normed_x)
+        normed_xbar = normed_x + 0.001
+        original_xbar = self.denormalize_point(normed_xbar)
+        density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
+        return density * density_ratio
+
+    def normalize_densities(self, original_xs, densities):
+        return np.array([self.normalize_density(x, d) for x,d in zip(original_xs, densities)])
+
+    def denormalize_densities(self, normed_xs, densities):
+        return np.array([self.denormalize_density(x, d) for x,d in zip(normed_xs, densities)])
 
     def normalize_point(self, point):
         """
