@@ -46,37 +46,10 @@ class PointDensity(Distribution, Optimizable):
         if normalized:
             self.normed_xs = xs
             self.normed_densities = densities
-           
-        else:
-            self.normed_xs = scale.normalize_points(xs)
-            self.normed_densities = scale.normalize_densities(xs, densities)
-
-        ''' 
-        # Ensure AUC is 1
-        auc = trapz(densities, x=xs)
-        densities /= auc
-
-        if normalized:
-            self.normed_xs = xs
-            self.normed_densities = densities
-
-            denormalized_xs = self.scale.denormalize_points(xs)
-            self.scale.norm_term = (
-                denormalized_xs,
-                densities,  # these densities are norm-scaled normalized
-                normalized,
-            )
 
         else:
             self.normed_xs = scale.normalize_points(xs)
-
-            self.scale.norm_term = (
-                self.normed_xs,
-                densities,  # these densities are true-scaled normalized
-                normalized,
-            )
-            self.normed_densities = self.scale.normalize_densities(densities)
-        '''
+            self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
@@ -113,15 +86,15 @@ class PointDensity(Distribution, Optimizable):
             normed_density = (normed_x - low_x) / dist * high_density + (
                 high_x - normed_x
             ) / dist * low_density
-            return self.scale.denormalize_density(normed_x, normed_density)
+            return self.scale.denormalize_density(self.scale.denormalize_point(normed_x), normed_density)
 
         def out_of_range_pdf(normed_x):
             return np.where(
                 normed_x == self.normed_xs[0],
-                self.scale.denormalize_density(self.normed_xs[0], self.normed_densities[0]),
+                self.scale.denormalize_density(self.scale.denormalize_point(self.normed_xs[0]), self.normed_densities[0]),
                 np.where(
                     normed_x == self.normed_xs[-1],
-                    self.scale.denormalize_density(self.normed_xs[-1], self.normed_densities[-1]),
+                    self.scale.denormalize_density(self.scale.denormalize_point(self.normed_xs[-1]), self.normed_densities[-1]),
                     0,
                 ),
             )
@@ -137,7 +110,7 @@ class PointDensity(Distribution, Optimizable):
 
     def cdf(self, x):
         normed_x = self.scale.normalize_point(x)
-        normed_x_density = self.scale.normalize_density(x, self.pdf(x))
+        normed_x_density = self.scale.normalize_density(normed_x, self.pdf(x))
 
         def in_range_cdf(normed_x):
             bin = np.where(
@@ -266,6 +239,8 @@ class PointDensity(Distribution, Optimizable):
     def to_lists(self):
         xs = self.scale.denormalize_points(self.normed_xs)
         densities = self.scale.denormalize_densities(self.normed_xs, self.normed_densities)
+        densities = self.scale.denormalize_densities(xs, self.normed_densities)
+
         return xs, densities
 
     def to_pairs(self):

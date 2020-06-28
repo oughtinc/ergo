@@ -50,19 +50,6 @@ class Logistic(Distribution):
             self.true_s = s  # convenience field only used in repr currently
             self.true_loc = loc  # convenience field only used in repr currently
 
-        # TODO figure out a way to use the logistic function intregral in log-space to obviate this griding
-        # _xs = np.linspace(0, 1, 100)
-        # _true_xs = self.scale.denormalize_points(_xs)
-        # _densities = np.exp(
-        #     scipy.stats.logistic.logpdf((_xs - self.loc) / self.s)
-        # ) - np.log(self.s)
-        '''
-        self.scale.norm_term = (
-            _true_xs,
-            _densities,  # these densities are norm-scaled normalized
-            True,  # the densities are norm-scale normalized
-        )
-        '''
 
     def __repr__(self):
         return (
@@ -76,7 +63,7 @@ class Logistic(Distribution):
     def pdf(self, x):
         y = (self.scale.normalize_point(x) - self.loc) / self.s
         p = np.exp(scipy.stats.logistic.logpdf(y) - np.log(self.s))
-        return self.scale.denormalize_density(self.scale.normalize_point(x), p)
+        return self.scale.denormalize_density(x, p)
 
     def logpdf(self, x):
         return np.log(self.pdf(x))

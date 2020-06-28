@@ -61,21 +61,6 @@ class Scale:
     def normalize_densities(self, _, densities):
         return densities * self.width
 
-    def denormalize_densities2(self, _, densities):
-        return densities / self.width
-
-    def normalize_density2(self, _, density):
-        return density * self.width
-
-    def denormalize_density2(self, _, density):
-        return density / self.width
-
-    def normalize_densities2(self, _, densities):
-        return densities * self.width
-
-    def denormalize_densities2(self, _, densities):
-        return densities / self.width
-
     def copy(self):
         return self.structure(self.destructure())
 
@@ -110,47 +95,35 @@ class LogScale(Scale):
     def __hash__(self):
         return super().__hash__()
 
-    def normalize_density(self, original_x, density):
-        normed_x = self.normalize_point(original_x)
-        normed_xbar = normed_x + 0.001
-        original_xbar = self.denormalize_point(normed_xbar)
-        density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
-        return density * density_ratio
+    # def normalize_density(self, original_x, density):
+    #     normed_x = self.normalize_point(original_x)
+    #     normed_xbar = normed_x + 0.001
+    #     original_xbar = self.denormalize_point(normed_xbar)
+    #     density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
+    #     return density * density_ratio
 
-    def denormalize_density(self, normed_x, density):
+    # def denormalize_density(self, normed_x, density):
+    #     original_x = self.denormalize_point(normed_x)
+    #     normed_xbar = normed_x + 0.001
+    #     original_xbar = self.denormalize_point(normed_xbar)
+    #     density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
+    #     return density * density_ratio
+
+    def normalize_density(self, normed_x, density):
+        return density * self.density_norm(normed_x)
+
+    def denormalize_density(self, true_x, density):
+        return density * self.density_denorm(true_x)
         original_x = self.denormalize_point(normed_x)
         normed_xbar = normed_x + 0.001
         original_xbar = self.denormalize_point(normed_xbar)
         density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
         return density * density_ratio
 
-    def normalize_density2(self, normed_x, density):
-        return density * self.density_norm(normed_x)
-        # normed_x = self.normalize_point(original_x)
-        # normed_xbar = normed_x + 0.001
-        # original_xbar = self.denormalize_point(normed_xbar)
-        # density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
-        # return density * density_ratio
-
-    def denormalize_density2(self, true_x, density):
-        return density * self.density_denorm(true_x)
-        # original_x = self.denormalize_point(normed_x)
-        # normed_xbar = normed_x + 0.001
-        # original_xbar = self.denormalize_point(normed_xbar)
-        # density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
-        # return density * density_ratio
-
-
-    def normalize_densities(self, original_xs, densities):
-        return np.array([self.normalize_density(x, d) for x,d in zip(original_xs, densities)])
-
-    def denormalize_densities(self, normed_xs, densities):
-        return np.array([self.denormalize_density(x, d) for x,d in zip(normed_xs, densities)])
-
-    def normalize_densities2(self, normed_xs, densities):
+    def normalize_densities(self, normed_xs, densities):
         return densities * vmap(self.density_norm)(normed_xs)
 
-    def denormalize_densities2(self, true_xs, densities):
+    def denormalize_densities(self, true_xs, densities):
         return densities * vmap(self.density_denorm)(true_xs)
 
     def normalize_point(self, point):
