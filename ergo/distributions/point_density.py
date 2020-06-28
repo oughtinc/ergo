@@ -236,24 +236,22 @@ class PointDensity(Distribution, Optimizable):
         # print(f"This is the sum of the densities {sum(densities)}")
         return cls(xs, densities, scale=scale, normalized=normalized)
 
-    def to_lists(self):
+    def to_lists(self, metaculus_denorm=False):
         xs = self.scale.denormalize_points(self.normed_xs)
-        densities = self.scale.denormalize_densities(self.normed_xs, self.normed_densities)
-        densities = self.scale.denormalize_densities(xs, self.normed_densities)
 
+        densities = self.normed_densities if metaculus_denorm else self.scale.denormalize_densities(xs, self.normed_densities)
         return xs, densities
 
-    def to_pairs(self):
-        xs, densities = self.to_lists()
+    def to_pairs(self, metaculus_denorm=False):
+        xs, densities = self.to_lists(metaculus_denorm)
         pairs = [
             {"x": float(x), "density": float(density)}
             for x, density in zip(xs, densities)
         ]
         return pairs
 
-    def to_arrays(self):
-
-        xs, densities = self.to_lists()
+    def to_arrays(self, metaculus_denorm=False):
+        xs, densities = self.to_lists(metaculus_denorm)
         return xs, densities
 
     def entropy(self):
