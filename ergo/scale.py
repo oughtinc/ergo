@@ -3,9 +3,10 @@ from datetime import timedelta
 import time
 from typing import TypeVar
 
+from jax import grad, vmap
 import jax.numpy as np
 
-from ergo.utils import trapz
+
 
 
 @dataclass
@@ -16,7 +17,6 @@ class Scale:
 
     def __post_init__(self):
         self.width = self.high - self.low
-        self.__norm_term = self.width
 
     def __hash__(self):
         return hash(self.__key())
@@ -29,14 +29,6 @@ class Scale:
     def __key(self):
         cls, params = self.destructure()
         return (cls, params)
-
-    @property
-    def norm_term(self):
-        return self.__norm_term
-
-    @norm_term.setter
-    def norm_term(self, pairs):
-        pass
 
     def normalize_point(self, point):
         return (point - self.low) / self.width
@@ -60,19 +52,28 @@ class Scale:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
 
-    # TODO I'm not sure if we will need this anywhere
     def normalize_density(self, _, density):
         return density * self.width
 
     def denormalize_density(self, _, density):
         return density / self.width
 
-    # TODO I think we can simply do this in the function inits, but perhaps having logic here is more consistent?
     def normalize_densities(self, _, densities):
         return densities * self.width
 
-    # TODO should this call normalized_density? It is probably faster this way...
-    def denormalize_densities(self, _, densities):
+    def denormalize_densities2(self, _, densities):
+        return densities / self.width
+
+    def normalize_density2(self, _, density):
+        return density * self.width
+
+    def denormalize_density2(self, _, density):
+        return density / self.width
+
+    def normalize_densities2(self, _, densities):
+        return densities * self.width
+
+    def denormalize_densities2(self, _, densities):
         return densities / self.width
 
     def copy(self):
@@ -103,25 +104,11 @@ class LogScale(Scale):
         # if self.log_base < 1:
         #     raise ValueError(f"log_Base must be > 1, was {self.log_base}")
         self.width = self.high - self.low
+        self.density_denorm = grad(self.normalize_point)
+        self.density_norm = grad(self.denormalize_point)
 
     def __hash__(self):
         return super().__hash__()
-
-    @property
-    def norm_term(self):
-        return self.__norm_term
-
-    @norm_term.setter
-    def norm_term(self, params):
-        # The params are either normalized xs and denormalized densities or
-        # denormalized xs and normalized densities.
-        xs, densities, densities_normed = params
-        if densities_normed:
-            self.__norm_term = trapz(densities, x=xs)
-        else:
-            self.__norm_term = 1 / trapz(densities, x=xs)
-
-    # TODO I think we can retire this:
 
     def normalize_density(self, original_x, density):
         normed_x = self.normalize_point(original_x)
@@ -137,11 +124,34 @@ class LogScale(Scale):
         density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
         return density * density_ratio
 
+    def normalize_density2(self, normed_x, density):
+        return density * self.density_norm(normed_x)
+        # normed_x = self.normalize_point(original_x)
+        # normed_xbar = normed_x + 0.001
+        # original_xbar = self.denormalize_point(normed_xbar)
+        # density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
+        # return density * density_ratio
+
+    def denormalize_density2(self, true_x, density):
+        return density * self.density_denorm(true_x)
+        # original_x = self.denormalize_point(normed_x)
+        # normed_xbar = normed_x + 0.001
+        # original_xbar = self.denormalize_point(normed_xbar)
+        # density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
+        # return density * density_ratio
+
+
     def normalize_densities(self, original_xs, densities):
         return np.array([self.normalize_density(x, d) for x,d in zip(original_xs, densities)])
 
     def denormalize_densities(self, normed_xs, densities):
         return np.array([self.denormalize_density(x, d) for x,d in zip(normed_xs, densities)])
+
+    def normalize_densities2(self, normed_xs, densities):
+        return densities * vmap(self.density_norm)(normed_xs)
+
+    def denormalize_densities2(self, true_xs, densities):
+        return densities * vmap(self.density_denorm)(true_xs)
 
     def normalize_point(self, point):
         """
