@@ -3,6 +3,7 @@ import numpy as onp
 import pytest
 import scipy
 
+from ergo.utils import trapz
 from ergo import Logistic, LogisticMixture, Truncate
 from ergo.conditions import PointDensityCondition
 from ergo.scale import LogScale, Scale
@@ -39,7 +40,6 @@ def test_cdf(xscale: Scale):
 # TODO test truncated Logistic better in this file
 
 
-@pytest.mark.look
 @pytest.mark.parametrize("xscale", scales_to_test)
 def test_truncated_ppf(xscale: Scale):
     normed_test_loc = 0.5
@@ -138,9 +138,10 @@ def test_truncated_ppf(xscale: Scale):
         )
 
 
+@pytest.mark.look
 @pytest.mark.parametrize("xscale", scales_to_test)
 def test_pdf(xscale: Scale):
-    normed_test_loc = 0.8
+    normed_test_loc = 0.5
     normed_test_s = 0.1
     test_loc = xscale.denormalize_point(normed_test_loc)
     test_s = normed_test_s * xscale.width
@@ -156,18 +157,18 @@ def test_pdf(xscale: Scale):
     )
     ergoLogistic = Logistic(loc=test_loc, s=test_s, scale=xscale)
 
-    if isinstance(xscale, LogScale):
-        normed_scipydist = scipy.stats.logistic(normed_test_loc, normed_test_s)
 
-        for x in np.linspace(0, 1, 10):
-            denormalized_x = xscale.denormalize_point(x)
-            assert (
-                normed_scipydist.pdf(x) / xscale.width
-                == pytest.approx(float(ergoLogistic.pdf(denormalized_x)), rel=1e-3)
-                == pytest.approx(
-                    float(ergoLogisticMixture.pdf(denormalized_x)), rel=1e-3
-                )
-            )
+    ## Make sure it integrates to 1
+    _xs =  xscale.denormalize_points(np.linspace(0, 1, 100))
+    densities_logistic =  np.array([float(ergoLogistic.pdf(x)) for x in _xs])
+    densities_mixture = np.array([float(ergoLogisticMixture.pdf(x)) for x in _xs])
+    auc_logistic  = float(trapz(densities_logistic, x=_xs))
+    auc_mixture  = float(trapz(densities_mixture, x=_xs))
+    assert 1 == pytest.approx(auc_logistic, abs=.03) == pytest.approx(auc_mixture, abs=.03)
+
+    if isinstance(xscale, LogScale):
+        pass
+
     else:
         scipydist = scipy.stats.logistic(test_loc, test_s)
 
@@ -180,6 +181,37 @@ def test_pdf(xscale: Scale):
                 == pytest.approx(float(ergoLogisticMixture.pdf(x)), rel=1e-3)
             )
 
+@pytest.mark.look
+@pytest.mark.xfail(reason="We need to devise way of testing true pdf values for our 'log logistic'")
+@pytest.mark.parametrize("xscale", [scales_to_test[i] for i in [3,4,5]])
+def test_log_pdf(xscale: Scale):
+    normed_test_loc = 0.5
+    normed_test_s = 0.1
+    test_loc = xscale.denormalize_point(normed_test_loc)
+    test_s = normed_test_s * xscale.width
+
+    ergoLogisticMixture = LogisticMixture(
+        components=[
+            Logistic(
+                loc=xscale.denormalize_point(0.2), s=0.5 * xscale.width, scale=xscale,
+            ),
+            Logistic(loc=test_loc, s=test_s, scale=xscale),
+        ],
+        probs=[1.8629593e-29, 1.0],
+    )
+    ergoLogistic = Logistic(loc=test_loc, s=test_s, scale=xscale)
+
+    ## Test PDF
+    normed_scipydist = scipy.stats.logistic(normed_test_loc, normed_test_s)
+    for x in np.linspace(0, 1, 10):
+        denormalized_x = xscale.denormalize_point(x)
+        assert (
+            normed_scipydist.pdf(x) / xscale.width
+            == pytest.approx(float(ergoLogistic.pdf(denormalized_x)), rel=1e-3)
+            == pytest.approx(
+                float(ergoLogisticMixture.pdf(denormalized_x)), rel=1e-3
+            )
+        )
 
 @pytest.mark.parametrize(
     "fixed_params",
@@ -320,7 +352,7 @@ def test_destructure(logistic_mixture10, truncated_logistic_mixture):
         )
 
 
-def test_destructure_with_cond(truncated_logistic_mixture, histogram):
-    PointDensityCondition(histogram["xs"], histogram["densities"]).describe_fit(
+def test_destructure_with_cond(truncated_logistic_mixture, point_densities):
+    PointDensityCondition(point_densities["xs"], point_densities["densities"]).describe_fit(
         truncated_logistic_mixture
     )
