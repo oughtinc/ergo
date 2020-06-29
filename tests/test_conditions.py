@@ -347,7 +347,7 @@ def test_point_densities_fit(point_densities):
 
 
 @pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
-def test_histogram_fit_regression_p_in_range():
+def test_point_density_fit_regression_p_in_range():
     """
     Regression test for a bug where:
     1. < 100% of p is in the entire range, for a closed-bound question
