@@ -195,7 +195,7 @@ class ContinuousQuestion(MetaculusQuestion):
 
         elif metaculus_denorm:
             return [
-                {"x": self.scale.denormalize_point(float(v[0])), "density": v[2],}
+                {"x": self.scale.denormalize_point(float(v[0])), "density": v[2]}
                 for v in self.prediction_histogram
             ]
 

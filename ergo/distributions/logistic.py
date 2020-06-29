@@ -34,7 +34,7 @@ class Logistic(Distribution):
             self.s = np.max([s, 0.0000001])
             self.metadata = metadata
             if scale is not None:
-                self.scale = scale.copy()
+                self.scale = scale
             else:
                 self.scale = Scale(0, 1)
             self.true_s = self.s * self.scale.width
@@ -45,7 +45,7 @@ class Logistic(Distribution):
         else:
             self.loc = scale.normalize_point(loc)
             self.s = np.max([s, 0.0000001]) / scale.width
-            self.scale = scale.copy()
+            self.scale = scale
             self.metadata = metadata
             self.true_s = s  # convenience field only used in repr currently
             self.true_loc = loc  # convenience field only used in repr currently

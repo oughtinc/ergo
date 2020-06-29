@@ -33,7 +33,7 @@ class PointDensity(Distribution, Optimizable):
         if scale is None:
             raise ValueError
 
-        self.scale = scale.copy()
+        self.scale = scale
         init_np = np if traceable else onp
 
         xs = np.array(xs)

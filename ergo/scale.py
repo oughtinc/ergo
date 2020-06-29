@@ -62,9 +62,6 @@ class Scale:
     def denormalize_densities(self, _, densities):
         return densities / self.width
 
-    def copy(self):
-        return self.structure(self.destructure())
-
     def destructure(self):
         return ((Scale,), (self.low, self.high))
 

@@ -27,14 +27,12 @@ class PointDensityCondition(condition.Condition):
         return self.weight * total_loss / self.xs.size
 
     def normalize(self, scale: Scale):
-        scale = scale.copy()
         normed_xs = scale.normalize_points(self.xs)
         # scale.norm_term = (normed_xs, self.densities, False)
         normed_densities = scale.normalize_densities(normed_xs, self.densities)
         return self.__class__(normed_xs, normed_densities, self.weight)
 
     def denormalize(self, scale: Scale):
-        scale = scale.copy()
         denormed_xs = scale.denormalize_points(self.xs)
         # scale.norm_term = (denormed_xs, self.densities, True)
         denormed_densities = scale.denormalize_densities(denormed_xs, self.densities)
