@@ -7,8 +7,6 @@ from jax import grad, vmap
 import jax.numpy as np
 
 
-
-
 @dataclass
 class Scale:
     low: float
@@ -60,6 +58,9 @@ class Scale:
 
     def normalize_densities(self, _, densities):
         return densities * self.width
+
+    def denormalize_densities(self, _, densities):
+        return densities / self.width
 
     def copy(self):
         return self.structure(self.destructure())
@@ -114,11 +115,6 @@ class LogScale(Scale):
 
     def denormalize_density(self, true_x, density):
         return density * self.density_denorm(true_x)
-        original_x = self.denormalize_point(normed_x)
-        normed_xbar = normed_x + 0.001
-        original_xbar = self.denormalize_point(normed_xbar)
-        density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
-        return density * density_ratio
 
     def normalize_densities(self, normed_xs, densities):
         return densities * vmap(self.density_norm)(normed_xs)

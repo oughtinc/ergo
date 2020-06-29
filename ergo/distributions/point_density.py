@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-import jax.nn as nn
 import jax.numpy as np
 import numpy as onp
 
@@ -86,15 +85,23 @@ class PointDensity(Distribution, Optimizable):
             normed_density = (normed_x - low_x) / dist * high_density + (
                 high_x - normed_x
             ) / dist * low_density
-            return self.scale.denormalize_density(self.scale.denormalize_point(normed_x), normed_density)
+            return self.scale.denormalize_density(
+                self.scale.denormalize_point(normed_x), normed_density
+            )
 
         def out_of_range_pdf(normed_x):
             return np.where(
                 normed_x == self.normed_xs[0],
-                self.scale.denormalize_density(self.scale.denormalize_point(self.normed_xs[0]), self.normed_densities[0]),
+                self.scale.denormalize_density(
+                    self.scale.denormalize_point(self.normed_xs[0]),
+                    self.normed_densities[0],
+                ),
                 np.where(
                     normed_x == self.normed_xs[-1],
-                    self.scale.denormalize_density(self.scale.denormalize_point(self.normed_xs[-1]), self.normed_densities[-1]),
+                    self.scale.denormalize_density(
+                        self.scale.denormalize_point(self.normed_xs[-1]),
+                        self.normed_densities[-1],
+                    ),
                     0,
                 ),
             )
@@ -212,7 +219,7 @@ class PointDensity(Distribution, Optimizable):
             scale = Scale(0, 1)
         xs = fixed_params["xs"]
         ps = np.abs(opt_params)
-        densities = ps 
+        densities = ps
         return cls(
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
         )
@@ -239,7 +246,11 @@ class PointDensity(Distribution, Optimizable):
     def to_lists(self, metaculus_denorm=False):
         xs = self.scale.denormalize_points(self.normed_xs)
 
-        densities = self.normed_densities if metaculus_denorm else self.scale.denormalize_densities(xs, self.normed_densities)
+        densities = (
+            self.normed_densities
+            if metaculus_denorm
+            else self.scale.denormalize_densities(xs, self.normed_densities)
+        )
         return xs, densities
 
     def to_pairs(self, metaculus_denorm=False):

@@ -2,7 +2,7 @@ import pytest
 
 import ergo
 from ergo.conditions import IntervalCondition, MaxEntropyCondition
-from ergo.distributions.histogram import HistogramDist
+from ergo.distributions.point_density import PointDensity
 from ergo.scale import Scale
 from tests.conftest import scales_to_test
 
@@ -16,7 +16,7 @@ def test_histogram_dist():
         {"x": 0.6, "density": 1},
         {"x": 1, "density": 1},
     ]
-    dist = ergo.HistogramDist.from_pairs(histogram)
+    dist = ergo.PointDensity.from_pairs(histogram)
     for condition in dist.percentiles():
         assert condition.max == pytest.approx(condition.p, abs=0.01)
 
@@ -24,13 +24,13 @@ def test_histogram_dist():
 def test_hist_from_percentile():
     for value in [0.01, 0.1, 0.5, 0.9]:
         conditions = [IntervalCondition(p=0.5, max=value)]
-        dist = HistogramDist.from_conditions(conditions)
+        dist = PointDensity.from_conditions(conditions)
         assert dist.ppf(0.5) == pytest.approx(value, abs=0.1)
 
 
 @pytest.mark.parametrize("scale", scales_to_test)
 def test_hist_pdf(scale: Scale):
-    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()], scale=scale)
+    uniform_dist = PointDensity.from_conditions([MaxEntropyCondition()], scale=scale)
 
     assert uniform_dist.pdf(scale.denormalize_point(0.5)) != 0
     assert uniform_dist.pdf(scale.denormalize_point(1.5)) == 0
@@ -38,7 +38,7 @@ def test_hist_pdf(scale: Scale):
 
 @pytest.mark.parametrize("scale", scales_to_test)
 def test_hist_cdf(scale: Scale):
-    uniform_dist = HistogramDist.from_conditions([MaxEntropyCondition()], scale=scale)
+    uniform_dist = PointDensity.from_conditions([MaxEntropyCondition()], scale=scale)
 
     # Off of scale
     assert uniform_dist.cdf(scale.denormalize_point(-0.5)) == 0
@@ -61,7 +61,7 @@ def test_hist_cdf(scale: Scale):
 
 @pytest.mark.parametrize("scale", scales_to_test)
 def test_hist_ppf(scale: Scale):
-    uniform_dist = HistogramDist.from_conditions([], scale=scale)
+    uniform_dist = PointDensity.from_conditions([], scale=scale)
 
     # Ends of scale; second is approx since implemented as start of last bin
     assert uniform_dist.ppf(0) == scale.low

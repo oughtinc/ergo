@@ -1,5 +1,3 @@
-import jax.numpy as np
-
 from ergo.scale import Scale
 
 from . import condition

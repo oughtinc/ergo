@@ -345,6 +345,7 @@ def test_point_densities_fit(point_densities):
     ):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 
+
 @pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
 def test_histogram_fit_regression_p_in_range():
     """
