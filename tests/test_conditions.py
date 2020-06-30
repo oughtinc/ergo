@@ -366,6 +366,7 @@ def test_fit_point_density_regression_p_in_range():
 
 
 # @pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
+@pytest.mark.look
 def test_fit_point_density_regression_1():
     """
     Regression test for bug: "This custom question has a weird histogram - why?"
@@ -380,7 +381,7 @@ def test_fit_point_density_regression_1():
         IntervalCondition(p=0.25, max=2.0),
         IntervalCondition(p=0.75, max=4.0),
         IntervalCondition(p=0.9, max=6.0),
-        MaxEntropyCondition(weight=0.00000001),
+        MaxEntropyCondition(weight=0.1),
     ]
 
     pointdensity_dist = PointDensity.from_conditions(

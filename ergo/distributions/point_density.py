@@ -51,14 +51,18 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
+        bin_sizes = np.diff(self.normed_xs)
+        self.bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
+        self.bin_probs = (
+            (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+        )
+
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
+
         else:
-            bin_probs = self.normed_bin_probs(
-                self.normed_xs, self.normed_densities, numpy=init_np
-            )
             self.cumulative_normed_ps = init_np.append(
-                init_np.cumsum(bin_probs), init_np.array([1.0])
+                init_np.cumsum(self.bin_probs), init_np.array([1.0])
             )
 
         self.normed_log_densities = np.log(self.normed_densities)
@@ -159,7 +163,7 @@ class PointDensity(Distribution, Optimizable):
     def sample(self):
         raise NotImplementedError
 
-    # Scaled
+    # Scaling
 
     def normalize(self):
         return PointDensity(
@@ -235,14 +239,13 @@ class PointDensity(Distribution, Optimizable):
     def normalize_fixed_params(self, fixed_params, scale):
         return {"xs": scale.normalize_points(fixed_params["xs"])}
 
-    # Other
+    # Export
 
     @classmethod
     def from_pairs(cls, pairs, scale: Scale, normalized=False):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = [x for (x, density) in sorted_pairs]
         densities = [density for (x, density) in sorted_pairs]
-        # print(f"This is the sum of the densities {sum(densities)}")
         return cls(xs, densities, scale=scale, normalized=normalized)
 
     def to_lists(self, metaculus_denorm=False):
@@ -267,34 +270,24 @@ class PointDensity(Distribution, Optimizable):
         xs, densities = self.to_lists(metaculus_denorm)
         return xs, densities
 
+    # Condition Methods
+
     def entropy(self):
-        return -np.dot(self.normed_densities, self.normed_log_densities)
+        return -np.dot(self.bin_probs, np.log(self.bin_probs))
 
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
+        return -np.dot(self.bin_probs, np.log(self.bin_probs))
+
+    def cross_entropy_density(self, q_dist):
+        # We assume that the distributions are on the same scale!
         return -np.dot(self.normed_densities, q_dist.normed_log_densities)
 
-    @classmethod
-    def normed_bin_probs(cls, normed_xs, normed_densities, numpy=np):
-        bin_sizes = numpy.diff(normed_xs)
-        bin_probs = (normed_densities[1:] + normed_densities[:-1]) / 2.0 * bin_sizes
-        return bin_probs
-
     def mean(self):
-        bin_sizes = np.diff(self.normed_xs)
-        bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
-        bin_probs = (
-            (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
-        )
-        normed_mean = np.dot(bin_xs, bin_probs)
+        normed_mean = np.dot(self.bin_xs, self.bin_probs)
         return self.scale.denormalize_point(normed_mean)
 
     def variance(self):
-        bin_sizes = np.diff(self.normed_xs)
-        bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
-        bin_probs = (
-            (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
-        )
-        normed_mean = np.dot(bin_xs, bin_probs)
-        normed_variance = np.dot(bin_probs, np.square(bin_xs - normed_mean))
+        normed_mean = np.dot(self.bin_xs, self.bin_probs)
+        normed_variance = np.dot(self.bin_probs, np.square(self.bin_xs - normed_mean))
         return self.scale.denormalize_variance(normed_variance)
