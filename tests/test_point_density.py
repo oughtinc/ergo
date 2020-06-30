@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 from scipy.stats import logistic
 
-from ergo.conditions import (
-    CrossEntropyCondition,
+from ergo.conditions import (  # CrossEntropyCondition,
     IntervalCondition,
     MaxEntropyCondition,
     PointDensityCondition,
@@ -24,9 +23,7 @@ from tests.conftest import scales_to_test
 )
 def test_point_density(scale, dist_source):
     rv = logistic(loc=2.5, scale=0.15)
-    xs = np.linspace(
-        0.01, 5, 100
-    )  
+    xs = np.linspace(0.01, 5, 100)
     orig_densities = rv.pdf(xs)
     orig_cdfs = rv.cdf(xs)
 
@@ -56,22 +53,21 @@ def test_point_density(scale, dist_source):
 
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
-    #print(f"scale: {scale} dist_source: {dist_source}")
-    #print(f"max pdf diff: {np.max(np.abs(orig_densities-dist_densities))}")
-    assert dist_densities == pytest.approx(orig_densities, abs=.01)
+    # print(f"scale: {scale} dist_source: {dist_source}")
+    # print(f"max pdf diff: {np.max(np.abs(orig_densities-dist_densities))}")
+    assert dist_densities == pytest.approx(orig_densities, abs=0.01)
 
     # CDF
     dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
-    #print(f"max cdf diff: {np.max(np.abs(orig_cdfs-dist_cdfs))}")
-    assert dist_cdfs == pytest.approx(orig_cdfs, abs=.05)
+    # print(f"max cdf diff: {np.max(np.abs(orig_cdfs-dist_cdfs))}")
+    assert dist_cdfs == pytest.approx(orig_cdfs, abs=0.05)
 
     # PPF has low resolution at the low end (because distribution is
     # flat) and at high end (because distribution is flat and log
     # scale is coarse there)
     dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[30:60]])
-    #print(f"max ppf diff: {np.max(np.abs(xs[30:60]-dist_ppfs))}")
-    #import pdb; pdb.set_trace()
-    assert dist_ppfs == pytest.approx(xs[30:60], abs=.1)
+    # print(f"max ppf diff: {np.max(np.abs(xs[30:60]-dist_ppfs))}")
+    assert dist_ppfs == pytest.approx(xs[30:60], abs=0.1)
 
 
 def test_density_frompairs():

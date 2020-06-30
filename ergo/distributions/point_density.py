@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
+from jax import nn
 import jax.numpy as np
-import jax.nn as nn
 import numpy as onp
 
 from ergo.scale import Scale

@@ -222,10 +222,11 @@ class ContinuousQuestion(MetaculusQuestion):
         histogram = self.community_pairs(normalized=True)
         return dist.PointDensity.from_pairs(histogram, self.scale, normalized=True)
 
-    def community_conditions(self, crossentropy_weight=0.1, interval_weight=10000.0):
+    def community_conditions(self, community_weight=0.1, interval_weight=10000.0):
 
         from ergo.conditions import (
-            CrossEntropyCondition,
+            # CrossEntropyCondition,
+            PointDensityCondition,
             IntervalCondition,
             Condition,
         )
@@ -233,13 +234,18 @@ class ContinuousQuestion(MetaculusQuestion):
         pairs = self.community_pairs(normalized=True)
 
         # Note that this histogram is normalized - it sums to 1 even if the pairs don't!
-        hist = dist.PointDensity.from_pairs(pairs, scale=self.scale, normalized=True)
-
-        cross_entropy_condition = CrossEntropyCondition(
-            hist, weight=crossentropy_weight
+        point_density_dist = dist.PointDensity.from_pairs(
+            pairs, scale=self.scale, normalized=True
         )
 
-        community_conditions: List[Condition] = [cross_entropy_condition]
+        # cross_entropy_condition = CrossEntropyCondition(
+        #    hist, weight=crossentropy_weight
+        # )
+
+        xs, densities = point_density_dist.to_lists()
+        point_density_condition = PointDensityCondition(xs, densities)
+
+        community_conditions: List[Condition] = [point_density_condition]
 
         if self.low_open:
             community_conditions.append(
