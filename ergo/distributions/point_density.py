@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import jax.numpy as np
+import jax.nn as nn
 import numpy as onp
 
 from ergo.scale import Scale
@@ -218,7 +219,8 @@ class PointDensity(Distribution, Optimizable):
             # TODO: Should we do this?
             scale = Scale(0, 1)
         xs = fixed_params["xs"]
-        ps = np.abs(opt_params)
+        # ps = np.abs(opt_params)
+        ps = nn.softmax(opt_params)
         densities = ps
         return cls(
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
@@ -266,7 +268,6 @@ class PointDensity(Distribution, Optimizable):
         return xs, densities
 
     def entropy(self):
-        # We assume that the distributions are on the same scale!
         return -np.dot(self.normed_densities, self.normed_log_densities)
 
     def cross_entropy(self, q_dist):
