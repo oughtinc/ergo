@@ -21,8 +21,10 @@ from tests.conftest import scales_to_test
     ["direct", "from_pairs", "structured", "denormalized", "from_conditions"],
 )
 def test_point_density(scale, dist_source):
+    NUM_POINTS = 100
+
     rv = logistic(loc=2.5, scale=0.15)
-    xs_normed = np.linspace(0, 1, 100)
+    xs_normed = np.linspace(0, 1, NUM_POINTS)
     xs = scale.denormalize_points(xs_normed)
 
     orig_densities = rv.pdf(xs)
@@ -61,8 +63,10 @@ def test_point_density(scale, dist_source):
     # PPF has low resolution at the low end (because distribution is
     # flat) and at high end (because distribution is flat and log
     # scale is coarse there)
-    dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[30:60]])
-    assert dist_ppfs == pytest.approx(xs[30:60], abs=0.1)
+    MIN_CHECK_DENSITY = 1e-3
+    check_idxs = [i for i in range(NUM_POINTS) if orig_densities[i] > MIN_CHECK_DENSITY]
+    dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[check_idxs]])
+    assert dist_ppfs == pytest.approx(xs[check_idxs], abs=0.1)
 
 
 def test_density_frompairs():
