@@ -13,8 +13,7 @@ from tests.conftest import scales_to_test
 
 
 @pytest.mark.parametrize(
-    "scale",
-    [Scale(0, 5), Scale(-1, 6), Scale(-3, 10), LogScale(0.01, 5, 500)],
+    "scale", [Scale(0, 5), Scale(-1, 6), Scale(-3, 10), LogScale(0.01, 5, 500)],
 )
 @pytest.mark.parametrize(
     "dist_source",
