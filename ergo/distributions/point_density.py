@@ -40,9 +40,6 @@ class PointDensity(Distribution, Optimizable):
         xs = np.array(xs)
         densities = np.array(densities)
 
-        auc = trapz(densities, x=xs)
-        densities /= auc
-
         if normalized:
             self.normed_xs = xs
             self.normed_densities = densities
@@ -50,6 +47,8 @@ class PointDensity(Distribution, Optimizable):
         else:
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
+
+        self.normed_densities /= trapz(self.normed_densities, x=self.normed_xs)
 
         self.bin_sizes = np.diff(self.normed_xs)
         self.bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
