@@ -26,7 +26,7 @@ def test_date_normalize_denormalize(metaculus_questions, date_samples):
     denormalized = metaculus_questions.continuous_linear_date_open_question.denormalize_samples(
         normalized
     )
-    assert denormalized == date_samples
+    assert (denormalized == date_samples).all()
 
 
 def test_normalize_denormalize(metaculus_questions):

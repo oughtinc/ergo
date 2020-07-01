@@ -280,9 +280,8 @@ class PointDensity(Distribution, Optimizable):
 
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
-        max_entropy = -np.dot(self.bin_sizes, np.log(self.bin_sizes))
-        return -np.dot(self.bin_probs, np.log(self.bin_probs)) / max_entropy
-
+        max_entropy = -np.dot(self.bin_sizes, np.log(q_dist.bin_sizes))
+        return -np.dot(self.bin_probs, np.log(q_dist.bin_probs)) / max_entropy
 
     def cross_entropy_density(self, q_dist):
         # We assume that the distributions are on the same scale!
