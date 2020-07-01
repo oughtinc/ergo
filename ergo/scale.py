@@ -118,7 +118,8 @@ class LogScale(Scale):
 
     @classmethod
     def structure(cls, params):
-        low, high, log_base = params
+        classes, numeric = params
+        low, high, log_base = numeric
         return cls(low, high, log_base)
 
 
