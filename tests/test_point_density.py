@@ -22,7 +22,9 @@ from tests.conftest import scales_to_test
 )
 def test_point_density(scale, dist_source):
     rv = logistic(loc=2.5, scale=0.15)
-    xs = np.linspace(0.01, 5, 100)
+    xs_normed = np.linspace(0, 1, 100)
+    xs = scale.denormalize_points(xs_normed)
+
     orig_densities = rv.pdf(xs)
     orig_cdfs = rv.cdf(xs)
 
