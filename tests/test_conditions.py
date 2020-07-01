@@ -381,7 +381,7 @@ def test_fit_point_density_regression_1():
         IntervalCondition(p=0.25, max=2.0),
         IntervalCondition(p=0.75, max=4.0),
         IntervalCondition(p=0.9, max=6.0),
-        MaxEntropyCondition(weight=0.1),
+        MaxEntropyCondition(weight=0.001),
     ]
 
     pointdensity_dist = PointDensity.from_conditions(

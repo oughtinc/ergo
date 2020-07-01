@@ -51,10 +51,12 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
-        bin_sizes = np.diff(self.normed_xs)
+        self.bin_sizes = np.diff(self.normed_xs)
         self.bin_xs = (self.normed_xs[1:] + self.normed_xs[:-1]) / 2
         self.bin_probs = (
-            (self.normed_densities[1:] + self.normed_densities[:-1]) / 2.0 * bin_sizes
+            (self.normed_densities[1:] + self.normed_densities[:-1])
+            / 2.0
+            * self.bin_sizes
         )
 
         if cumulative_normed_ps is not None:
@@ -273,11 +275,14 @@ class PointDensity(Distribution, Optimizable):
     # Condition Methods
 
     def entropy(self):
-        return -np.dot(self.bin_probs, np.log(self.bin_probs))
+        max_entropy = -np.dot(self.bin_sizes, np.log(self.bin_sizes))
+        return -np.dot(self.bin_probs, np.log(self.bin_probs)) / max_entropy
 
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
-        return -np.dot(self.bin_probs, np.log(q_dist.bin_probs))
+        max_entropy = -np.dot(self.bin_sizes, np.log(self.bin_sizes))
+        return -np.dot(self.bin_probs, np.log(self.bin_probs)) / max_entropy
+
 
     def cross_entropy_density(self, q_dist):
         # We assume that the distributions are on the same scale!

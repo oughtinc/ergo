@@ -3,7 +3,7 @@ from . import condition
 
 class MaxEntropyCondition(condition.Condition):
     def loss(self, dist) -> float:
-        return -self.weight * dist.entropy()
+        return 1 - (self.weight * dist.entropy())
 
     def destructure(self):
         return ((MaxEntropyCondition,), (self.weight,))
