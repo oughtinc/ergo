@@ -36,6 +36,13 @@ class LinearDateQuestion(ContinuousQuestion):
         return scale_x_datetime(limits=(xmin, xmax))
 
     def date_to_timestamp(self, date: str):
+        """
+        Turn a date string in %Y-%m-%d format into a timestamp. Metaculus
+        uses this format for dates when specifying the range of a date question.
+        We're assuming Metaculus is interpreting these date strings as UTC.
+
+        :return: A Unix timestamp
+        """
         dt = datetime.datetime.strptime(date, "%Y-%m-%d")
         # To obtain UTC timestamp from datetime, used method described here:
         # https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp
