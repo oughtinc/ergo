@@ -6,8 +6,6 @@
 4. Include tests or explain why not
 
 
-# PR Template (fill this out)
-
-Fixes OUG-999
+# PR (fill this out)
 
 QA: Link to [spreadsheet](https://docs.google.com/spreadsheets/d/1ilbckTFL0EocBTZsRav-yx_ImhgNkn7zgrcXSYfTCLU/edit#gid=2005290025) or describe process
