@@ -1,0 +1,17 @@
+* @stuhlmueller
+/notebooks/ @brachbach
+/tests/ @stuhlmueller
+/tests/test_scales.py @djthorne
+/tests/test_metaculus.py @brachbach
+/tests/test_logistic.py @djthorne
+/scripts/ @brachbach
+/ergo/scale.py @djthorne
+/ergo/theme.py @djthorne
+/ergo/platforms/ @stuhlmueller
+/ergo/distributions/ @stuhlmueller
+/ergo/contrib/ @brachbach
+/ergo/conditions/ @stuhlmueller
+/ergo/conditions/mean.py @uvafan
+/ergo/conditions/mode.py @uvafan
+/ergo/conditions/variance.py @uvafan
+/docs/ @stuhlmueller
