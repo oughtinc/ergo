@@ -245,7 +245,7 @@ def test_mean_condition():
 
 def test_variance_condition():
     base_conditions = [
-        MaxEntropyCondition(weight=0.1),
+        MaxEntropyCondition(weight=0.001),
         SmoothnessCondition(),
         IntervalCondition(p=0.95, min=0.3, max=0.7),
     ]
