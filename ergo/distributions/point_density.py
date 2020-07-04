@@ -5,7 +5,7 @@ import jax.numpy as np
 import numpy as onp
 
 from ergo.scale import Scale
-from ergo.utils import trapz
+# from ergo.utils import trapz
 
 from . import constants
 from .distribution import Distribution
@@ -75,48 +75,56 @@ class PointDensity(Distribution, Optimizable):
         """
 
         x = self.scale.normalize_point(x)
-        bin = np.maximum(np.argmax(self.xs >= x) - 1, 0)
-        return np.where((x < 0) | (x > 1), 0, self.ps[bin] / self.density_norm_term)
+        bin = np.maximum(np.argmax(self.normed_xs >= x) - 1, 0)
+        return np.where(
+            (x < 0) | (x > 1),
+            0,
+            self.scale.denormalize_density(
+                self.normed_xs[bin], self.normed_densities[bin]
+            ),
+        )
 
-        # normed_x = self.scale.normalize_point(x)
+        """
+        normed_x = self.scale.normalize_point(x)
 
-        # def in_range_pdf(normed_x):
-        #     low_idx = np.argmax(self.normed_xs > normed_x) - 1
-        #     high_idx = low_idx + 1
-        #     low_density = self.normed_densities[low_idx]
-        #     high_density = self.normed_densities[high_idx]
-        #     low_x = self.normed_xs[low_idx]
-        #     high_x = self.normed_xs[high_idx]
-        #     dist = high_x - low_x
-        #     normed_density = (normed_x - low_x) / dist * high_density + (
-        #         high_x - normed_x
-        #     ) / dist * low_density
-        #     return self.scale.denormalize_density(
-        #         self.scale.denormalize_point(normed_x), normed_density
-        #     )
+        def in_range_pdf(normed_x):
+            low_idx = np.argmax(self.normed_xs > normed_x) - 1
+            high_idx = low_idx + 1
+            low_density = self.normed_densities[low_idx]
+            high_density = self.normed_densities[high_idx]
+            low_x = self.normed_xs[low_idx]
+            high_x = self.normed_xs[high_idx]
+            dist = high_x - low_x
+            normed_density = (normed_x - low_x) / dist * high_density + (
+                high_x - normed_x
+            ) / dist * low_density
+            return self.scale.denormalize_density(
+                self.scale.denormalize_point(normed_x), normed_density
+            )
 
-        # def out_of_range_pdf(normed_x):
-        #     return np.where(
-        #         normed_x == self.normed_xs[0],
-        #         self.scale.denormalize_density(
-        #             self.scale.denormalize_point(self.normed_xs[0]),
-        #             self.normed_densities[0],
-        #         ),
-        #         np.where(
-        #             normed_x == self.normed_xs[-1],
-        #             self.scale.denormalize_density(
-        #                 self.scale.denormalize_point(self.normed_xs[-1]),
-        #                 self.normed_densities[-1],
-        #             ),
-        #             0,
-        #         ),
-        #     )
+        def out_of_range_pdf(normed_x):
+            return np.where(
+                normed_x == self.normed_xs[0],
+                self.scale.denormalize_density(
+                    self.scale.denormalize_point(self.normed_xs[0]),
+                    self.normed_densities[0],
+                ),
+                np.where(
+                    normed_x == self.normed_xs[-1],
+                    self.scale.denormalize_density(
+                        self.scale.denormalize_point(self.normed_xs[-1]),
+                        self.normed_densities[-1],
+                    ),
+                    0,
+                ),
+            )
 
-        # return np.where(
-        #     (normed_x <= self.normed_xs[0]) | (normed_x >= self.normed_xs[-1]),
-        #     out_of_range_pdf(normed_x),
-        #     in_range_pdf(normed_x),
-        # )
+        return np.where(
+            (normed_x <= self.normed_xs[0]) | (normed_x >= self.normed_xs[-1]),
+            out_of_range_pdf(normed_x),
+            in_range_pdf(normed_x),
+        )
+        """
 
     def logpdf(self, x):
         return np.log(self.pdf(x))
@@ -150,6 +158,14 @@ class PointDensity(Distribution, Optimizable):
         # )
 
     def ppf(self, q):
+        bin = np.where(
+            q > self.cumulative_normed_ps[-1],
+            self.cumulative_normed_ps.size - 1,
+            np.argmax(self.cumulative_normed_ps >= q),
+        )
+        return self.scale.denormalize_point(self.normed_xs[bin])
+
+        """ 
         low_idx = np.argmax(self.cumulative_normed_ps >= q)
         high_idx = low_idx + 1
         low_x = self.normed_xs[low_idx]
@@ -164,6 +180,7 @@ class PointDensity(Distribution, Optimizable):
         )
         # TODO: change to denomrlize_points maybe?
         return self.scale.denormalize_point(normed_x)
+        """
 
     def sample(self):
         raise NotImplementedError
