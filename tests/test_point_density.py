@@ -29,8 +29,7 @@ def test_point_density(scale, dist_source):
     orig_densities = rv.pdf(xs)
     orig_cdfs = rv.cdf(xs)
 
-
-    pairs = [{'x': x, 'density': d} for x,d in zip(xs, orig_densities)]
+    pairs = [{"x": x, "density": d} for x, d in zip(xs, orig_densities)]
     direct_dist = PointDensity.from_pairs(pairs, scale)
 
     if dist_source == "direct":
@@ -135,30 +134,30 @@ def test_interval_plus_entropy(scale: Scale):
     NUM_POINTS = 11
 
     HANDPICKED_PAIRS = [
-        {"x": 0, "density": 5/3},
-        {"x": 0.1, "density": 5/3},
-        {"x": 0.2, "density": 5/3},
-        {"x": 0.3, "density": 5/3},
-        {"x": 0.4, "density": 25/39},
-        {"x": 0.5, "density": 25/39},
-        {"x": 0.6, "density": 25/39},
-        {"x": 0.7, "density": 25/39},
-        {"x": 0.8, "density": 25/39},
-        {"x": 0.9, "density": 25/39},
-        {"x": 1, "density": 25/39},
+        {"x": 0, "density": 5 / 3},
+        {"x": 0.1, "density": 5 / 3},
+        {"x": 0.2, "density": 5 / 3},
+        {"x": 0.3, "density": 5 / 3},
+        {"x": 0.4, "density": 25 / 39},
+        {"x": 0.5, "density": 25 / 39},
+        {"x": 0.6, "density": 25 / 39},
+        {"x": 0.7, "density": 25 / 39},
+        {"x": 0.8, "density": 25 / 39},
+        {"x": 0.9, "density": 25 / 39},
+        {"x": 1, "density": 25 / 39},
     ]
 
     handpicked_dist = PointDensity.from_pairs(HANDPICKED_PAIRS, scale, normalized=True)
 
     conditions = [
-        IntervalCondition(p=0.5, max=scale.denormalize_point(.3)),
+        IntervalCondition(p=0.5, max=scale.denormalize_point(0.3)),
         MaxEntropyCondition(weight=0.1),
     ]
 
     xs = scale.denormalize_points(np.linspace(0, 1, NUM_POINTS))
 
     fitted_dist = PointDensity.from_conditions(
-        conditions, scale=scale, fixed_params={'xs': xs},
+        conditions, scale=scale, fixed_params={"xs": xs},
     )
 
     def evaluate_dist(dist):
@@ -166,15 +165,16 @@ def test_interval_plus_entropy(scale: Scale):
         for condition in conditions:
             print(condition._describe_fit(dist))
             loss += condition.loss(dist)
-        print(f'nd: {dist.normed_densities} total loss: {loss}')
+        print(f"nd: {dist.normed_densities} total loss: {loss}")
 
-    print('evaluating handpicked dist')
+    print("evaluating handpicked dist")
     evaluate_dist(handpicked_dist)
-    print('evaluating fitted dist')
+    print("evaluating fitted dist")
     evaluate_dist(fitted_dist)
-    print(f'fitted dist midpoints: {(fitted_dist.normed_densities[1:] + fitted_dist.normed_densities[:-1]) / 2.0}')
+    print(
+        f"fitted dist midpoints: {(fitted_dist.normed_densities[1:] + fitted_dist.normed_densities[:-1]) / 2.0}"
+    )
 
     # We expect at most 3 different densities: one for inside the interval, one for outside,
     # and one between.
-    assert(np.unique(fitted_dist.normed_densities).size <= 3)
-
+    assert np.unique(fitted_dist.normed_densities).size <= 3
