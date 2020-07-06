@@ -53,7 +53,6 @@ class PointDensity(Distribution, Optimizable):
         # auc =  trapz(self.normed_densities, x=self.normed_xs)
         # print(auc)
 
-        # self.normed_densities /= trapz(self.normed_densities, x=self.normed_xs)
         self.bin_sizes = init_np.full(self.normed_xs.size, 1 / self.normed_xs.size)
         self.bin_probs = self.normed_densities * self.bin_sizes
         # print(f"sum of bin probs is: {np.sum(self.bin_probs)}")
@@ -245,7 +244,6 @@ class PointDensity(Distribution, Optimizable):
                 len(xs) == len(target_xs)
                 and np.isclose(xs, target_xs, rtol=1e-04).all()
             ):
-                # print(f'xs size {xs.size} dsize {densities.size}')
                 f = interp1d(xs, densities)
                 densities = f(target_xs)
 
@@ -254,8 +252,6 @@ class PointDensity(Distribution, Optimizable):
         densities /= auc
 
         return cls(target_xs, densities, scale=scale, normalized=True)
-
-    # Optimizable
 
     @classmethod
     def from_conditions(
@@ -297,6 +293,8 @@ class PointDensity(Distribution, Optimizable):
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
         )
 
+    # Optimize Create Helpers
+
     @staticmethod
     def initialize_optimizable_params(fixed_params):
         num_points = fixed_params["xs"].size
@@ -307,7 +305,8 @@ class PointDensity(Distribution, Optimizable):
         return {"xs": scale.normalize_points(fixed_params["xs"])}
 
     # Export
-    def to_lists(self, metaculus_denorm=False):
+
+    def to_arrays(self, metaculus_denorm=False):
         xs = self.scale.denormalize_points(self.normed_xs)
 
         if metaculus_denorm:
@@ -331,32 +330,21 @@ class PointDensity(Distribution, Optimizable):
         return xs, densities
 
     def to_pairs(self, metaculus_denorm=False):
-        xs, densities = self.to_lists(metaculus_denorm)
+        xs, densities = self.to_arrays(metaculus_denorm)
         pairs = [
             {"x": float(x), "density": float(density)}
             for x, density in zip(xs, densities)
         ]
         return pairs
 
-    def to_arrays(self, metaculus_denorm=False):
-        xs, densities = self.to_lists(metaculus_denorm)
-        return xs, densities
-
     # Condition Methods
 
     def entropy(self):
         return -np.dot(self.bin_probs, np.log(self.bin_probs))
 
-    # def entropy(self):
-    #     return -np.dot(self.normed_densities, np.log(self.normed_densities))
-
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
         return -np.dot(self.bin_probs, np.log(q_dist.bin_probs))
-
-    def cross_entropy_density(self, q_dist):
-        # We assume that the distributions are on the same scale!
-        return -np.dot(self.normed_densities, q_dist.normed_log_densities)
 
     def mean(self):
         normed_mean = np.dot(self.normed_xs, self.bin_probs)
@@ -364,5 +352,7 @@ class PointDensity(Distribution, Optimizable):
 
     def variance(self):
         normed_mean = np.dot(self.normed_xs, self.bin_probs)
-        normed_variance = np.dot(self.bin_probs, np.square(self.normed_xs - normed_mean))
+        normed_variance = np.dot(
+            self.bin_probs, np.square(self.normed_xs - normed_mean)
+        )
         return self.scale.denormalize_variance(normed_variance)
