@@ -235,7 +235,6 @@ class PointDensity(Distribution, Optimizable):
         target_xs = (grid[1:] + grid[:-1]) / 2
 
         if allow_non_standard_pairs:
-
             # interpolate ps at target_xs
             if not (
                 len(xs) == len(target_xs)
@@ -301,11 +300,24 @@ class PointDensity(Distribution, Optimizable):
     def to_lists(self, metaculus_denorm=False):
         xs = self.scale.denormalize_points(self.normed_xs)
 
-        densities = (
-            self.normed_densities
-            if metaculus_denorm
-            else self.scale.denormalize_densities(xs, self.normed_densities)
-        )
+        # Make sure points cover whole scale
+        if metaculus_denorm:
+            densities = self.normed_densities
+            if xs[0] != 0:
+                density = (densities[0] - densities[1]) / 2 + densities[0] 
+                clamped_density = onp.maximum(density, 0)
+
+                xs = onp.append(onp.array([self.scale.low]), xs)
+                densities = onp.append(np.array([clamped_density]), densities)
+            if xs[-1] != 1:
+                density = (densities[-1] - densities[-2]) / 2 + densities[-1] 
+                clamped_density = onp.maximum(density, 0)
+
+                xs = onp.append(xs, onp.array([self.scale.high]))
+                densities = onp.append(densities, np.array([clamped_density]))
+        else:
+            densities = self.scale.denormalize_densities(xs, self.normed_densities)
+
         return xs, densities
 
     def to_pairs(self, metaculus_denorm=False):
