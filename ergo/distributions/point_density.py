@@ -300,16 +300,16 @@ class PointDensity(Distribution, Optimizable):
     def to_lists(self, metaculus_denorm=False):
         xs = self.scale.denormalize_points(self.normed_xs)
 
-        # Make sure points cover whole scale
         if metaculus_denorm:
+            # Make sure points cover whole scale, return normed densities
             densities = self.normed_densities
-            if xs[0] != 0:
+            if xs[0] != self.scale.low:
                 density = (densities[0] - densities[1]) / 2 + densities[0] 
                 clamped_density = onp.maximum(density, 0)
 
                 xs = onp.append(onp.array([self.scale.low]), xs)
                 densities = onp.append(np.array([clamped_density]), densities)
-            if xs[-1] != 1:
+            if xs[-1] != self.scale.high:
                 density = (densities[-1] - densities[-2]) / 2 + densities[-1] 
                 clamped_density = onp.maximum(density, 0)
 
