@@ -359,10 +359,10 @@ class PointDensity(Distribution, Optimizable):
         return -np.dot(self.normed_densities, q_dist.normed_log_densities)
 
     def mean(self):
-        normed_mean = np.dot(self.bin_xs, self.bin_probs)
+        normed_mean = np.dot(self.normed_xs, self.bin_probs)
         return self.scale.denormalize_point(normed_mean)
 
     def variance(self):
-        normed_mean = np.dot(self.bin_xs, self.bin_probs)
-        normed_variance = np.dot(self.bin_probs, np.square(self.bin_xs - normed_mean))
+        normed_mean = np.dot(self.normed_xs, self.bin_probs)
+        normed_variance = np.dot(self.bin_probs, np.square(self.normed_xs - normed_mean))
         return self.scale.denormalize_variance(normed_variance)
