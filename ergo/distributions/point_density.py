@@ -40,8 +40,8 @@ class PointDensity(Distribution, Optimizable):
         self.scale = scale
         init_np = np if traceable else onp
 
-        xs = np.array(xs)
-        densities = np.array(densities)
+        xs = init_np.array(xs)
+        densities = init_np.array(densities)
 
         if normalized:
             self.normed_xs = xs
@@ -54,16 +54,18 @@ class PointDensity(Distribution, Optimizable):
         # print(auc)
 
         # self.normed_densities /= trapz(self.normed_densities, x=self.normed_xs)
-        self.bin_sizes = np.full(self.normed_xs.size, 1 / self.normed_xs.size)
+        self.bin_sizes = init_np.full(self.normed_xs.size, 1 / self.normed_xs.size)
         self.bin_probs = self.normed_densities * self.bin_sizes
-        print(f"sum of bin probs is: {np.sum(self.bin_probs)}")
+        # print(f"sum of bin probs is: {np.sum(self.bin_probs)}")
 
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
 
         else:
-            self.cumulative_normed_ps = init_np.cumsum(self.bin_probs)
-        self.normed_log_densities = np.log(self.normed_densities)
+            self.cumulative_normed_ps = (
+                init_np.cumsum(self.bin_probs) - self.bin_probs / 2
+            )
+        self.normed_log_densities = init_np.log(self.normed_densities)
 
     # Distribution
 
@@ -77,12 +79,14 @@ class PointDensity(Distribution, Optimizable):
         """
 
         x = self.scale.normalize_point(x)
-        bin = np.maximum(np.argmax(self.normed_xs >= x) - 1, 0)
+        bin = np.argmin(np.abs(self.normed_xs - x))
+        # bin = np.where(x > self.normed_xs[-1], -1, np.argmax(self.normed_xs >= x))
         return np.where(
             (x < 0) | (x > 1),
             0,
             self.scale.denormalize_density(
-                self.normed_xs[bin], self.normed_densities[bin]
+                self.scale.denormalize_point(self.normed_xs[bin]),
+                self.normed_densities[bin],
             ),
         )
 
@@ -133,7 +137,8 @@ class PointDensity(Distribution, Optimizable):
 
     def cdf(self, x):
         x = self.scale.normalize_point(x)
-        bin = np.maximum(np.argmax(self.normed_xs >= x) - 1, 0)
+        # bin = np.where(x > self.normed_xs[-1], -1, np.argmax(self.normed_xs >= x))
+        bin = np.argmin(np.abs(self.normed_xs - x))
         return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
 
         # normed_x = self.scale.normalize_point(x)
@@ -160,11 +165,7 @@ class PointDensity(Distribution, Optimizable):
         # )
 
     def ppf(self, q):
-        bin = np.where(
-            q > self.cumulative_normed_ps[-1],
-            self.cumulative_normed_ps.size - 1,
-            np.argmax(self.cumulative_normed_ps >= q),
-        )
+        bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
         return self.scale.denormalize_point(self.normed_xs[bin])
 
         """
@@ -229,8 +230,12 @@ class PointDensity(Distribution, Optimizable):
         cls, pairs, scale: Scale, normalized=False, allow_non_standard_pairs=True
     ):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
-        xs = [x for (x, density) in sorted_pairs]
-        densities = [density for (x, density) in sorted_pairs]
+        xs = np.array([x for (x, density) in sorted_pairs])
+        densities = np.array([density for (x, density) in sorted_pairs])
+        if not normalized:
+            xs = scale.normalize_points(xs)
+            densities = scale.normalize_densities(xs, densities)
+
         grid = onp.linspace(0, 1, constants.point_density_default_num_points)
         target_xs = (grid[1:] + grid[:-1]) / 2
 
@@ -240,10 +245,15 @@ class PointDensity(Distribution, Optimizable):
                 len(xs) == len(target_xs)
                 and np.isclose(xs, target_xs, rtol=1e-04).all()
             ):
+                # print(f'xs size {xs.size} dsize {densities.size}')
                 f = interp1d(xs, densities)
                 densities = f(target_xs)
 
-        return cls(target_xs, densities, scale=scale, normalized=normalized)
+        # Make sure AUC is 1
+        auc = np.sum(densities) / densities.size
+        densities /= auc
+
+        return cls(target_xs, densities, scale=scale, normalized=True)
 
     # Optimizable
 
@@ -304,13 +314,13 @@ class PointDensity(Distribution, Optimizable):
             # Make sure points cover whole scale, return normed densities
             densities = self.normed_densities
             if xs[0] != self.scale.low:
-                density = (densities[0] - densities[1]) / 2 + densities[0] 
+                density = (densities[0] - densities[1]) / 2 + densities[0]
                 clamped_density = onp.maximum(density, 0)
 
                 xs = onp.append(onp.array([self.scale.low]), xs)
                 densities = onp.append(np.array([clamped_density]), densities)
             if xs[-1] != self.scale.high:
-                density = (densities[-1] - densities[-2]) / 2 + densities[-1] 
+                density = (densities[-1] - densities[-2]) / 2 + densities[-1]
                 clamped_density = onp.maximum(density, 0)
 
                 xs = onp.append(xs, onp.array([self.scale.high]))

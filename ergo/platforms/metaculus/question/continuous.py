@@ -203,7 +203,7 @@ class ContinuousQuestion(MetaculusQuestion):
             return [
                 {
                     "x": self.scale.denormalize_point(float(v[0])),
-                    "density": v[2] / self.scale.width,
+                    "density": self.scale.denormalize_density(float(v[2])),
                 }
                 for v in self.prediction_histogram
             ]

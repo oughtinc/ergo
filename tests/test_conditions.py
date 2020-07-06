@@ -365,7 +365,6 @@ def test_fit_point_density_regression_p_in_range():
     assert pointdensity_dist.cdf(1) == pytest.approx(1, abs=1e-4)
 
 
-# @pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
 @pytest.mark.look
 def test_fit_point_density_regression_1():
     """

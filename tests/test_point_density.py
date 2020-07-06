@@ -20,16 +20,20 @@ from tests.conftest import scales_to_test
     ["direct", "from_pairs", "structured", "denormalized", "from_conditions"],
 )
 def test_point_density(scale, dist_source):
-    NUM_POINTS = 100
+    NUM_POINTS = 200
 
     rv = logistic(loc=2.5, scale=0.15)
-    xs_normed = np.linspace(0, 1, NUM_POINTS)
-    xs = scale.denormalize_points(xs_normed)
+    xs_normed = np.linspace(0, 1, NUM_POINTS + 1)
+    xs_grid_normed = (xs_normed[:-1] + xs_normed[1:]) / 2
+    xs = scale.denormalize_points(xs_grid_normed)
 
     orig_densities = rv.pdf(xs)
     orig_cdfs = rv.cdf(xs)
 
-    direct_dist = PointDensity(xs, orig_densities, scale)
+    orig_pairs = [
+        {"x": x, "density": density} for (x, density) in zip(xs, orig_densities)
+    ]
+    direct_dist = PointDensity.from_pairs(orig_pairs, scale)
 
     if dist_source == "direct":
         dist = direct_dist
@@ -47,16 +51,28 @@ def test_point_density(scale, dist_source):
         dist = direct_dist.normalize().denormalize(scale)
     elif dist_source == "from_conditions":
         cond = CrossEntropyCondition(p_dist=direct_dist)
-        dist = PointDensity.from_conditions(
-            [cond], fixed_params={"xs": xs}, scale=scale
-        )
+        dist = PointDensity.from_conditions([cond], scale=scale)
 
+    print(f"source: {dist_source} scale: {scale}")
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
+    print(f"max pdf diff: {np.max(np.abs(dist_densities-orig_densities))}")
+    """
+    idx = np.argmax(np.abs(dist_densities-orig_densities))
+    print(f'idx {idx} dist {dist_densities[idx]} orig {orig_densities[idx]}')
+    print(f'pdf diffs: {dist_densities-orig_densities}')
+    import pdb; pdb.set_trace()
+    """
     assert dist_densities == pytest.approx(orig_densities, abs=0.01)
 
     # CDF
     dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
+    print(f"max cdf diff: {np.max(np.abs(dist_cdfs-orig_cdfs))}")
+    """
+    idx = np.argmax(np.abs(dist_cdfs - orig_cdfs))
+    print(f'idx {idx} dist {dist_cdfs[idx]} orig {orig_cdfs[idx]}')
+    print(f'cdf diffs: {dist_cdfs-orig_cdfs}')
+    """
     assert dist_cdfs == pytest.approx(orig_cdfs, abs=0.05)
 
     # PPF has low resolution at the low end (because distribution is
@@ -65,6 +81,7 @@ def test_point_density(scale, dist_source):
     MIN_CHECK_DENSITY = 1e-3
     check_idxs = [i for i in range(NUM_POINTS) if orig_densities[i] > MIN_CHECK_DENSITY]
     dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[check_idxs]])
+    print(f"max ppf diff: {np.max(np.abs(dist_ppfs-xs[check_idxs]))}")
     assert dist_ppfs == pytest.approx(xs[check_idxs], abs=0.1)
 
 
