@@ -3,13 +3,15 @@ from dataclasses import dataclass
 from jax import nn
 import jax.numpy as np
 import numpy as onp
+from scipy.interpolate import interp1d
 
 from ergo.scale import Scale
-# from ergo.utils import trapz
 
 from . import constants
 from .distribution import Distribution
 from .optimizable import Optimizable
+
+# from ergo.utils import trapz
 
 
 @dataclass
@@ -165,7 +167,7 @@ class PointDensity(Distribution, Optimizable):
         )
         return self.scale.denormalize_point(self.normed_xs[bin])
 
-        """ 
+        """
         low_idx = np.argmax(self.cumulative_normed_ps >= q)
         high_idx = low_idx + 1
         low_x = self.normed_xs[low_idx]
@@ -220,6 +222,30 @@ class PointDensity(Distribution, Optimizable):
         numeric_params = (self_numeric, scale_numeric)
         return (class_params, numeric_params)
 
+    # Create
+
+    @classmethod
+    def from_pairs(
+        cls, pairs, scale: Scale, normalized=False, allow_non_standard_pairs=True
+    ):
+        sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
+        xs = [x for (x, density) in sorted_pairs]
+        densities = [density for (x, density) in sorted_pairs]
+        grid = onp.linspace(0, 1, constants.point_density_default_num_points)
+        target_xs = (grid[1:] + grid[:-1]) / 2
+
+        if allow_non_standard_pairs:
+
+            # interpolate ps at target_xs
+            if not (
+                len(xs) == len(target_xs)
+                and np.isclose(xs, target_xs, rtol=1e-04).all()
+            ):
+                f = interp1d(xs, densities)
+                densities = f(target_xs)
+
+        return cls(target_xs, densities, scale=scale, normalized=normalized)
+
     # Optimizable
 
     @classmethod
@@ -234,11 +260,16 @@ class PointDensity(Distribution, Optimizable):
         if scale is None:
             # TODO: Should we do this?
             scale = Scale(0, 1)
+
+        grid = np.linspace(0, 1, num_points)
+        target_xs = (grid[1:] + grid[:-1]) / 2
+
         if fixed_params is None:
-            grid = np.linspace(0, 1, num_points)
-            midpoints = (grid[1:] + grid[:-1]) / 2
             # TODO: Seems weird to denormalize when will be normalized in normalize_fixed_params
-            fixed_params = {"xs": scale.denormalize_points(midpoints)}
+            fixed_params = {"xs": scale.denormalize_points(target_xs)}
+        else:
+            raise Exception("Point Density does not accept custom xs specifications")
+            # fixed_params = {"xs": scale.denormalize_points(target_xs)}
         return super(PointDensity, cls).from_conditions(
             *args, fixed_params=fixed_params, scale=scale, **kwargs
         )
@@ -267,14 +298,6 @@ class PointDensity(Distribution, Optimizable):
         return {"xs": scale.normalize_points(fixed_params["xs"])}
 
     # Export
-
-    @classmethod
-    def from_pairs(cls, pairs, scale: Scale, normalized=False):
-        sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
-        xs = [x for (x, density) in sorted_pairs]
-        densities = [density for (x, density) in sorted_pairs]
-        return cls(xs, densities, scale=scale, normalized=normalized)
-
     def to_lists(self, metaculus_denorm=False):
         xs = self.scale.denormalize_points(self.normed_xs)
 

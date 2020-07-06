@@ -131,8 +131,8 @@ def test_point_density_ppf(scale: Scale):
 @pytest.mark.parametrize("scale", scales_to_test)
 def test_interval_plus_entropy(scale: Scale):
     NUM_POINTS = 11
-    
-    '''
+
+    """
     HANDPICKED_PAIRS = [
         {"x": 0, "density": 5 / 3},
         {"x": 0.1, "density": 5 / 3},
@@ -148,7 +148,7 @@ def test_interval_plus_entropy(scale: Scale):
     ]
 
     handpicked_dist = PointDensity.from_pairs(HANDPICKED_PAIRS, scale, normalized=True)
-    '''
+    """
 
     conditions = [
         IntervalCondition(p=0.5, max=scale.denormalize_point(0.3)),
@@ -166,10 +166,10 @@ def test_interval_plus_entropy(scale: Scale):
             loss += condition.loss(dist)
         print(f"nd: {dist.normed_densities} total loss: {loss}")
 
-    '''
+    """
     print("evaluating handpicked dist")
     evaluate_dist(handpicked_dist)
-    '''
+    """
     print("evaluating fitted dist")
     evaluate_dist(fitted_dist)
     print(
