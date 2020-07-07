@@ -53,10 +53,10 @@ def test_point_density(scale, dist_source):
         cond = CrossEntropyCondition(p_dist=direct_dist)
         dist = PointDensity.from_conditions([cond], scale=scale)
 
-    print(f"source: {dist_source} scale: {scale}")
+    # print(f"source: {dist_source} scale: {scale}")
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
-    print(f"max pdf diff: {np.max(np.abs(dist_densities-orig_densities))}")
+    # print(f"max pdf diff: {np.max(np.abs(dist_densities-orig_densities))}")
     """
     idx = np.argmax(np.abs(dist_densities-orig_densities))
     print(f'idx {idx} dist {dist_densities[idx]} orig {orig_densities[idx]}')
@@ -67,7 +67,7 @@ def test_point_density(scale, dist_source):
 
     # CDF
     dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
-    print(f"max cdf diff: {np.max(np.abs(dist_cdfs-orig_cdfs))}")
+    # print(f"max cdf diff: {np.max(np.abs(dist_cdfs-orig_cdfs))}")
     """
     idx = np.argmax(np.abs(dist_cdfs - orig_cdfs))
     print(f'idx {idx} dist {dist_cdfs[idx]} orig {orig_cdfs[idx]}')
@@ -81,7 +81,7 @@ def test_point_density(scale, dist_source):
     MIN_CHECK_DENSITY = 1e-3
     check_idxs = [i for i in range(NUM_POINTS) if orig_densities[i] > MIN_CHECK_DENSITY]
     dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[check_idxs]])
-    print(f"max ppf diff: {np.max(np.abs(dist_ppfs-xs[check_idxs]))}")
+    # print(f"max ppf diff: {np.max(np.abs(dist_ppfs-xs[check_idxs]))}")
     assert dist_ppfs == pytest.approx(xs[check_idxs], abs=0.1)
 
 
@@ -187,11 +187,7 @@ def test_interval_plus_entropy(scale: Scale):
     print("evaluating handpicked dist")
     evaluate_dist(handpicked_dist)
     """
-    print("evaluating fitted dist")
     evaluate_dist(fitted_dist)
-    print(
-        f"fitted dist midpoints: {(fitted_dist.normed_densities[1:] + fitted_dist.normed_densities[:-1]) / 2.0}"
-    )
     # We expect at most 3 different densities: one for inside the interval, one for outside,
     # and one between.
     assert np.unique(fitted_dist.normed_densities).size <= 3

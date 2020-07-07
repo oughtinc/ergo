@@ -56,13 +56,15 @@ class PointDensity(Distribution, Optimizable):
         self.bin_sizes = init_np.full(self.normed_xs.size, 1 / self.normed_xs.size)
         self.bin_probs = self.normed_densities * self.bin_sizes
         # print(f"sum of bin probs is: {np.sum(self.bin_probs)}")
+        self.grid = init_np.linspace(0, 1, self.normed_xs.size + 1)
 
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
 
         else:
-            self.cumulative_normed_ps = (
-                init_np.cumsum(self.bin_probs) - self.bin_probs / 2
+            self.cumulative_normed_ps = np.append(
+                np.array([0]),
+                init_np.cumsum(self.bin_probs)
             )
         self.normed_log_densities = init_np.log(self.normed_densities)
 
@@ -135,37 +137,30 @@ class PointDensity(Distribution, Optimizable):
         return np.log(self.pdf(x))
 
     def cdf(self, x):
+        '''
         x = self.scale.normalize_point(x)
         # bin = np.where(x > self.normed_xs[-1], -1, np.argmax(self.normed_xs >= x))
         bin = np.argmin(np.abs(self.normed_xs - x))
         return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
+        '''
 
-        # normed_x = self.scale.normalize_point(x)
-        # normed_x_density = self.scale.normalize_density(normed_x, self.pdf(x))
+        normed_x = self.scale.normalize_point(x)
 
-        # def in_range_cdf(normed_x):
-        #     bin = np.where(
-        #         normed_x < self.normed_xs[-1],
-        #         np.argmax(self.normed_xs > normed_x) - 1,
-        #         self.normed_xs.size - 1,
-        #     )
-        #     c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin - 1], 0)
-        #     c_in_bin = (
-        #         (normed_x_density + self.normed_densities[bin])
-        #         / 2.0
-        #         * (normed_x - self.normed_xs[bin])
-        #     )
-        #     return c_below_bin + c_in_bin
+        def in_range_cdf(normed_x):
+            bin = np.argmax(self.grid > normed_x) - 1
+            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin], 0)
+            c_in_bin = self.normed_densities[bin] * (normed_x - self.grid[bin])
+            return c_below_bin + c_in_bin
 
-        # return np.where(
-        #     normed_x < self.normed_xs[0],
-        #     0,
-        #     np.where(normed_x > self.normed_xs[-1], 1, in_range_cdf(normed_x)),
-        # )
+        return np.where(
+            normed_x <= self.grid[0],
+            0,
+            np.where(normed_x >= self.grid[-1], 1, in_range_cdf(normed_x)),
+        )
 
     def ppf(self, q):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
-        return self.scale.denormalize_point(self.normed_xs[bin])
+        return self.scale.denormalize_point(self.grid[bin])
 
         """
         low_idx = np.argmax(self.cumulative_normed_ps >= q)
