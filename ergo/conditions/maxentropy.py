@@ -10,3 +10,6 @@ class MaxEntropyCondition(condition.Condition):
 
     def __str__(self):
         return "Maximize the entropy of the distribution"
+
+    def __repr__(self):
+        return f"MaxEntropyCondition(weight:{self.weight})"

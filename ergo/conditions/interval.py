@@ -64,3 +64,6 @@ class IntervalCondition(condition.Condition):
 
     def __str__(self):
         return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"
+
+    def __repr__(self):
+        return f"IntervalCondition(p:{self.p}, min:{self.min}, max:{self.max}, weight:{self.weight})"

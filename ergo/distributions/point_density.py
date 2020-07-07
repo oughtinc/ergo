@@ -63,8 +63,7 @@ class PointDensity(Distribution, Optimizable):
 
         else:
             self.cumulative_normed_ps = np.append(
-                np.array([0]),
-                init_np.cumsum(self.bin_probs)
+                np.array([0]), init_np.cumsum(self.bin_probs)
             )
         self.normed_log_densities = init_np.log(self.normed_densities)
 
@@ -137,12 +136,12 @@ class PointDensity(Distribution, Optimizable):
         return np.log(self.pdf(x))
 
     def cdf(self, x):
-        '''
+        """
         x = self.scale.normalize_point(x)
         # bin = np.where(x > self.normed_xs[-1], -1, np.argmax(self.normed_xs >= x))
         bin = np.argmin(np.abs(self.normed_xs - x))
         return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
-        '''
+        """
 
         normed_x = self.scale.normalize_point(x)
 
