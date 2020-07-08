@@ -38,9 +38,6 @@ class PointDensity(Distribution, Optimizable):
         self.scale = scale
         init_np = np if traceable else onp
 
-        xs = init_np.array(xs)
-        densities = init_np.array(densities)
-
         if normalized:
             self.normed_xs = xs
             self.normed_densities = densities
@@ -49,16 +46,14 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
-        self.bin_sizes = init_np.full(self.normed_xs.size, 1 / self.normed_xs.size)
-        self.bin_probs = self.normed_densities * self.bin_sizes
-        self.grid = init_np.linspace(0, 1, self.normed_xs.size + 1)
+        self.bin_probs = self.normed_densities * constants.bin_sizes
 
         if cumulative_normed_ps is not None:
             self.cumulative_normed_ps = cumulative_normed_ps
 
         else:
-            self.cumulative_normed_ps = np.append(
-                np.array([0]), init_np.cumsum(self.bin_probs)
+            self.cumulative_normed_ps = init_np.append(
+                init_np.array([0]), init_np.cumsum(self.bin_probs)
             )
         self.normed_log_densities = init_np.log(self.normed_densities)
 
@@ -90,20 +85,20 @@ class PointDensity(Distribution, Optimizable):
         normed_x = self.scale.normalize_point(x)
 
         def in_range_cdf(normed_x):
-            bin = np.argmax(self.grid > normed_x) - 1
+            bin = np.argmax(constants.grid > normed_x) - 1
             c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin], 0)
-            c_in_bin = self.normed_densities[bin] * (normed_x - self.grid[bin])
+            c_in_bin = self.normed_densities[bin] * (normed_x - constants.grid[bin])
             return c_below_bin + c_in_bin
 
         return np.where(
-            normed_x <= self.grid[0],
+            normed_x <= constants.grid[0],
             0,
-            np.where(normed_x >= self.grid[-1], 1, in_range_cdf(normed_x)),
+            np.where(normed_x >= constants.grid[-1], 1, in_range_cdf(normed_x)),
         )
 
     def ppf(self, q):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
-        return self.scale.denormalize_point(self.grid[bin])
+        return self.scale.denormalize_point(constants.grid[bin])
 
     def sample(self):
         raise NotImplementedError
@@ -156,23 +151,20 @@ class PointDensity(Distribution, Optimizable):
             xs = scale.normalize_points(xs)
             densities = scale.normalize_densities(xs, densities)
 
-        grid = onp.linspace(0, 1, constants.point_density_default_num_points)
-        target_xs = (grid[1:] + grid[:-1]) / 2
-
         if allow_non_standard_pairs:
             # interpolate ps at target_xs
             if not (
-                len(xs) == len(target_xs)
-                and np.isclose(xs, target_xs, rtol=1e-04).all()
+                len(xs) == len(constants.target_xs)
+                and np.isclose(xs, constants.target_xs, rtol=1e-04).all()
             ):
                 f = interp1d(xs, densities)
-                densities = f(target_xs)
+                densities = f(constants.target_xs)
 
         # Make sure AUC is 1
         auc = np.sum(densities) / densities.size
         densities /= auc
 
-        return cls(target_xs, densities, scale=scale, normalized=True)
+        return cls(constants.target_xs, densities, scale=scale, normalized=True)
 
     @classmethod
     def from_conditions(
@@ -183,29 +175,19 @@ class PointDensity(Distribution, Optimizable):
         num_points=constants.point_density_default_num_points,
         **kwargs,
     ):
-        if scale is None:
-            # TODO: Should we do this?
-            scale = Scale(0, 1)
-
-        grid = np.linspace(0, 1, num_points)
-        target_xs = (grid[1:] + grid[:-1]) / 2
 
         if fixed_params is None:
             # TODO: Seems weird to denormalize when will be normalized in normalize_fixed_params
-            fixed_params = {"xs": scale.denormalize_points(target_xs)}
+            fixed_params = {"xs": scale.denormalize_points(constants.target_xs)}
         else:
             raise Exception("Point Density does not accept custom xs specifications")
-            # fixed_params = {"xs": scale.denormalize_points(target_xs)}
+
         return super(PointDensity, cls).from_conditions(
             *args, fixed_params=fixed_params, scale=scale, **kwargs
         )
 
     @classmethod
-    def from_params(cls, fixed_params, opt_params, scale=None, traceable=True):
-        # TODO: traceable is always True here
-        if scale is None:
-            # TODO: Should we do this?
-            scale = Scale(0, 1)
+    def from_params(cls, fixed_params, opt_params, scale=Scale(0, 1), traceable=True):
         xs = fixed_params["xs"]
         ps = nn.softmax(opt_params) * opt_params.size
         densities = ps
