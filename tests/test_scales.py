@@ -1,4 +1,9 @@
+import numpy as np
+import pytest
+import scipy.stats
+
 from ergo.scale import LogScale, Scale, TimeScale, scale_factory
+from tests.conftest import scales_to_test
 
 
 def test_serialization():
@@ -35,3 +40,17 @@ def test_export_import():
 
     linear_date_scale = TimeScale(low=631152000, high=946684800)
     assert (scale_factory(linear_date_scale.export())) == linear_date_scale
+
+
+@pytest.mark.look
+@pytest.mark.parametrize("scale", scales_to_test)
+def test_density_norm_denorm_roundtrip(scale: Scale):
+    rv = scipy.stats.logistic(loc=0.5, scale=0.15)
+    normed_xs = np.linspace(0.01, 1, 201)
+    normed_densities_truth_set = rv.pdf(normed_xs)
+    xs = scale.denormalize_points(normed_xs)
+
+    denormed_densities = scale.denormalize_densities(xs, normed_densities_truth_set)
+    normed_densities = scale.normalize_densities(normed_xs, denormed_densities)
+
+    assert np.allclose(normed_densities_truth_set, normed_densities)  # type: ignore
