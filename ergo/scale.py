@@ -3,7 +3,6 @@ from datetime import timedelta
 import time
 from typing import TypeVar
 
-from jax import grad, vmap
 import jax.numpy as np
 
 
@@ -85,11 +84,20 @@ class LogScale(Scale):
 
     def __post_init__(self):
         self.width = self.high - self.low
-        self.density_denorm = grad(self.normalize_point)
-        self.density_norm = grad(self.denormalize_point)
 
     def __hash__(self):
         return super().__hash__()
+
+    def density_denorm(self, true_x):
+        return (self.log_base - 1) / (
+            np.log(self.log_base)
+            * (self.log_base * (true_x - self.low) + self.high - true_x)
+        )
+
+    def density_norm(self, normed_x):
+        return (self.log_base ** normed_x * np.log(self.log_base) * (self.width)) / (
+            self.log_base - 1
+        )
 
     def normalize_density(self, normed_x, density):
         return density * self.density_norm(normed_x)
@@ -98,10 +106,10 @@ class LogScale(Scale):
         return density * self.density_denorm(true_x)
 
     def normalize_densities(self, normed_xs, densities):
-        return densities * vmap(self.density_norm)(normed_xs)
+        return densities * self.density_norm(normed_xs)
 
     def denormalize_densities(self, true_xs, densities):
-        return densities * vmap(self.density_denorm)(true_xs)
+        return densities * self.density_denorm(true_xs)
 
     def normalize_point(self, point):
         """
