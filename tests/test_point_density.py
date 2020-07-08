@@ -90,7 +90,7 @@ def test_density_frompairs():
 def test_density_percentile():
     for value in [0.01, 0.1, 0.5, 0.9]:
         conditions = [IntervalCondition(p=0.5, max=value)]
-        dist = PointDensity.from_conditions(conditions)
+        dist = PointDensity.from_conditions(conditions, scale=Scale(0, 1))
         assert dist.ppf(0.5) == pytest.approx(value, abs=0.1)
 
 

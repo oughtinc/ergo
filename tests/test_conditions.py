@@ -208,37 +208,45 @@ def test_weights_mixture():
 
 def test_mode_condition():
     base_conditions = [IntervalCondition(p=0.4, max=0.5)]
-    base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
+    base_dist = PointDensity.from_conditions(
+        base_conditions, verbose=True, scale=Scale(0, 1)
+    )
 
     # Most likely condition should increase chance of specified outcome
     outcome_conditions = base_conditions + [ModeCondition(outcome=0.25)]
-    outcome_dist = PointDensity.from_conditions(outcome_conditions, verbose=True)
+    outcome_dist = PointDensity.from_conditions(
+        outcome_conditions, verbose=True, scale=Scale(0, 1)
+    )
     assert outcome_dist.pdf(0.25) > base_dist.pdf(0.25)
 
     # Highly weighted most likely condition should make specified outcome most likely
     strong_condition = ModeCondition(outcome=0.25, weight=100000)
     strong_outcome_conditions = base_conditions + [strong_condition]
     strong_outcome_dist = PointDensity.from_conditions(
-        strong_outcome_conditions, verbose=True
+        strong_outcome_conditions, verbose=True, scale=Scale(0, 1)
     )
     assert strong_condition.loss(strong_outcome_dist) == pytest.approx(0, abs=0.001)
 
 
 def test_mean_condition():
     base_conditions = [MaxEntropyCondition(weight=0.1)]
-    base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
+    base_dist = PointDensity.from_conditions(
+        base_conditions, verbose=True, scale=Scale(0, 1)
+    )
     base_mean = base_dist.mean()
 
     # Mean condition should move mean closer to specified mean
     mean_conditions = base_conditions + [MeanCondition(mean=0.25, weight=1)]
-    mean_dist = PointDensity.from_conditions(mean_conditions, verbose=True)
+    mean_dist = PointDensity.from_conditions(
+        mean_conditions, verbose=True, scale=Scale(0, 1)
+    )
     assert abs(mean_dist.mean() - 0.25) < abs(base_mean - 0.25)
 
     # Highly weighted mean condition should make mean very close to specified mean
     strong_condition = MeanCondition(mean=0.25, weight=100000)
     strong_mean_conditions = base_conditions + [strong_condition]
     strong_mean_dist = PointDensity.from_conditions(
-        strong_mean_conditions, verbose=True
+        strong_mean_conditions, verbose=True, scale=Scale(0, 1)
     )
     assert strong_mean_dist.mean() == pytest.approx(0.25, rel=0.01)
 
@@ -249,20 +257,26 @@ def test_variance_condition():
         SmoothnessCondition(),
         IntervalCondition(p=0.95, min=0.3, max=0.7),
     ]
-    base_dist = PointDensity.from_conditions(base_conditions, verbose=True)
+    base_dist = PointDensity.from_conditions(
+        base_conditions, verbose=True, scale=Scale(0, 1)
+    )
     base_variance = base_dist.variance()
     increased_variance = base_variance + 0.01
 
     # Increase in variance should decrease peak
     var_condition = VarianceCondition(variance=increased_variance, weight=1)
     var_conditions = base_conditions + [var_condition]
-    var_dist = PointDensity.from_conditions(var_conditions, verbose=True)
+    var_dist = PointDensity.from_conditions(
+        var_conditions, verbose=True, scale=Scale(0, 1)
+    )
     assert np.max(var_dist.normed_densities) < np.max(base_dist.normed_densities)
 
     # Highly weighted variance condition should make var very close to specified var
     strong_condition = VarianceCondition(variance=increased_variance, weight=100000)
     strong_var_conditions = base_conditions + [strong_condition]
-    strong_var_dist = PointDensity.from_conditions(strong_var_conditions, verbose=True)
+    strong_var_dist = PointDensity.from_conditions(
+        strong_var_conditions, verbose=True, scale=Scale(0, 1)
+    )
     assert strong_var_dist.variance() == pytest.approx(
         float(increased_variance), abs=0.001
     )
@@ -279,7 +293,7 @@ def test_mixed_1(point_densities):
         PointDensityCondition(point_densities["xs"], point_densities["densities"]),
     )
     dist = LogisticMixture.from_conditions(
-        conditions, {"num_components": 3}, verbose=True
+        conditions, {"num_components": 3}, verbose=True, scale=Scale(0, 1)
     )
     assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf(6) == pytest.approx(0, abs=0.1)
@@ -309,7 +323,7 @@ def test_mixed_2(point_densities):
         IntervalCondition(p=0.9, max=2.3),
     )
     dist = LogisticMixture.from_conditions(
-        conditions, {"num_components": 3}, verbose=True
+        conditions, {"num_components": 3}, verbose=True, scale=Scale(0, 1)
     )
     assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf(6) == pytest.approx(0, abs=0.1)
@@ -359,13 +373,12 @@ def test_fit_point_density_regression_p_in_range():
     https://docs.google.com/document/d/1CFklTKtbKzXi6-lRaEsX4ZiY3Yzpbfdg7i2j1NvKP34/edit#heading=h.lypz52bknpyq
     """
     pointdensity_dist = PointDensity.from_conditions(
-        conditions=[IntervalCondition(min=0, max=1, p=0.5)]
+        conditions=[IntervalCondition(min=0, max=1, p=0.5)], scale=Scale(0, 1)
     )
 
     assert pointdensity_dist.cdf(1) == pytest.approx(1, abs=1e-4)
 
 
-@pytest.mark.look
 def test_fit_point_density_regression_1():
     """
     Regression test for bug: "This custom question has a weird histogram - why?"
