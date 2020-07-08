@@ -84,28 +84,12 @@ class LogScale(Scale):
     log_base: float
 
     def __post_init__(self):
-        # if self.log_base < 1:
-        #     raise ValueError(f"log_Base must be > 1, was {self.log_base}")
         self.width = self.high - self.low
         self.density_denorm = grad(self.normalize_point)
         self.density_norm = grad(self.denormalize_point)
 
     def __hash__(self):
         return super().__hash__()
-
-    # def normalize_density(self, original_x, density):
-    #     normed_x = self.normalize_point(original_x)
-    #     normed_xbar = normed_x + 0.001
-    #     original_xbar = self.denormalize_point(normed_xbar)
-    #     density_ratio = (original_xbar - original_x) / (normed_xbar - normed_x)
-    #     return density * density_ratio
-
-    # def denormalize_density(self, normed_x, density):
-    #     original_x = self.denormalize_point(normed_x)
-    #     normed_xbar = normed_x + 0.001
-    #     original_xbar = self.denormalize_point(normed_xbar)
-    #     density_ratio = (normed_xbar - normed_x) / (original_xbar - original_x)
-    #     return density * density_ratio
 
     def normalize_density(self, normed_x, density):
         return density * self.density_norm(normed_x)

@@ -57,22 +57,11 @@ def test_point_density(scale, dist_source):
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
     # print(f"max pdf diff: {np.max(np.abs(dist_densities-orig_densities))}")
-    """
-    idx = np.argmax(np.abs(dist_densities-orig_densities))
-    print(f'idx {idx} dist {dist_densities[idx]} orig {orig_densities[idx]}')
-    print(f'pdf diffs: {dist_densities-orig_densities}')
-    import pdb; pdb.set_trace()
-    """
     assert dist_densities == pytest.approx(orig_densities, abs=0.01)
 
     # CDF
     dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
     # print(f"max cdf diff: {np.max(np.abs(dist_cdfs-orig_cdfs))}")
-    """
-    idx = np.argmax(np.abs(dist_cdfs - orig_cdfs))
-    print(f'idx {idx} dist {dist_cdfs[idx]} orig {orig_cdfs[idx]}')
-    print(f'cdf diffs: {dist_cdfs-orig_cdfs}')
-    """
     assert dist_cdfs == pytest.approx(orig_cdfs, abs=0.05)
 
     # PPF has low resolution at the low end (because distribution is

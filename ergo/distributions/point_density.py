@@ -11,8 +11,6 @@ from . import constants
 from .distribution import Distribution
 from .optimizable import Optimizable
 
-# from ergo.utils import trapz
-
 
 @dataclass
 class PointDensity(Distribution, Optimizable):
@@ -50,12 +48,9 @@ class PointDensity(Distribution, Optimizable):
         else:
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
-        # auc =  trapz(self.normed_densities, x=self.normed_xs)
-        # print(auc)
 
         self.bin_sizes = init_np.full(self.normed_xs.size, 1 / self.normed_xs.size)
         self.bin_probs = self.normed_densities * self.bin_sizes
-        # print(f"sum of bin probs is: {np.sum(self.bin_probs)}")
         self.grid = init_np.linspace(0, 1, self.normed_xs.size + 1)
 
         if cumulative_normed_ps is not None:
@@ -77,10 +72,8 @@ class PointDensity(Distribution, Optimizable):
 
         :param x: The point in the distribution to get the density at
         """
-
         x = self.scale.normalize_point(x)
         bin = np.argmin(np.abs(self.normed_xs - x))
-        # bin = np.where(x > self.normed_xs[-1], -1, np.argmax(self.normed_xs >= x))
         return np.where(
             (x < 0) | (x > 1),
             0,
@@ -90,59 +83,10 @@ class PointDensity(Distribution, Optimizable):
             ),
         )
 
-        """
-        normed_x = self.scale.normalize_point(x)
-
-        def in_range_pdf(normed_x):
-            low_idx = np.argmax(self.normed_xs > normed_x) - 1
-            high_idx = low_idx + 1
-            low_density = self.normed_densities[low_idx]
-            high_density = self.normed_densities[high_idx]
-            low_x = self.normed_xs[low_idx]
-            high_x = self.normed_xs[high_idx]
-            dist = high_x - low_x
-            normed_density = (normed_x - low_x) / dist * high_density + (
-                high_x - normed_x
-            ) / dist * low_density
-            return self.scale.denormalize_density(
-                self.scale.denormalize_point(normed_x), normed_density
-            )
-
-        def out_of_range_pdf(normed_x):
-            return np.where(
-                normed_x == self.normed_xs[0],
-                self.scale.denormalize_density(
-                    self.scale.denormalize_point(self.normed_xs[0]),
-                    self.normed_densities[0],
-                ),
-                np.where(
-                    normed_x == self.normed_xs[-1],
-                    self.scale.denormalize_density(
-                        self.scale.denormalize_point(self.normed_xs[-1]),
-                        self.normed_densities[-1],
-                    ),
-                    0,
-                ),
-            )
-
-        return np.where(
-            (normed_x <= self.normed_xs[0]) | (normed_x >= self.normed_xs[-1]),
-            out_of_range_pdf(normed_x),
-            in_range_pdf(normed_x),
-        )
-        """
-
     def logpdf(self, x):
         return np.log(self.pdf(x))
 
     def cdf(self, x):
-        """
-        x = self.scale.normalize_point(x)
-        # bin = np.where(x > self.normed_xs[-1], -1, np.argmax(self.normed_xs >= x))
-        bin = np.argmin(np.abs(self.normed_xs - x))
-        return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
-        """
-
         normed_x = self.scale.normalize_point(x)
 
         def in_range_cdf(normed_x):
@@ -160,23 +104,6 @@ class PointDensity(Distribution, Optimizable):
     def ppf(self, q):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
         return self.scale.denormalize_point(self.grid[bin])
-
-        """
-        low_idx = np.argmax(self.cumulative_normed_ps >= q)
-        high_idx = low_idx + 1
-        low_x = self.normed_xs[low_idx]
-        high_x = self.normed_xs[np.minimum(high_idx, self.normed_xs.size - 1)]
-        low_cum = np.where(low_idx == 0, 0, self.cumulative_normed_ps[low_idx - 1])
-        high_cum = self.cumulative_normed_ps[high_idx - 1]
-        dist = high_cum - low_cum
-        normed_x = np.where(
-            dist == 0,
-            low_x,
-            (q - low_cum) / dist * high_x + (high_cum - q) / dist * low_x,
-        )
-        # TODO: change to denomrlize_points maybe?
-        return self.scale.denormalize_point(normed_x)
-        """
 
     def sample(self):
         raise NotImplementedError
@@ -280,7 +207,6 @@ class PointDensity(Distribution, Optimizable):
             # TODO: Should we do this?
             scale = Scale(0, 1)
         xs = fixed_params["xs"]
-        # ps = np.abs(opt_params)
         ps = nn.softmax(opt_params) * opt_params.size
         densities = ps
         return cls(
