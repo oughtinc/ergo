@@ -223,11 +223,8 @@ class ContinuousQuestion(MetaculusQuestion):
         return dist.PointDensity.from_pairs(histogram, self.scale, normalized=True)
 
     def community_conditions(self, community_weight=0.1, interval_weight=10000.0):
-        USE_CEC = True
-
         from ergo.conditions import (
             CrossEntropyCondition,
-            PointDensityCondition,
             IntervalCondition,
             Condition,
         )
@@ -239,14 +236,7 @@ class ContinuousQuestion(MetaculusQuestion):
             pairs, scale=self.scale, normalized=True
         )
 
-        if USE_CEC:
-            condition = CrossEntropyCondition(
-                point_density_dist, weight=community_weight
-            )
-
-        else:
-            xs, densities = point_density_dist.to_lists()
-            condition = PointDensityCondition(xs, densities)
+        condition = CrossEntropyCondition(point_density_dist, weight=community_weight)
 
         community_conditions: List[Condition] = [condition]
 
