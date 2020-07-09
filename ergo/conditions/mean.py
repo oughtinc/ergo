@@ -16,14 +16,6 @@ class MeanCondition(condition.Condition):
         super().__init__(weight)
 
     def actual_mean(self, dist) -> float:
-        # FIXME: Should be interacting with PointDensity via pdf
-        #        or similar public interface
-        """
-        xs = np.linspace(
-            dist.scale.low, dist.scale.high, dist.normed_densities.size
-        )  # FIXME: Denormalize densities?
-        return np.dot(dist.normed_densities, xs)
-        """
         return dist.mean()
 
     def loss(self, dist) -> float:
@@ -47,3 +39,6 @@ class MeanCondition(condition.Condition):
 
     def __str__(self):
         return f"The mean is {self.mean}."
+
+    def __repr__(self):
+        return f"MeanCondition(mean={self.mean}, weight={self.weight})"
