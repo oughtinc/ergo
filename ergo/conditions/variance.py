@@ -17,21 +17,8 @@ class VarianceCondition(condition.Condition):
         self.variance = variance
         super().__init__(weight)
 
-    def actual_variance(self, dist) -> float:
-        # FIXME: Should be interacting with PointDensity via pdf
-        #        or similar public interface
-        """
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.normed_densities.size)
-        mean = np.dot(dist.normed_densities, xs)
-        return np.dot(dist.normed_densities, np.square(xs - mean))
-        """
-        return dist.variance()
-
     def loss(self, dist) -> float:
-        return (
-            self.weight
-            * (np.log(self.actual_variance(dist)) - np.log(self.variance)) ** 2
-        )
+        return self.weight * (np.log(dist.variance()) - np.log(self.variance)) ** 2
 
     def _describe_fit(self, dist):
         description = super()._describe_fit(dist)
@@ -51,3 +38,6 @@ class VarianceCondition(condition.Condition):
 
     def __str__(self):
         return f"The variance is {self.variance}."
+
+    def __repr__(self):
+        return f"VarianceCondition(mean={self.variance}, weight={self.weight})"

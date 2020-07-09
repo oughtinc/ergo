@@ -12,7 +12,7 @@ def static_value(v):
     if isinstance(v, np.DeviceArray) or isinstance(v, onp.ndarray):
         return tuple(v)
     elif isinstance(v, tuple):
-        return tuple([static_value(element) for element in v])
+        return tuple(static_value(element) for element in v)
     else:
         return v
 

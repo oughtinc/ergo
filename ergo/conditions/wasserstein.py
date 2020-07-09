@@ -5,7 +5,7 @@ from . import condition
 
 
 class WassersteinCondition(condition.Condition):
-    p_dist: "point_density.PointDensity"
+    p_dist: point_density.PointDensity
     weight: float = 1.0
 
     def __init__(self, p_dist, weight=1.0):
