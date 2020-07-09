@@ -18,22 +18,22 @@ class ModeCondition(condition.Condition):
         super().__init__(weight)
 
     def loss(self, dist) -> float:
-        # FIXME: Should be interacting with PointDensity via pdf
-        #        or similar public interface
         p_outcome = dist.pdf(self.outcome)
         p_highest = np.max(
-            dist.normed_densities
-        )  # FIXME: Use scale denormalize_density?
+            dist.scale.denormalize_densities(
+                dist.scale.denormalize_points(dist.normed_xs), dist.normed_densities
+            )
+        )
         return self.weight * (p_highest - p_outcome) ** 2
 
     def _describe_fit(self, dist):
-        # FIXME: Should be interacting with PointDensity via pdf
-        #        or similar public interface
         description = super()._describe_fit(dist)
         description["p_outcome"] = dist.pdf(self.outcome)
         description["p_highest"] = np.max(
-            dist.normed_densities
-        )  # FIXME: Use scale denormalize_density?
+            dist.scale.denormalize_densities(
+                dist.scale.denormalize_points(dist.normed_xs), dist.normed_densities
+            )
+        )
         return description
 
     def normalize(self, scale: Scale):
@@ -49,3 +49,6 @@ class ModeCondition(condition.Condition):
 
     def __str__(self):
         return f"The most likely outcome is {self.outcome}."
+
+    def __repr__(self):
+        return f"ModeCondition(outcome={self.outcome}, weight={self.weight})"
