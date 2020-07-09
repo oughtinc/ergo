@@ -34,10 +34,10 @@ class Scale:
         return (point * self.width) + self.low
 
     def denormalize_points(self, points):
-        return np.array([self.denormalize_point(point) for point in points])
+        return self.denormalize_point(np.array(points))
 
     def normalize_points(self, points):
-        return np.array([self.normalize_point(point) for point in points])
+        return self.normalize_point(np.array(points))
 
     def normalize_variance(self, variance):
         if variance is None:

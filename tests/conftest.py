@@ -5,7 +5,6 @@ from typing import cast
 
 from dotenv import load_dotenv
 import jax.numpy as np
-import pandas as pd
 import pytest
 
 import ergo
@@ -167,7 +166,7 @@ def metaculus_questions(metaculus, log_question_data):
 @pytest.fixture(scope="module")
 def date_samples(metaculus_questions, normalized_logistic_mixture):
     return metaculus_questions.continuous_linear_date_open_question.denormalize_samples(
-        pd.Series([normalized_logistic_mixture.sample() for _ in range(0, 1000)])
+        np.array([normalized_logistic_mixture.sample() for _ in range(0, 1000)])
     )
 
 

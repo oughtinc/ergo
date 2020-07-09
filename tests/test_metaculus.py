@@ -30,7 +30,7 @@ def test_date_normalize_denormalize(metaculus_questions, date_samples):
 
 
 def test_normalize_denormalize(metaculus_questions):
-    samples = [0, 0.5, 1, 5, 10, 20]
+    samples = np.array([0, 0.5, 1, 5, 10, 20])
     normalized = metaculus_questions.log_question.normalize_samples(samples)
     denormalized = metaculus_questions.log_question.denormalize_samples(normalized)
     assert denormalized == pytest.approx(samples, abs=1e-5)
