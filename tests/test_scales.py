@@ -42,7 +42,6 @@ def test_export_import():
     assert (scale_factory(linear_date_scale.export())) == linear_date_scale
 
 
-@pytest.mark.look
 @pytest.mark.parametrize("scale", scales_to_test)
 def test_density_norm_denorm_roundtrip(scale: Scale):
     rv = scipy.stats.logistic(loc=0.5, scale=0.15)

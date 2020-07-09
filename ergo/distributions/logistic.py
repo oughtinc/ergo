@@ -66,10 +66,6 @@ class Logistic(Distribution):
 
     def logpdf(self, x):
         return np.log(self.pdf(x))
-        # TODO do this better
-        y = (self.scale.normalize_point(x) - self.loc) / self.s
-        logp = scipy.stats.logistic.logpdf(y) - np.log(self.s)
-        return logp - np.log(self.scale.norm_term)
 
     def cdf(self, x):
         y = (self.scale.normalize_point(x) - self.loc) / self.s

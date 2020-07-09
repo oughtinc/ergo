@@ -62,13 +62,13 @@ def single_condition_loss(
     dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     condition = cond_class[0].structure((cond_class, cond_param))
     loss = condition.loss(dist) * 100
-    # print(
-    #     f"Tracing {cond_class[0].__name__} loss for {dist_class.__name__} distribution:\n"
-    #     f"- Fixed: {dist_fixed_params}\n"
-    #     f"- Optim: {dist_opt_params}\n"
-    #     f"- Cond: {cond_param}\n"
-    #     f"- Loss: {loss}\n\n"
-    # )
+    print(
+        f"Tracing {cond_class[0].__name__} loss for {dist_class.__name__} distribution:\n"
+        f"- Fixed: {dist_fixed_params}\n"
+        f"- Optim: {dist_opt_params}\n"
+        f"- Cond: {cond_param}\n"
+        f"- Loss: {loss}\n\n"
+    )
     return loss
 
 

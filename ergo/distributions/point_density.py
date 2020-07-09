@@ -141,9 +141,7 @@ class PointDensity(Distribution, Optimizable):
     # Create
 
     @classmethod
-    def from_pairs(
-        cls, pairs, scale: Scale, normalized=False, allow_non_standard_pairs=True
-    ):
+    def from_pairs(cls, pairs, scale: Scale, normalized=False, interpolate=True):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = np.array([x for (x, density) in sorted_pairs])
         densities = np.array([density for (x, density) in sorted_pairs])
@@ -151,7 +149,7 @@ class PointDensity(Distribution, Optimizable):
             xs = scale.normalize_points(xs)
             densities = scale.normalize_densities(xs, densities)
 
-        if allow_non_standard_pairs:
+        if interpolate:
             # interpolate ps at target_xs
             if not (
                 len(xs) == len(constants.target_xs)
@@ -189,8 +187,8 @@ class PointDensity(Distribution, Optimizable):
     @classmethod
     def from_params(cls, fixed_params, opt_params, scale=Scale(0, 1), traceable=True):
         xs = fixed_params["xs"]
-        ps = nn.softmax(opt_params) * opt_params.size
-        densities = ps
+
+        densities = nn.softmax(opt_params) * opt_params.size
         return cls(
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
         )

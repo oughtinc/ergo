@@ -18,6 +18,7 @@ from .base import (
     random_integer,
     uniform,
 )
+from .constants import bin_sizes, grid, point_density_default_num_points, target_xs
 from .distribution import Distribution
 from .logistic import Logistic
 from .logistic_mixture import LogisticMixture

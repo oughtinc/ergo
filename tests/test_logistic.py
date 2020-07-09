@@ -169,10 +169,7 @@ def test_pdf(xscale: Scale):
         == pytest.approx(auc_mixture, abs=0.03)
     )
 
-    if isinstance(xscale, LogScale):
-        pass
-
-    else:
+    if not isinstance(xscale, LogScale):
         scipydist = scipy.stats.logistic(test_loc, test_s)
 
         for x in np.linspace(
@@ -185,7 +182,6 @@ def test_pdf(xscale: Scale):
             )
 
 
-@pytest.mark.look
 @pytest.mark.xfail(
     reason="We need to devise way of testing true pdf values for our 'log logistic'"
 )

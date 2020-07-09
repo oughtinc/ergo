@@ -206,6 +206,7 @@ def test_weights_mixture():
     assert dist.components[0].base_dist.true_loc == pytest.approx(2, rel=0.1)
 
 
+@pytest.mark.look
 def test_mode_condition():
     base_conditions = [IntervalCondition(p=0.4, max=0.5)]
     base_dist = PointDensity.from_conditions(
@@ -399,8 +400,6 @@ def test_fit_point_density_regression_1():
     pointdensity_dist = PointDensity.from_conditions(
         conditions, scale=Scale(low=0, high=52)
     )
-
-    # import pdb; pdb.set_trace()
 
     assert pointdensity_dist.cdf(2) == pytest.approx(0.25, abs=0.05)
     assert pointdensity_dist.ppf(0.9) == pytest.approx(6, abs=1)
