@@ -13,7 +13,6 @@ from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
 
 
-@pytest.mark.look
 @pytest.mark.parametrize(
     "scale", [Scale(0, 5), Scale(-1, 6), Scale(-3, 10), LogScale(0.01, 5, 500)],
 )
@@ -171,6 +170,22 @@ def test_interval_plus_entropy(scale: Scale):
     # We expect at most 3 different densities: one for inside the interval, one for outside,
     # and one between.
     assert np.unique(fitted_dist.normed_densities).size <= 3
+
+
+def test_add_endpoints():
+    xs = [0.25, 0.5, 0.75]
+
+    standard_densities = [0.25, 0.5, 0.75]
+    expected_densities = np.array([0, 0.25, 0.5, 0.75, 1])
+
+    _, densities = PointDensity.add_endpoints(xs, standard_densities)
+    assert densities == pytest.approx(expected_densities, abs=1e-5)
+
+    to_clamp_densities = [0.1, 0.5, 0.1]
+    expected_densities = np.array([0, 0.1, 0.5, 0.1, 0])
+
+    _, densities = PointDensity.add_endpoints(xs, to_clamp_densities)
+    assert densities == pytest.approx(expected_densities, abs=1e-5)
 
 
 # @pytest.mark.look

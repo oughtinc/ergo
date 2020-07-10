@@ -211,31 +211,49 @@ class PointDensity(Distribution, Optimizable):
 
     # Export
 
-    def to_arrays(self, metaculus_denorm=False):
-        xs = self.scale.denormalize_points(self.normed_xs)
+    @classmethod
+    def add_endpoints(cls, xs, densities):
+        """
+        Assumes xs are normalized. Returns a list of xs and densities
+        with endpoints that are on the edge of the scale.
+        """
+        if xs[0] != 0:
+            xdiff_ratio = (xs[1] - xs[0]) / xs[0]
+            density = (densities[0] - densities[1]) / xdiff_ratio + densities[0]
+            clamped_density = onp.maximum(density, 0)
 
-        if metaculus_denorm:
-            # Make sure points cover whole scale, return normed densities
-            densities = self.normed_densities
-            if xs[0] != self.scale.low:
-                density = (densities[0] - densities[1]) / 2 + densities[0]
-                clamped_density = onp.maximum(density, 0)
+            xs = onp.append(onp.array([0]), xs)
+            densities = onp.append(np.array([clamped_density]), densities)
 
-                xs = onp.append(onp.array([self.scale.low]), xs)
-                densities = onp.append(np.array([clamped_density]), densities)
-            if xs[-1] != self.scale.high:
-                density = (densities[-1] - densities[-2]) / 2 + densities[-1]
-                clamped_density = onp.maximum(density, 0)
+        if xs[-1] != 1:
+            xdiff_ratio = (xs[-1] - xs[-2]) / (1 - xs[-1])
+            density = (densities[-1] - densities[-2]) / xdiff_ratio + densities[-1]
+            clamped_density = onp.maximum(density, 0)
 
-                xs = onp.append(xs, onp.array([self.scale.high]))
-                densities = onp.append(densities, np.array([clamped_density]))
-        else:
-            densities = self.scale.denormalize_densities(xs, self.normed_densities)
+            xs = onp.append(xs, onp.array([1]))
+            densities = onp.append(densities, np.array([clamped_density]))
 
         return xs, densities
 
-    def to_pairs(self, metaculus_denorm=False):
-        xs, densities = self.to_arrays(metaculus_denorm)
+    def to_arrays(self, denorm_xs_only=False, add_endpoints=False):
+        normed_xs = self.normed_xs
+        normed_densities = self.normed_densities
+
+        if add_endpoints:
+            normed_xs, normed_densities = PointDensity.add_endpoints(
+                normed_xs, normed_densities
+            )
+
+        xs = self.scale.denormalize_points(normed_xs)
+        if denorm_xs_only:
+            densities = normed_densities
+        else:
+            densities = self.scale.denormalize_densities(xs, normed_densities)
+
+        return xs, densities
+
+    def to_pairs(self, *args, **kwargs):
+        xs, densities = self.to_arrays(*args, **kwargs)
         pairs = [
             {"x": float(x), "density": float(density)}
             for x, density in zip(xs, densities)

@@ -187,13 +187,13 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
-    def community_pairs(self, normalized=False, metaculus_denorm=False):
+    def community_pairs(self, normalized=False, denorm_xs_only=False):
         if normalized:
             return [
                 {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
             ]
 
-        elif metaculus_denorm:
+        elif denorm_xs_only:
             return [
                 {"x": self.scale.denormalize_point(float(v[0])), "density": v[2]}
                 for v in self.prediction_histogram
