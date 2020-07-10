@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from scipy.stats import logistic
+from scipy.stats import logistic, norm
 
 from ergo.conditions import (
     CrossEntropyCondition,
@@ -158,11 +158,25 @@ def test_add_endpoints():
     assert densities == pytest.approx(expected_densities, abs=1e-5)
 
 
-# @pytest.mark.look
-# @pytest.mark.parametrize("scale", scales_to_test)
-# def test_mean(scale: Scale):
-#     uniform_dist = PointDensity.from_conditions([], scale=scale)
-#     true_mean = scale.low + scale.width / 2
-#     print(true_mean)
-#     calculated_mean = uniform_dist.mean()
-#     assert true_mean == calculated_mean
+@pytest.mark.parametrize("scale", scales_to_test)
+def test_mean(scale: Scale):
+    true_mean = scale.low + scale.width / 2
+    rv = norm(loc=true_mean, scale=scale.width / 10)
+    xs = constants.target_xs
+    pairs = [{"x": x, "density": rv.pdf(x)} for x in scale.denormalize_points(xs)]
+    pd_norm = PointDensity.from_pairs(pairs, scale)
+    calculated_mean = float(pd_norm.mean())
+    assert true_mean == pytest.approx(calculated_mean, rel=1e-3, abs=1e-3)
+
+
+@pytest.mark.parametrize("scale", scales_to_test)
+def test_variance(scale: Scale):
+    true_mean = scale.low + scale.width / 2
+    true_std = scale.width / 10
+    true_variance = true_std ** 2
+    rv = norm(loc=true_mean, scale=true_std)
+    xs = constants.target_xs
+    pairs = [{"x": x, "density": rv.pdf(x)} for x in scale.denormalize_points(xs)]
+    pd_norm = PointDensity.from_pairs(pairs, scale)
+    calculated_variance = float(pd_norm.variance())
+    assert true_variance == pytest.approx(calculated_variance, rel=1e-3, abs=1e-3)
