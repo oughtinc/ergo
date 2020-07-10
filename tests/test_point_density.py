@@ -154,9 +154,7 @@ def test_interval_plus_entropy(scale: Scale):
         MaxEntropyCondition(weight=0.01),
     ]
 
-    fitted_dist = PointDensity.from_conditions(
-        conditions, scale=scale,
-    )
+    fitted_dist = PointDensity.from_conditions(conditions, scale=scale,)
 
     def evaluate_dist(dist):
         loss = 0

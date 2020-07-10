@@ -62,7 +62,7 @@ class PointDensity(Distribution, Optimizable):
     def pdf(self, x):
         """
         If x is out of distribution range, returns 0. Otherwise,
-        returns the true ("denormalized") density at the point in 
+        returns the true ("denormalized") density at the point in
         self.normed_xs which is closest to normalized x by absolute
         difference.
 
@@ -86,7 +86,7 @@ class PointDensity(Distribution, Optimizable):
         """
         If x is below the distribution range, returns 0. If x is
         above the distribution range, returns 1.
-        Otherwise, determines the bin which x is in, then returns the 
+        Otherwise, determines the bin which x is in, then returns the
         density below that bin plus the density in that bin, calculated as
         width in bin (normed_x - bin start x) * height (density) of bin.
 
@@ -176,11 +176,7 @@ class PointDensity(Distribution, Optimizable):
 
     @classmethod
     def from_conditions(
-        cls,
-        *args,
-        fixed_params=None,
-        scale=None,
-        **kwargs,
+        cls, *args, fixed_params=None, scale=None, **kwargs,
     ):
 
         if fixed_params is None:
