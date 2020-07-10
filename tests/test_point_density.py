@@ -130,24 +130,6 @@ def test_point_density_ppf(scale: Scale):
 
 @pytest.mark.parametrize("scale", scales_to_test)
 def test_interval_plus_entropy(scale: Scale):
-    """
-    HANDPICKED_PAIRS = [
-        {"x": 0, "density": 5 / 3},
-        {"x": 0.1, "density": 5 / 3},
-        {"x": 0.2, "density": 5 / 3},
-        {"x": 0.3, "density": 5 / 3},
-        {"x": 0.4, "density": 25 / 39},
-        {"x": 0.5, "density": 25 / 39},
-        {"x": 0.6, "density": 25 / 39},
-        {"x": 0.7, "density": 25 / 39},
-        {"x": 0.8, "density": 25 / 39},
-        {"x": 0.9, "density": 25 / 39},
-        {"x": 1, "density": 25 / 39},
-    ]
-
-    handpicked_dist = PointDensity.from_pairs(HANDPICKED_PAIRS, scale, normalized=True)
-    """
-
     conditions = [
         IntervalCondition(p=0.5, max=scale.denormalize_point(0.3)),
         MaxEntropyCondition(weight=0.01),
@@ -155,18 +137,6 @@ def test_interval_plus_entropy(scale: Scale):
 
     fitted_dist = PointDensity.from_conditions(conditions, scale=scale,)
 
-    def evaluate_dist(dist):
-        loss = 0
-        for condition in conditions:
-            print(condition._describe_fit(dist))
-            loss += condition.loss(dist)
-        print(f"nd: {dist.normed_densities} total loss: {loss}")
-
-    """
-    print("evaluating handpicked dist")
-    evaluate_dist(handpicked_dist)
-    """
-    evaluate_dist(fitted_dist)
     # We expect at most 3 different densities: one for inside the interval, one for outside,
     # and one between.
     assert np.unique(fitted_dist.normed_densities).size <= 3

@@ -66,7 +66,7 @@ class PointDensity(Distribution, Optimizable):
         self.normed_xs which is closest to normalized x by absolute
         difference.
 
-        :param x: The point in the distribution to get the density at
+        :param x: The point at which to get the probability density
         """
         x = self.scale.normalize_point(x)
         bin = np.argmin(np.abs(self.normed_xs - x))
@@ -90,7 +90,7 @@ class PointDensity(Distribution, Optimizable):
         density below that bin plus the density in that bin, calculated as
         width in bin (normed_x - bin start x) * height (density) of bin.
 
-        :param x: The point in the distribution to get the density at
+        :param x: The point at which to get the cumulative density
         """
         normed_x = self.scale.normalize_point(x)
 
