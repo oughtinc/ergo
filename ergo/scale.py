@@ -88,28 +88,46 @@ class LogScale(Scale):
     def __hash__(self):
         return super().__hash__()
 
-    def density_denorm(self, true_x):
+    def density_denorm_term(self, true_x):
+        """
+        This is the term required to scale the density from the normalized scale to the
+        true log scale. It accounts for the stretching to the axis from the exponention
+        transformation. It is the derivative of the normalize_point transformation.
+
+        :param true_x: the point on the true scale where the true density should be calculated
+        :return: the term required to scale the normalized density to the true density
+
+        """
         return (self.log_base - 1) / (
             np.log(self.log_base)
             * (self.log_base * (true_x - self.low) + self.high - true_x)
         )
 
-    def density_norm(self, normed_x):
+    def density_norm_term(self, normed_x):
+        """
+        This is the term required to scale the density from the true log scale to the
+        normalized scale. It accounts for the shrinking of the axis from the log
+        transformation. It is the derivative of the denormalize_point transformation.
+
+        :param normed_x: the point on the normed scale where the normed density should be calculated
+        :return: the term required to scale the true density to the normed density
+
+        """
         return (self.log_base ** normed_x * np.log(self.log_base) * (self.width)) / (
             self.log_base - 1
         )
 
     def normalize_density(self, normed_x, density):
-        return density * self.density_norm(normed_x)
+        return density * self.density_norm_term(normed_x)
 
     def denormalize_density(self, true_x, density):
-        return density * self.density_denorm(true_x)
+        return density * self.density_denorm_term(true_x)
 
     def normalize_densities(self, normed_xs, densities):
-        return densities * self.density_norm(normed_xs)
+        return densities * self.density_norm_term(normed_xs)
 
     def denormalize_densities(self, true_xs, densities):
-        return densities * self.density_denorm(true_xs)
+        return densities * self.density_denorm_term(true_xs)
 
     def normalize_point(self, point):
         """
