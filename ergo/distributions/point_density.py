@@ -61,9 +61,10 @@ class PointDensity(Distribution, Optimizable):
 
     def pdf(self, x):
         """
-        If x is out of distribution range, returns 0. Otherwise returns the
-        density at the lowest bin for which the lower bound of the bin
-        is greater than or equal to x.
+        If x is out of distribution range, returns 0. Otherwise,
+        returns the true ("denormalized") density at the point in 
+        self.normed_xs which is closest to normalized x by absolute
+        difference.
 
         :param x: The point in the distribution to get the density at
         """
@@ -82,6 +83,15 @@ class PointDensity(Distribution, Optimizable):
         return np.log(self.pdf(x))
 
     def cdf(self, x):
+        """
+        If x is below the distribution range, returns 0. If x is
+        above the distribution range, returns 1.
+        Otherwise, determines the bin which x is in, then returns the 
+        density below that bin plus the density in that bin, calculated as
+        width in bin (normed_x - bin start x) * height (density) of bin.
+
+        :param x: The point in the distribution to get the density at
+        """
         normed_x = self.scale.normalize_point(x)
 
         def in_range_cdf(normed_x):
@@ -170,7 +180,6 @@ class PointDensity(Distribution, Optimizable):
         *args,
         fixed_params=None,
         scale=None,
-        num_points=constants.point_density_default_num_points,
         **kwargs,
     ):
 
