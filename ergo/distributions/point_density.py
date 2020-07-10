@@ -274,5 +274,5 @@ class PointDensity(Distribution, Optimizable):
 
     def variance(self):
         mean = self.mean()
-        true_densities = self.scale.denormalize_points(self.normed_xs)
-        return np.dot(self.bin_probs, np.square(true_densities - mean))
+        true_xs = self.scale.denormalize_points(self.normed_xs)
+        return np.dot(self.bin_probs, np.square(true_xs - mean))
