@@ -187,21 +187,28 @@ class ContinuousQuestion(MetaculusQuestion):
 
         return dist.LogisticMixture(transformed_components, transformed_probs)  # type: ignore
 
-    def community_pairs(self, normalized=False):
+    def community_pairs(self, normalized=False, denorm_xs_only=False):
         if normalized:
             return [
                 {"x": float(v[0]), "density": v[2]} for v in self.prediction_histogram
             ]
+
+        elif denorm_xs_only:
+            return [
+                {"x": self.scale.denormalize_point(float(v[0])), "density": v[2]}
+                for v in self.prediction_histogram
+            ]
+
         else:
             return [
                 {
                     "x": self.scale.denormalize_point(float(v[0])),
-                    "density": v[2] / self.scale.width,
+                    "density": self.scale.denormalize_density(float(v[2])),
                 }
                 for v in self.prediction_histogram
             ]
 
-    def community_dist(self) -> dist.HistogramDist:
+    def community_dist(self) -> dist.PointDensity:
         """
         Get the community distribution for this question
         NB: currently missing the part of the distribtion outside the question range
@@ -213,10 +220,9 @@ class ContinuousQuestion(MetaculusQuestion):
         #   ContinuousQuestion.community_dist()
 
         histogram = self.community_pairs(normalized=True)
-        return dist.HistogramDist.from_pairs(histogram, self.scale, normalized=True)
+        return dist.PointDensity.from_pairs(histogram, self.scale, normalized=True)
 
     def community_conditions(self, crossentropy_weight=0.1, interval_weight=10000.0):
-
         from ergo.conditions import (
             CrossEntropyCondition,
             IntervalCondition,
@@ -226,13 +232,15 @@ class ContinuousQuestion(MetaculusQuestion):
         pairs = self.community_pairs(normalized=True)
 
         # Note that this histogram is normalized - it sums to 1 even if the pairs don't!
-        hist = dist.HistogramDist.from_pairs(pairs, scale=self.scale, normalized=True)
-
-        cross_entropy_condition = CrossEntropyCondition(
-            hist, weight=crossentropy_weight
+        point_density_dist = dist.PointDensity.from_pairs(
+            pairs, scale=self.scale, normalized=True
         )
 
-        community_conditions: List[Condition] = [cross_entropy_condition]
+        condition = CrossEntropyCondition(
+            point_density_dist, weight=crossentropy_weight
+        )
+
+        community_conditions: List[Condition] = [condition]
 
         if self.low_open:
             community_conditions.append(

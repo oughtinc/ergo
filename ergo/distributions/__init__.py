@@ -18,8 +18,9 @@ from .base import (
     random_integer,
     uniform,
 )
+from .constants import bin_sizes, grid, point_density_default_num_points, target_xs
 from .distribution import Distribution
-from .histogram import HistogramDist
 from .logistic import Logistic
 from .logistic_mixture import LogisticMixture
+from .point_density import PointDensity
 from .truncate import Truncate

@@ -17,22 +17,12 @@ class VarianceCondition(condition.Condition):
         self.variance = variance
         super().__init__(weight)
 
-    def actual_variance(self, dist) -> float:
-        # FIXME: Should be interacting with HistogramDist via pdf
-        #        or similar public interface
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.ps.size)
-        mean = np.dot(dist.ps, xs)
-        return np.dot(dist.ps, np.square(xs - mean))
-
     def loss(self, dist) -> float:
-        return (
-            self.weight
-            * (np.log(self.actual_variance(dist)) - np.log(self.variance)) ** 2
-        )
+        return self.weight * (np.log(dist.variance()) - np.log(self.variance)) ** 2
 
     def _describe_fit(self, dist):
         description = super()._describe_fit(dist)
-        description["variance"] = self.actual_variance(dist)
+        description["variance"] = dist.variance(dist)
         return description
 
     def normalize(self, scale: Scale):
@@ -44,7 +34,10 @@ class VarianceCondition(condition.Condition):
         return self.__class__(denormalized_variance, self.weight)
 
     def destructure(self):
-        return (VarianceCondition, (self.variance, self.weight))
+        return ((VarianceCondition,), (self.variance, self.weight))
 
     def __str__(self):
         return f"The variance is {self.variance}."
+
+    def __repr__(self):
+        return f"VarianceCondition(mean={self.variance}, weight={self.weight})"

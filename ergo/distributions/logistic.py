@@ -39,6 +39,7 @@ class Logistic(Distribution):
                 self.scale = Scale(0, 1)
             self.true_s = self.s * self.scale.width
             self.true_loc = self.scale.denormalize_point(loc)
+
         elif scale is None:
             raise ValueError("Either a Scale or normalized parameters are required")
         else:
@@ -61,12 +62,10 @@ class Logistic(Distribution):
     def pdf(self, x):
         y = (self.scale.normalize_point(x) - self.loc) / self.s
         p = np.exp(scipy.stats.logistic.logpdf(y) - np.log(self.s))
-        return p / self.scale.width
+        return self.scale.denormalize_density(x, p)
 
     def logpdf(self, x):
-        y = (self.scale.normalize_point(x) - self.loc) / self.s
-        logp = scipy.stats.logistic.logpdf(y) - np.log(self.s)
-        return logp - np.log(self.scale.width)
+        return np.log(self.pdf(x))
 
     def cdf(self, x):
         y = (self.scale.normalize_point(x) - self.loc) / self.s

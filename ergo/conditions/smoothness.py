@@ -11,12 +11,15 @@ class SmoothnessCondition(condition.Condition):
         squared_distance = 0.0
         for i in range(1, window_size + 1):
             squared_distance += (1 / i ** 2) * np.sum(
-                np.square(dist.logps - shift(dist.logps, i, dist.logps[0]))
+                np.square(
+                    dist.normed_log_densities
+                    - shift(dist.normed_log_densities, i, dist.normed_log_densities[0])
+                )
             )
-        return self.weight * squared_distance / dist.logps.size
+        return self.weight * squared_distance / dist.normed_log_densities.size
 
     def destructure(self):
-        return (SmoothnessCondition, (self.weight,))
+        return ((SmoothnessCondition,), (self.weight,))
 
     def __str__(self):
         return "Minimize rough edges in the distribution"

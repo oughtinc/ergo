@@ -6,7 +6,7 @@ from ergo.scale import Scale
 from . import condition
 
 
-class HistogramCondition(condition.Condition):
+class PointDensityCondition(condition.Condition):
     """
     The distribution should fit the specified histogram as closely as
     possible
@@ -27,25 +27,21 @@ class HistogramCondition(condition.Condition):
         return self.weight * total_loss / self.xs.size
 
     def normalize(self, scale: Scale):
-        normalized_xs = np.array([scale.normalize_point(x) for x in self.xs])
-        normalized_densities = np.array(
-            [density * scale.width for density in self.densities]
-        )
-        return self.__class__(normalized_xs, normalized_densities, self.weight)
+        normed_xs = scale.normalize_points(self.xs)
+        normed_densities = scale.normalize_densities(normed_xs, self.densities)
+        return self.__class__(normed_xs, normed_densities, self.weight)
 
     def denormalize(self, scale: Scale):
-        denormalized_xs = np.array([scale.denormalize_point(x) for x in self.xs])
-        denormalized_densities = np.array(
-            [density / scale.width for density in self.densities]
-        )
-        return self.__class__(denormalized_xs, denormalized_densities, self.weight)
+        denormed_xs = scale.denormalize_points(self.xs)
+        denormed_densities = scale.denormalize_densities(denormed_xs, self.densities)
+        return self.__class__(denormed_xs, denormed_densities, self.weight)
 
     def destructure(self):
-        return (HistogramCondition, (self.xs, self.densities, self.weight))
+        return ((PointDensityCondition,), (self.xs, self.densities, self.weight))
 
     def __key(self):
         return (
-            HistogramCondition,
+            PointDensityCondition,
             (tuple(self.xs), tuple(self.densities), self.weight),
         )
 

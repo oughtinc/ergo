@@ -83,11 +83,12 @@ class Optimizable(ABC):
         opt_tries=1,
         jit_all=False,
     ) -> T:
+
         if fixed_params is None:
             fixed_params = {}
 
         if scale is None:
-            scale = Scale(0, 1)  # assume a linear scale in [0,1]
+            scale = Scale(0, 1)
 
         fixed_params = cls.normalize_fixed_params(fixed_params, scale)
         normalized_conditions = [condition.normalize(scale) for condition in conditions]

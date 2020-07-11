@@ -5,7 +5,6 @@ from typing import cast
 
 from dotenv import load_dotenv
 import jax.numpy as np
-import pandas as pd
 import pytest
 
 import ergo
@@ -167,16 +166,16 @@ def metaculus_questions(metaculus, log_question_data):
 @pytest.fixture(scope="module")
 def date_samples(metaculus_questions, normalized_logistic_mixture):
     return metaculus_questions.continuous_linear_date_open_question.denormalize_samples(
-        pd.Series([normalized_logistic_mixture.sample() for _ in range(0, 1000)])
+        np.array([normalized_logistic_mixture.sample() for _ in range(0, 1000)])
     )
 
 
 @pytest.fixture(scope="module")
-def histogram():
-    return make_histogram()
+def point_densities():
+    return make_point_densities()
 
 
-def make_histogram():
+def make_point_densities():
     xs = np.array(
         [
             -0.22231131421566422,
@@ -208,9 +207,8 @@ scales_to_test = [
     Scale(0, 1),
     Scale(0, 10000),
     Scale(-1, 1),
-    LogScale(0, 1, 10),
-    LogScale(-1, 1, 10),
-    LogScale(0, 1028, 2),
+    LogScale(0.01, 100, 10),
+    LogScale(0.01, 1028, 2),
     TimeScale(631152000, 946684800),
     TimeScale(2000, 2051222400),
 ]

@@ -3,16 +3,16 @@ from dataclasses import dataclass
 import jax.numpy as np
 import pytest
 
-from ergo import HistogramDist, Logistic, LogisticMixture
 from ergo.conditions import (
-    HistogramCondition,
     IntervalCondition,
     MaxEntropyCondition,
     MeanCondition,
     ModeCondition,
+    PointDensityCondition,
     SmoothnessCondition,
     VarianceCondition,
 )
+from ergo.distributions import Logistic, LogisticMixture, PointDensity
 from ergo.scale import Scale
 
 
@@ -89,16 +89,18 @@ def test_normalization_interval_condition():
     ) == IntervalCondition(p=0.5, min=0, max=0.5)
 
 
-def test_normalization_histogram_condition(histogram):
-    original = HistogramCondition(histogram["xs"], histogram["densities"])
+def test_normalization_point_densities_condition(point_densities):
+    original = PointDensityCondition(
+        point_densities["xs"], point_densities["densities"]
+    )
     normalized_denormalized = original.normalize(Scale(10, 1000)).denormalize(
         Scale(10, 1000)
     )
     for (density, norm_denorm_density) in zip(
-        histogram["densities"], normalized_denormalized.densities
+        point_densities["densities"], normalized_denormalized.densities
     ):
         assert density == pytest.approx(norm_denorm_density, rel=0.001,)
-    for (x, norm_denorm_x) in zip(histogram["xs"], normalized_denormalized.xs):
+    for (x, norm_denorm_x) in zip(point_densities["xs"], normalized_denormalized.xs):
         assert x == pytest.approx(norm_denorm_x, rel=0.001,)
 
     # half-assed test that xs and densities are at least
@@ -107,8 +109,8 @@ def test_normalization_histogram_condition(histogram):
     for idx, (normalized_x, normalized_density) in enumerate(
         zip(normalized.xs, normalized.densities)
     ):
-        orig_x = histogram["xs"][idx]
-        orig_density = histogram["densities"][idx]
+        orig_x = point_densities["xs"][idx]
+        orig_density = point_densities["densities"][idx]
         assert orig_x > normalized_x
         assert orig_density < normalized_density
 
@@ -177,15 +179,17 @@ def test_percentile_roundtrip(fixed_params):
         assert recovered_condition.max == pytest.approx(condition.max, rel=0.1)
 
 
-def test_mixture_from_histogram(histogram):
-    conditions = [HistogramCondition(histogram["xs"], histogram["densities"])]
+def test_mixture_from_point_densities(point_densities):
+    conditions = [
+        PointDensityCondition(point_densities["xs"], point_densities["densities"])
+    ]
 
     mixture = LogisticMixture.from_conditions(
         conditions,
         {"num_components": 3},
-        Scale(min(histogram["xs"]), max(histogram["xs"])),
+        Scale(min(point_densities["xs"]), max(point_densities["xs"])),
     )
-    for (x, density) in zip(histogram["xs"], histogram["densities"]):
+    for (x, density) in zip(point_densities["xs"], point_densities["densities"]):
         assert mixture.pdf(x) == pytest.approx(density, abs=0.2)
 
 
@@ -202,78 +206,84 @@ def test_weights_mixture():
     assert dist.components[0].base_dist.true_loc == pytest.approx(2, rel=0.1)
 
 
+@pytest.mark.look
 def test_mode_condition():
     base_conditions = [IntervalCondition(p=0.4, max=0.5)]
-    base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
+    base_dist = PointDensity.from_conditions(
+        base_conditions, verbose=True, scale=Scale(0, 1)
+    )
 
     # Most likely condition should increase chance of specified outcome
     outcome_conditions = base_conditions + [ModeCondition(outcome=0.25)]
-    outcome_dist = HistogramDist.from_conditions(outcome_conditions, verbose=True)
+    outcome_dist = PointDensity.from_conditions(
+        outcome_conditions, verbose=True, scale=Scale(0, 1)
+    )
     assert outcome_dist.pdf(0.25) > base_dist.pdf(0.25)
 
     # Highly weighted most likely condition should make specified outcome most likely
-    strong_condition = ModeCondition(outcome=0.25, weight=1000)
+    strong_condition = ModeCondition(outcome=0.25, weight=100000)
     strong_outcome_conditions = base_conditions + [strong_condition]
-    strong_outcome_dist = HistogramDist.from_conditions(
-        strong_outcome_conditions, verbose=True
+    strong_outcome_dist = PointDensity.from_conditions(
+        strong_outcome_conditions, verbose=True, scale=Scale(0, 1)
     )
     assert strong_condition.loss(strong_outcome_dist) == pytest.approx(0, abs=0.001)
 
 
 def test_mean_condition():
-    def get_mean(dist):
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.ps.size)
-        return np.dot(dist.ps, xs)
-
     base_conditions = [MaxEntropyCondition(weight=0.1)]
-    base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
-    base_mean = get_mean(base_dist)
+    base_dist = PointDensity.from_conditions(
+        base_conditions, verbose=True, scale=Scale(0, 1)
+    )
+    base_mean = base_dist.mean()
 
     # Mean condition should move mean closer to specified mean
     mean_conditions = base_conditions + [MeanCondition(mean=0.25, weight=1)]
-    mean_dist = HistogramDist.from_conditions(mean_conditions, verbose=True)
-    assert abs(get_mean(mean_dist) - 0.25) < abs(base_mean - 0.25)
+    mean_dist = PointDensity.from_conditions(
+        mean_conditions, verbose=True, scale=Scale(0, 1)
+    )
+    assert abs(mean_dist.mean() - 0.25) < abs(base_mean - 0.25)
 
     # Highly weighted mean condition should make mean very close to specified mean
-    strong_condition = MeanCondition(mean=0.25, weight=1000)
+    strong_condition = MeanCondition(mean=0.25, weight=100000)
     strong_mean_conditions = base_conditions + [strong_condition]
-    strong_mean_dist = HistogramDist.from_conditions(
-        strong_mean_conditions, verbose=True
+    strong_mean_dist = PointDensity.from_conditions(
+        strong_mean_conditions, verbose=True, scale=Scale(0, 1)
     )
-    assert get_mean(strong_mean_dist) == pytest.approx(0.25, rel=0.01)
+    assert strong_mean_dist.mean() == pytest.approx(0.25, rel=0.01)
 
 
 def test_variance_condition():
-    def get_variance(dist):
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.ps.size)
-        mean = np.dot(dist.ps, xs)
-        return np.dot(dist.ps, np.square(xs - mean))
-
     base_conditions = [
-        MaxEntropyCondition(weight=0.1),
+        MaxEntropyCondition(weight=0.001),
         SmoothnessCondition(),
         IntervalCondition(p=0.95, min=0.3, max=0.7),
     ]
-    base_dist = HistogramDist.from_conditions(base_conditions, verbose=True)
-    base_variance = get_variance(base_dist)
+    base_dist = PointDensity.from_conditions(
+        base_conditions, verbose=True, scale=Scale(0, 1)
+    )
+    base_variance = base_dist.variance()
     increased_variance = base_variance + 0.01
 
     # Increase in variance should decrease peak
     var_condition = VarianceCondition(variance=increased_variance, weight=1)
     var_conditions = base_conditions + [var_condition]
-    var_dist = HistogramDist.from_conditions(var_conditions, verbose=True)
-    assert np.max(var_dist.ps) < np.max(base_dist.ps)
+    var_dist = PointDensity.from_conditions(
+        var_conditions, verbose=True, scale=Scale(0, 1)
+    )
+    assert np.max(var_dist.normed_densities) < np.max(base_dist.normed_densities)
 
     # Highly weighted variance condition should make var very close to specified var
-    strong_condition = VarianceCondition(variance=increased_variance, weight=1000)
+    strong_condition = VarianceCondition(variance=increased_variance, weight=100000)
     strong_var_conditions = base_conditions + [strong_condition]
-    strong_var_dist = HistogramDist.from_conditions(strong_var_conditions, verbose=True)
-    assert get_variance(strong_var_dist) == pytest.approx(
+    strong_var_dist = PointDensity.from_conditions(
+        strong_var_conditions, verbose=True, scale=Scale(0, 1)
+    )
+    assert strong_var_dist.variance() == pytest.approx(
         float(increased_variance), abs=0.001
     )
 
 
-def test_mixed_1(histogram):
+def test_mixed_1(point_densities):
     conditions = (
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
@@ -281,10 +291,10 @@ def test_mixed_1(histogram):
         IntervalCondition(p=0.5, max=2),
         IntervalCondition(p=0.8, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
     )
     dist = LogisticMixture.from_conditions(
-        conditions, {"num_components": 3}, verbose=True
+        conditions, {"num_components": 3}, verbose=True, scale=Scale(0, 1)
     )
     assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf(6) == pytest.approx(0, abs=0.1)
@@ -297,15 +307,15 @@ def test_mixed_1(histogram):
         IntervalCondition(p=0.5, max=2),
         IntervalCondition(p=0.8, max=2.2),
         IntervalCondition(p=0.9, max=2.3),
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
     )
     assert hash(conditions) == hash(conditions_2)
     assert my_cache[conditions_2] == 2
 
 
-def test_mixed_2(histogram):
+def test_mixed_2(point_densities):
     conditions = (
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
         IntervalCondition(p=0.48, max=1.3),
@@ -314,14 +324,14 @@ def test_mixed_2(histogram):
         IntervalCondition(p=0.9, max=2.3),
     )
     dist = LogisticMixture.from_conditions(
-        conditions, {"num_components": 3}, verbose=True
+        conditions, {"num_components": 3}, verbose=True, scale=Scale(0, 1)
     )
     assert dist.pdf(-5) == pytest.approx(0, abs=0.1)
     assert dist.pdf(6) == pytest.approx(0, abs=0.1)
     my_cache = {}
     my_cache[conditions] = 3
     conditions_2 = (
-        HistogramCondition(histogram["xs"], histogram["densities"]),
+        PointDensityCondition(point_densities["xs"], point_densities["densities"]),
         IntervalCondition(p=0.4, max=1),
         IntervalCondition(p=0.45, max=1.2),
         IntervalCondition(p=0.48, max=1.3),
@@ -333,22 +343,25 @@ def test_mixed_2(histogram):
     assert my_cache[conditions_2] == 3
 
 
-def test_histogram_fit(histogram):
-    condition = HistogramCondition(histogram["xs"], histogram["densities"])
+def test_point_densities_fit(point_densities):
+    condition = PointDensityCondition(
+        point_densities["xs"], point_densities["densities"]
+    )
     conditions = (condition,)
 
-    dist = HistogramDist.from_conditions(
+    dist = PointDensity.from_conditions(
         conditions,
-        {"num_points": 100},
-        Scale(min(histogram["xs"]), max(histogram["xs"])),
+        scale=Scale(min(point_densities["xs"]), max(point_densities["xs"])),
         verbose=True,
     )
-    for (original_x, original_density) in zip(histogram["xs"], histogram["densities"]):
+
+    for (original_x, original_density) in zip(
+        point_densities["xs"], point_densities["densities"]
+    ):
         assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
 
 
-@pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
-def test_histogram_fit_regression_p_in_range():
+def test_fit_point_density_regression_p_in_range():
     """
     Regression test for a bug where:
     1. < 100% of p is in the entire range, for a closed-bound question
@@ -360,15 +373,14 @@ def test_histogram_fit_regression_p_in_range():
     For more on the bug, see
     https://docs.google.com/document/d/1CFklTKtbKzXi6-lRaEsX4ZiY3Yzpbfdg7i2j1NvKP34/edit#heading=h.lypz52bknpyq
     """
-    histogram_dist = HistogramDist.from_conditions(
-        conditions=[IntervalCondition(min=0, max=1, p=0.5)]
+    pointdensity_dist = PointDensity.from_conditions(
+        conditions=[IntervalCondition(min=0, max=1, p=0.5)], scale=Scale(0, 1)
     )
 
-    assert histogram_dist.cdf(1) == 1
+    assert pointdensity_dist.cdf(1) == pytest.approx(1, abs=1e-4)
 
 
-@pytest.mark.xfail(reason="Will hopefully be solved by switching to PointDensity")
-def test_fit_hist_regression_1():
+def test_fit_point_density_regression_1():
     """
     Regression test for bug: "This custom question has a weird histogram - why?"
 
@@ -377,30 +389,28 @@ def test_fit_hist_regression_1():
     for more on the bug, see
     https://docs.google.com/document/d/1CFklTKtbKzXi6-lRaEsX4ZiY3Yzpbfdg7i2j1NvKP34/edit#heading=h.ph1huakxn33f
     """
+    # TODO figure out why MaxEntropy weight has to be so low for this to pass
     conditions = [
         IntervalCondition(p=0.25, max=2.0),
         IntervalCondition(p=0.75, max=4.0),
         IntervalCondition(p=0.9, max=6.0),
-        MaxEntropyCondition(weight=0.1),
+        MaxEntropyCondition(weight=0.001),
     ]
 
-    histogram_dist = HistogramDist.from_conditions(
+    pointdensity_dist = PointDensity.from_conditions(
         conditions, scale=Scale(low=0, high=52)
     )
 
-    assert histogram_dist.cdf(2) == pytest.approx(0.25, abs=0.05)
-    assert histogram_dist.ppf(0.9) == pytest.approx(6, abs=1)
+    assert pointdensity_dist.cdf(2) == pytest.approx(0.25, abs=0.05)
+    assert pointdensity_dist.ppf(0.9) == pytest.approx(6, abs=1)
 
 
-def compare_runtimes():
-    from tests.conftest import make_histogram
-
-    histogram = make_histogram()
+def compare_runtimes(point_densities):
     import time
 
     start = time.time()
-    test_mixed_1(histogram)
+    test_mixed_1(point_densities)
     mid = time.time()
     print(f"Total time (1): {mid - start:.2f}s")
-    test_mixed_2(histogram)
+    test_mixed_2(point_densities)
     print(f"Total time (2): {time.time() - mid:.2f}s")

@@ -34,10 +34,10 @@ class Scale:
         return (point * self.width) + self.low
 
     def denormalize_points(self, points):
-        return [self.denormalize_point(point) for point in points]
+        return self.denormalize_point(np.array(points))
 
     def normalize_points(self, points):
-        return [self.normalize_point(point) for point in points]
+        return self.normalize_point(np.array(points))
 
     def normalize_variance(self, variance):
         if variance is None:
@@ -48,6 +48,18 @@ class Scale:
         if variance is None:
             raise Exception("Point was None This shouldn't happen")
         return variance * (self.width ** 2)
+
+    def normalize_density(self, _, density):
+        return density * self.width
+
+    def denormalize_density(self, _, density):
+        return density / self.width
+
+    def normalize_densities(self, _, densities):
+        return densities * self.width
+
+    def denormalize_densities(self, _, densities):
+        return densities / self.width
 
     def destructure(self):
         return ((Scale,), (self.low, self.high))
@@ -71,16 +83,55 @@ class LogScale(Scale):
     log_base: float
 
     def __post_init__(self):
-        # if self.log_base < 1:
-        #     raise ValueError(f"log_Base must be > 1, was {self.log_base}")
         self.width = self.high - self.low
 
     def __hash__(self):
         return super().__hash__()
 
+    def density_denorm_term(self, true_x):
+        """
+        This is the term required to scale the density from the normalized scale to the
+        true log scale. It accounts for the stretching to the axis from the exponention
+        transformation. It is the derivative of the normalize_point transformation.
+
+        :param true_x: the point on the true scale where the true density should be calculated
+        :return: the term required to scale the normalized density to the true density
+
+        """
+        return (self.log_base - 1) / (
+            np.log(self.log_base)
+            * (self.log_base * (true_x - self.low) + self.high - true_x)
+        )
+
+    def density_norm_term(self, normed_x):
+        """
+        This is the term required to scale the density from the true log scale to the
+        normalized scale. It accounts for the shrinking of the axis from the log
+        transformation. It is the derivative of the denormalize_point transformation.
+
+        :param normed_x: the point on the normed scale where the normed density should be calculated
+        :return: the term required to scale the true density to the normed density
+
+        """
+        return (self.log_base ** normed_x * np.log(self.log_base) * (self.width)) / (
+            self.log_base - 1
+        )
+
+    def normalize_density(self, normed_x, density):
+        return density * self.density_norm_term(normed_x)
+
+    def denormalize_density(self, true_x, density):
+        return density * self.density_denorm_term(true_x)
+
+    def normalize_densities(self, normed_xs, densities):
+        return densities * self.density_norm_term(normed_xs)
+
+    def denormalize_densities(self, true_xs, densities):
+        return densities * self.density_denorm_term(true_xs)
+
     def normalize_point(self, point):
         """
-        Get a prediciton sample value on the normalized scale from a true-scale value
+        Get a prediction sample value on the normalized scale from a true-scale value
 
         :param true_value: a sample value on the true scale
         :return: a sample value on the normalized scale
@@ -111,14 +162,14 @@ class LogScale(Scale):
         deriv_term = (self.log_base ** point - 1) / (self.log_base - 1)
         scaled = self.width * deriv_term
         return self.low + scaled
-        return (point * self.width) + self.low
 
     def destructure(self):
         return ((LogScale,), (self.low, self.high, self.log_base))
 
     @classmethod
     def structure(cls, params):
-        low, high, log_base = params
+        classes, numeric = params
+        low, high, log_base = numeric
         return cls(low, high, log_base)
 
 

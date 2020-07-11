@@ -57,10 +57,13 @@ class IntervalCondition(condition.Condition):
         return self.__class__(self.p, denormalized_min, denormalized_max, self.weight)
 
     def destructure(self):
-        return (IntervalCondition, (self.p, self.min, self.max, self.weight))
+        return ((IntervalCondition,), (self.p, self.min, self.max, self.weight))
 
     def shape_key(self):
         return (self.__class__.__name__, self.min is None, self.max is None)
 
     def __str__(self):
         return f"There is a {self.p:.0%} chance that the value is in [{self.min}, {self.max}]"
+
+    def __repr__(self):
+        return f"IntervalCondition(p={self.p}, min={self.min}, max={self.max}, weight={self.weight})"

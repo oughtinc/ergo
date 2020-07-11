@@ -1,5 +1,3 @@
-import jax.numpy as np
-
 from ergo.scale import Scale
 
 from . import condition
@@ -18,10 +16,7 @@ class MeanCondition(condition.Condition):
         super().__init__(weight)
 
     def actual_mean(self, dist) -> float:
-        # FIXME: Should be interacting with HistogramDist via pdf
-        #        or similar public interface
-        xs = np.linspace(dist.scale.low, dist.scale.high, dist.ps.size)
-        return np.dot(dist.ps, xs)
+        return dist.mean()
 
     def loss(self, dist) -> float:
         return self.weight * (self.actual_mean(dist) - self.mean) ** 2
@@ -40,7 +35,10 @@ class MeanCondition(condition.Condition):
         return self.__class__(denormalized_mean, self.weight)
 
     def destructure(self):
-        return (MeanCondition, (self.mean, self.weight))
+        return ((MeanCondition,), (self.mean, self.weight))
 
     def __str__(self):
         return f"The mean is {self.mean}."
+
+    def __repr__(self):
+        return f"MeanCondition(mean={self.mean}, weight={self.weight})"
