@@ -194,13 +194,13 @@ class TimeScale(Scale):
 
 def scale_factory(scale_dict):
     scale_class = scale_dict["class"]
-    low = scale_dict["low"]
-    high = scale_dict["high"]
+    low = float(scale_dict["low"])
+    high = float(scale_dict["high"])
 
     if scale_class == "Scale":
         return Scale(low, high)
     if scale_class == "LogScale":
-        return LogScale(low, high, scale_dict["log_base"])
+        return LogScale(low, high, float(scale_dict["log_base"]))
     if scale_class == "TimeScale":
         return TimeScale(low, high)
     raise NotImplementedError(
