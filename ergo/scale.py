@@ -82,9 +82,6 @@ ScaleClass = TypeVar("ScaleClass", bound=Scale)
 class LogScale(Scale):
     log_base: float
 
-    def __post_init__(self):
-        self.width = self.high - self.low
-
     def __hash__(self):
         return super().__hash__()
 
@@ -175,11 +172,6 @@ class LogScale(Scale):
 
 @dataclass
 class TimeScale(Scale):
-    def __init__(self, low, high):
-        self.low = low
-        self.high = high
-        self.width = self.high - self.low
-
     def __repr__(self):
         return (
             f"TimeScale(low={self.timestamp_to_str(self.low)}, "
