@@ -82,9 +82,6 @@ ScaleClass = TypeVar("ScaleClass", bound=Scale)
 class LogScale(Scale):
     log_base: float
 
-    def __post_init__(self):
-        self.width = self.high - self.low
-
     def __hash__(self):
         return super().__hash__()
 
@@ -175,11 +172,6 @@ class LogScale(Scale):
 
 @dataclass
 class TimeScale(Scale):
-    def __init__(self, low, high):
-        self.low = low
-        self.high = high
-        self.width = self.high - self.low
-
     def __repr__(self):
         return (
             f"TimeScale(low={self.timestamp_to_str(self.low)}, "
@@ -202,13 +194,13 @@ class TimeScale(Scale):
 
 def scale_factory(scale_dict):
     scale_class = scale_dict["class"]
-    low = scale_dict["low"]
-    high = scale_dict["high"]
+    low = float(scale_dict["low"])
+    high = float(scale_dict["high"])
 
     if scale_class == "Scale":
         return Scale(low, high)
     if scale_class == "LogScale":
-        return LogScale(low, high, scale_dict["log_base"])
+        return LogScale(low, high, float(scale_dict["log_base"]))
     if scale_class == "TimeScale":
         return TimeScale(low, high)
     raise NotImplementedError(

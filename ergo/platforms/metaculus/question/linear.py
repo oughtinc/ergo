@@ -19,7 +19,9 @@ class LinearQuestion(ContinuousQuestion):
         self, id: int, metaculus: Any, data: Dict, name=None,
     ):
         super().__init__(id, metaculus, data, name)
-        self.scale = Scale(self.question_range["min"], self.question_range["max"])
+        self.scale = Scale(
+            float(self.question_range["min"]), float(self.question_range["max"])
+        )
 
     # TODO: also return low and high on the true scale,
     # and use those somehow in logistic.py

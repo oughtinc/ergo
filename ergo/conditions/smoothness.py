@@ -23,3 +23,6 @@ class SmoothnessCondition(condition.Condition):
 
     def __str__(self):
         return "Minimize rough edges in the distribution"
+
+    def __repr__(self):
+        return f"SmoothnessCondition(weight={self.weight})"

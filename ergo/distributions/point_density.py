@@ -117,7 +117,10 @@ class PointDensity(Distribution, Optimizable):
 
     def normalize(self):
         return PointDensity(
-            self.normed_xs, self.normed_densities, scale=Scale(0, 1), normalized=True
+            self.normed_xs,
+            self.normed_densities,
+            scale=Scale(0.0, 1.0),
+            normalized=True,
         )
 
     def denormalize(self, scale: Scale):
@@ -190,7 +193,9 @@ class PointDensity(Distribution, Optimizable):
         )
 
     @classmethod
-    def from_params(cls, fixed_params, opt_params, scale=Scale(0, 1), traceable=True):
+    def from_params(cls, fixed_params, opt_params, scale=None, traceable=True):
+        if scale is None:
+            scale = Scale(0.0, 1.0)
         xs = fixed_params["xs"]
 
         densities = nn.softmax(opt_params) * opt_params.size

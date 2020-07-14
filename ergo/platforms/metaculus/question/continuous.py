@@ -379,9 +379,9 @@ class ContinuousQuestion(MetaculusQuestion):
         floor, ceiling = None, None
         possibilities = self.possibilities
         if possibilities.get("low") != "tail":
-            floor = self.scale.low
+            floor = float(self.scale.low)
         if possibilities.get("high") != "tail":
-            ceiling = self.scale.high
+            ceiling = float(self.scale.high)
         return Bounds(floor=floor, ceiling=ceiling)
 
     def get_logistic_from_json(self, logistic_json: Dict) -> dist.Logistic:

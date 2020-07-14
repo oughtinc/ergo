@@ -37,6 +37,9 @@ class CrossEntropyCondition(condition.Condition):
     def __str__(self):
         return "Minimize the cross-entropy of the two distributions"
 
+    def __repr__(self):
+        return f"CrossEntropyCondition(p_dist={self.p_dist.normed_xs.size}, weight={self.weight})"
+
 
 class PartialCrossEntropyCondition(condition.Condition):
     """
