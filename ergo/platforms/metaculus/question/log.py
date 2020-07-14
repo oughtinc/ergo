@@ -18,9 +18,9 @@ class LogQuestion(ContinuousQuestion):
     ):
         super().__init__(id, metaculus, data, name)
         self.scale = LogScale(
-            self.question_range["min"],
-            self.question_range["max"],
-            self.possibilities["scale"]["deriv_ratio"],
+            float(self.question_range["min"]),
+            float(self.question_range["max"]),
+            float(self.possibilities["scale"]["deriv_ratio"]),
         )
 
     def _scale_x(self, xmin: float = None, xmax: float = None):
