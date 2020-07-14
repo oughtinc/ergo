@@ -119,7 +119,7 @@ class LogisticMixture(Distribution, Optimizable):
         cls, fixed_params, opt_params, scale=None, traceable=True
     ):  # FIXME: traceable; why sometimes no Scale?
         if not scale:
-            scale = Scale(0, 1)
+            scale = Scale(0.0, 1.0)
         floor = fixed_params.get("floor", -np.inf)
         ceiling = fixed_params.get("ceiling", np.inf)
         # Allow logistic center to exceed the range by 20%
