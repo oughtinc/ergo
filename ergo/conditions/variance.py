@@ -22,7 +22,7 @@ class VarianceCondition(condition.Condition):
 
     def _describe_fit(self, dist):
         description = super()._describe_fit(dist)
-        description["variance"] = dist.variance(dist)
+        description["variance"] = dist.variance()
         return description
 
     def normalize(self, scale: Scale):
