@@ -92,19 +92,9 @@ class PointDensity(Distribution, Optimizable):
 
         :param x: The point at which to get the cumulative density
         """
-        normed_x = self.scale.normalize_point(x)
-
-        def in_range_cdf(normed_x):
-            bin = np.argmax(constants.grid > normed_x) - 1
-            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin], 0)
-            c_in_bin = self.normed_densities[bin] * (normed_x - constants.grid[bin])
-            return c_below_bin + c_in_bin
-
-        return np.where(
-            normed_x <= constants.grid[0],
-            0,
-            np.where(normed_x >= constants.grid[-1], 1, in_range_cdf(normed_x)),
-        )
+        x = self.scale.normalize_point(x)
+        bin = np.argmin(np.abs(self.normed_xs - x))
+        return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
 
     def ppf(self, q):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
