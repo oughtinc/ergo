@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ergo"
-version = "0.8.4"
+version = "0.8.5"
 description = ""
 authors = ["Ought <team@ought.org>"]
 
@@ -49,6 +49,9 @@ nbdime = "^2.0.0"
 jupytext = "^1.4.2"
 ipywidgets = "^7.5.1"
 pytest-sugar = "^0.9.3"
+snakeviz = "^2.1.0"
+jupyter_http_over_ws = "^0.0.8"
+jupyterlab_github = "^2.0.0"
 
 [tool.poetry.extras]
 notebooks = [   
