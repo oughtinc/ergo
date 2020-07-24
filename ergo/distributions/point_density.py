@@ -86,14 +86,13 @@ class PointDensity(Distribution, Optimizable):
         """
         If x is below the distribution range, returns 0. If x is
         above the distribution range, returns 1.
-        Otherwise, determines the bin which x is in, then returns the
-        density below that bin plus the density in that bin, calculated as
-        width in bin (normed_x - bin start x) * height (density) of bin.
+        Otherwise, it returns the closest bin edge and returns the cdf to that point
 
         :param x: The point at which to get the cumulative density
         """
+
         x = self.scale.normalize_point(x)
-        bin = np.argmin(np.abs(self.normed_xs - x))
+        bin = np.argmin(np.abs(constants.grid - x))
         return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
 
     def ppf(self, q):
