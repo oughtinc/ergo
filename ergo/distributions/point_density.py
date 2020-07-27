@@ -36,7 +36,6 @@ class PointDensity(Distribution, Optimizable):
             raise ValueError
 
         self.scale = scale
-        init_np = np if traceable else onp
 
         if normalized:
             self.normed_xs = xs
@@ -48,14 +47,33 @@ class PointDensity(Distribution, Optimizable):
 
         self.bin_probs = self.normed_densities * constants.bin_sizes
 
-        if cumulative_normed_ps is not None:
-            self.cumulative_normed_ps = cumulative_normed_ps
+        self._cumulative_normed_ps = cumulative_normed_ps
 
-        else:
-            self.cumulative_normed_ps = init_np.append(
-                init_np.array([0]), init_np.cumsum(self.bin_probs)
+    @property
+    def normed_log_densities(self):
+        if getattr(self, "_normed_log_densities", None) is None:
+            self._normed_log_densities = np.log(self.normed_densities)
+        return self._normed_log_densities
+
+    @property
+    def cumulative_normed_ps(self):
+        if self._cumulative_normed_ps is None:
+            self._cumulative_normed_ps = np.append(
+                np.array([0]), np.cumsum(self.bin_probs)
             )
-        self.normed_log_densities = init_np.log(self.normed_densities)
+        return self._cumulative_normed_ps
+
+    @property
+    def true_xs(self):
+        if getattr(self, "_true_xs", None) is None:
+            self._true_xs = self.scale.denormalize_points(self.normed_xs)
+        return self._true_xs
+
+    @property
+    def true_grid(self):
+        if getattr(self, "_true_grid", None) is None:
+            self._true_grid = self.scale.denormalize_points(constants.grid)
+        return self._true_grid
 
     # Distribution
 
@@ -97,7 +115,7 @@ class PointDensity(Distribution, Optimizable):
 
     def ppf(self, q):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
-        return self.scale.denormalize_point(constants.grid[bin])
+        return self.true_grid[bin]
 
     def sample(self):
         raise NotImplementedError
@@ -264,9 +282,8 @@ class PointDensity(Distribution, Optimizable):
         return -np.dot(self.bin_probs, np.log(q_dist.bin_probs))
 
     def mean(self):
-        return np.dot(self.scale.denormalize_points(self.normed_xs), self.bin_probs)
+        return np.dot(self.true_xs, self.bin_probs)
 
     def variance(self):
         mean = self.mean()
-        true_xs = self.scale.denormalize_points(self.normed_xs)
-        return np.dot(self.bin_probs, np.square(true_xs - mean))
+        return np.dot(self.bin_probs, np.square(self.true_xs - mean))
