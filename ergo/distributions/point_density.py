@@ -81,7 +81,7 @@ class PointDensity(Distribution, Optimizable):
         )
 
     def logpdf(self, x):
-        return np.log(self.pdf(x))
+        return np.log(self.pdf(x) + 1e-15)
 
     def cdf(self, x):
         """
