@@ -55,7 +55,8 @@ class PointDensity(Distribution, Optimizable):
             self.cumulative_normed_ps = init_np.append(
                 init_np.array([0]), init_np.cumsum(self.bin_probs)
             )
-        self.normed_log_densities = init_np.log(self.normed_densities)
+
+        self.normed_log_densities = init_np.log(self.normed_densities + 1e-15)
 
     # Distribution
 
@@ -199,6 +200,7 @@ class PointDensity(Distribution, Optimizable):
         xs = fixed_params["xs"]
 
         densities = nn.softmax(opt_params) * opt_params.size
+
         return cls(
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
         )
@@ -268,11 +270,11 @@ class PointDensity(Distribution, Optimizable):
     # Condition Methods
 
     def entropy(self):
-        return -np.dot(self.bin_probs, np.log(self.bin_probs))
+        return -np.dot(self.bin_probs, np.log(self.bin_probs + 1e-15))
 
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
-        return -np.dot(self.bin_probs, np.log(q_dist.bin_probs))
+        return -np.dot(self.bin_probs, np.log(q_dist.bin_probs + 1e-15))
 
     def mean(self):
         return np.dot(self.scale.denormalize_points(self.normed_xs), self.bin_probs)
