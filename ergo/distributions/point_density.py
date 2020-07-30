@@ -229,9 +229,25 @@ class PointDensity(Distribution, Optimizable):
 
         return xs, densities
 
-    def to_arrays(self, denorm_xs_only=False, add_endpoints=False):
-        normed_xs = self.normed_xs
-        normed_densities = self.normed_densities
+    def to_arrays(self, denorm_xs_only=False, add_endpoints=False, num_points_out=None):
+        """
+        Exports the distribution in two arrays of xs and associated densities
+
+        :param denorm_xs_only: only denormalize the xs and leave the densities normalized
+        :param add_endpoints: add endpoints of the distribution to points passed out
+        :param num_points_out: the number of points to summarise the distribution with
+        :return: the true-scaled x values and densities (the normed density if denorm_xs_only=True)
+        """
+
+        if num_points_out:
+            grid = np.linspace(0, 1, num_points_out + 1)
+            normed_xs = (grid[1:] + grid[:-1]) / 2
+            f = interp1d(self.normed_xs, self.normed_densities)
+            normed_densities = f(normed_xs)
+
+        else:
+            normed_xs = self.normed_xs
+            normed_densities = self.normed_densities
 
         if add_endpoints:
             normed_xs, normed_densities = PointDensity.add_endpoints(
