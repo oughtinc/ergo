@@ -2,18 +2,31 @@
 This module lets you get question and prediction information from PredictIt
 and submit predictions, via the API (https://predictit.freshdesk.com/support/solutions/articles/12000001878)
 
-pi = PredictIt()
+**Example**
+In this example, we predict the odds of democrats sweeping the house, senate, and presidency in the 2020 election based on the combined predictit odds.
 
-q_presparty = pi.search_market("party wins pres").search_question("dem")
-print(q_presparty.get_community_prediction())
-q_senparty = pi.search_market("who control senate").search_question("dem")
-print(q_senparty.get_community_prediction())
-q_houseparty = pi.search_market("who control house").search_question("dem")
-print(q_houseparty.get_community_prediction())
-q_demsweep = pi.search_market("dem sweep").get_question()
-print(q_demsweep.get_community_prediction())
-print("implied: " + str(q_senparty.get_community_prediction()*q_senparty.get_community_prediction()*q_houseparty.get_community_prediction()))
-print("given: " + str(q_demsweep.get_community_prediction()))
+We submit our prediction to the metaculus question asking "Will Democrats win both halves of Congress + Presidency in the US 2020 Election?"
+
+https://www.metaculus.com/questions/3504/
+
+.. doctest::
+    >>> import ergo
+    >>> import os
+    >>> pi = ergo.PredictIt()
+    >>> metaculus = ergo.Metaculus(
+    ...     username=os.getenv("METACULUS_USERNAME"),
+    ...     password=os.getenv("METACULUS_PASSWORD"),
+    ...     api_domain="www"
+    ... )
+
+    >>> q_pres_dem = pi.search_market("party wins pres").search_question("dem")
+    >>> q_senate_dem = pi.search_market("who control senate").search_question("dem")
+    >>> q_house_dem = pi.search_market("who control house").search_question("dem")
+    >>> implied = q_pres_dem.get_community_prediction() * q_senate_dem.get_community_prediction() * q_house_dem.get_community_prediction()
+
+    >>> q_sweep = metaculus.get_question(3504)
+    >>> q_sweep.submit(implied)
+    <Response [202]>
 """
 import re
 from typing import Any, Dict, Iterator, List
@@ -92,7 +105,7 @@ class PredictItQuestion:
         :param key:
         :param value:
         """
-        self.data[key] = value
+        self._data[key] = value
 
     @staticmethod
     def to_dataframe(
@@ -107,20 +120,23 @@ class PredictItQuestion:
         """
 
         data = [
-            [question.data[key] for key in columns]
+            [question._data[key] for key in columns]
             for question in questions
         ]
 
         return pd.DataFrame(data, columns=columns)
 
     def get_community_prediction(self):
+        """
+        Return the lastTradePrice
+        """
         return self.lastTradePrice
 
-    def refresh_question(self):
+    def refresh(self):
         """
         Refetch the market data from PredictIt and reload the question.
         """
-        self.market.refresh_market()
+        self.market.refresh()
         self._data = self.market.get_question_by_id(self.id)._data
 
     def sample_community(self) -> bool:
@@ -128,8 +144,7 @@ class PredictItQuestion:
         Sample from the PredictIt community distribution (Bernoulli).
         :return: true/false
         """
-        community_prediction = self.lastTradePrice
-        return flip(community_prediction)
+        return flip(self.get_community_prediction())
 
 
 class PredictItMarket:
@@ -191,42 +206,33 @@ class PredictItMarket:
         for data in self._data['contracts']:
             yield PredictItQuestion(self, data)
 
-    def refresh_market(self):
+    def refresh(self):
         """
         Refetch the market data from PredictIt,
         used when the question data might have changed.
         """
         r = self.predictit._get(self.api_url)
-        assert "Slow down!" not in str(r.content), "Hit API rate limit"
         self._load_attr(r.json())
-
-    def get_question(self, bin_num: int = 0) -> PredictItQuestion:
-        """
-        Return the specified question given by the bin number, starting at 0.
-        :param bin_num:
-        :return: question
-        """
-        return list(self.questions)[bin_num]
 
     def get_question_by_id(self, id: int) -> PredictItQuestion:
         """
-        Return the specified question given by the id number, starting at 0.
+        Return the specified question given by the id number.
         :param id:
         :return: question
         """
-        for contract in self.questions:
-            if contract.id == id:
-                return contract
+        for question in self.questions:
+            if question.id == id:
+                return question
         raise ValueError("Unable to find a question with that id.")
 
-    def search_question(self, bin_name: str) -> PredictItQuestion:
+    def search_question(self, name: str) -> PredictItQuestion:
         """
         Return the specified question given by the name of the question,
         using fuzzy matching in the case where the name isn't exact.
-        :param bin_name:
+        :param name:
         :return: question
         """
-        guess = re.sub(r'[^\w\s]', '', bin_name).lower()
+        guess = re.sub(r'[^\w\s]', '', name).lower()
         guess_words = guess.split()
         most_matches = 0
         best_diff = 0
@@ -257,7 +263,7 @@ class PredictIt:
 
     def _get(self, url):
         """
-        Send a get request to to PredictIt API
+        Send a get request to to PredictIt API.
         :param url:
         :return: response
         """
@@ -265,7 +271,10 @@ class PredictIt:
         assert "Slow down!" not in str(r.content), "Hit API rate limit"
         return r
 
-    def reload_markets(self):
+    def refresh_markets(self):
+        """
+        Refetch all of the markets from the predictit api.
+        """
         self._data = self._get(f"{self.api_url}/all/").json()
 
     def get_markets(self) -> Iterator[PredictItMarket]:
@@ -297,14 +306,14 @@ class PredictIt:
         """
         return self.get_market(self._get_market_id(name))
 
-    def _get_market_id(self, market_str: str) -> int:
+    def _get_market_id(self, name: str) -> int:
         """
         Find the id of the market with a given name,
         using fuzzy matching if an exact match is not found.
-        :param market_str:
+        :param name:
         :return: market id
         """
-        guess = re.sub(r'[^\w\s]', '', market_str).lower()
+        guess = re.sub(r'[^\w\s]', '', name).lower()
         guess_words = guess.split()
         most_matches = 0
         best_diff = 0

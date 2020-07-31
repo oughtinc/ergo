@@ -31,6 +31,6 @@ from .distributions import (
     random_integer,
     uniform,
 )
-from .platforms import Foretold, ForetoldQuestion, Metaculus, MetaculusQuestion
+from .platforms import Foretold, ForetoldQuestion, Metaculus, MetaculusQuestion, PredictIt, PredictItQuestion, PredictItMarket
 from .ppl import condition, mem, run, sample, tag
 from .utils import to_float
