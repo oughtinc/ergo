@@ -1,20 +1,39 @@
 """
 This module lets you get question and prediction information from PredictIt
 and submit predictions, via the API (https://predictit.freshdesk.com/support/solutions/articles/12000001878)
+
+pi = PredictIt()
+
+q_presparty = pi.search_market("party wins pres").search_question("dem")
+print(q_presparty.get_community_prediction())
+q_senparty = pi.search_market("who control senate").search_question("dem")
+print(q_senparty.get_community_prediction())
+q_houseparty = pi.search_market("who control house").search_question("dem")
+print(q_houseparty.get_community_prediction())
+q_demsweep = pi.search_market("dem sweep").get_question()
+print(q_demsweep.get_community_prediction())
+print("implied: " + str(q_senparty.get_community_prediction()*q_senparty.get_community_prediction()*q_houseparty.get_community_prediction()))
+print("given: " + str(q_demsweep.get_community_prediction()))
 """
 import re
-from typing import Any, Dict, Iterator
+import time
+from typing import Any, Dict, Iterator, List
 
 import requests
 from dateutil.parser import parse
 from fuzzywuzzy import fuzz
 
+import ergo
+from ergo.distributions.base import flip
 
-class Contract:
+import pandas as pd
+
+
+class PredictItQuestion:
     """
-    A single contract in a PredictIt market.
+    A single binary question in a PredictIt market.
 
-    :param question: PredictIt question instance
+    :param market: PredictIt question instance
     :param data: Contract JSON retrieved from PredictIt API
 
     :ivar PredictItQuestion question: predictit question instance
@@ -33,11 +52,20 @@ class Contract:
     :ivar int displayOrder: position of the contract in PredictIt. Defaults to 0 if sorted by lastTradePrice
     """
 
-    def __init__(self, question, data):
-        self.question = question
+    def __init__(self, market: Any, data: Dict):
+        self.market = market
         self._data = data
 
-    def __getattr__(self, name):
+    def __repr__(self):
+        if self._data:
+            return f'<PredictItQuestion title="{self.name}">'
+        else:
+            return "<PredictItQuestion>"
+
+    def __str__(self):
+        return repr(self)
+
+    def __getattr__(self, name: str):
         """
         If an attribute isn't directly on the class, check whether it's in the
         raw contract data. If it's a time, format it appropriately.
@@ -59,8 +87,49 @@ class Contract:
                 f"Attribute {name} is neither directly on this class nor in the raw question data"
             )
 
+    def set_data(self, key: str, value: Any):
+        """
+        Set key on data dict
+        :param key:
+        :param value:
+        """
+        self.data[key] = value
 
-class PredictItQuestion:
+    @staticmethod
+    def to_dataframe(
+        questions: List["PredictItQuestion"],
+        columns: List[str] = ["id", "name", "dateEnd"],
+    ) -> pd.DataFrame:
+        """
+        Summarize a list of questions in a dataframe
+        :param questions: questions to summarize
+        :param columns: list of column names as strings
+        :return: pandas dataframe summarizing the questions
+        """
+
+        data = [
+            [question.data[key] for key in columns]
+            for question in questions
+        ]
+
+        return pd.DataFrame(data, columns=columns)
+
+    def get_community_prediction(self):
+        return self.lastTradePrice
+
+    def refresh_question(self):
+        self.market.refresh_market()
+        self._data = self.market.get_question_by_id(self.id)._data
+
+    def sample_community(self) -> bool:
+        """
+        Sample from the PredictIt community distribution (Bernoulli).
+        """
+        community_prediction = self.lastTradePrice
+        return flip(community_prediction)
+
+
+class PredictItMarket:
     """
         A PredictIt market.
 
@@ -81,8 +150,16 @@ class PredictItQuestion:
 
     def __init__(self, predictit: Any, data: Dict):
         self.predictit = predictit
-        self.api_url = f"{predictit.api_url}/markets/{id}/"
         self._load_attr(data)
+
+    def __repr__(self):
+        if self._data:
+            return f'<PredictItMarket title="{self.name}">'
+        else:
+            return "<PredictItMarket>"
+
+    def __str__(self):
+        return repr(self)
 
     def _load_attr(self, data):
         """
@@ -95,44 +172,55 @@ class PredictItQuestion:
         self.image = data['image']
         self.url = data['url']
         self.status = data['status']
+        self.api_url = f"{self.predictit.api_url}/markets/{self.id}/"
         if data['timeStamp'] == 'N/A':
             self.timestamp = None
         else:
             self.timestamp = parse(data['timeStamp'])
 
     @property
-    def contracts(self) -> Iterator[Contract]:
+    def questions(self) -> Iterator[PredictItQuestion]:
         """
-        Generate all of the contracts in the market.
+        Generate all of the questions in the market.
         """
         for data in self._data['contracts']:
-            yield Contract(self, data)
+            yield PredictItQuestion(self, data)
 
-    def refresh_question(self):
+    def refresh_market(self):
         """
-        Refetch the question data from PredictIt,
+        Refetch the market data from PredictIt,
         used when the question data might have changed.
         """
-        r = self.predictit.s.get(self.api_url)
+        r = self.predictit._get(self.api_url)
+        assert "Slow down!" not in str(r.content), "Hit API rate limit"
         self._load_attr(r.json())
 
-    def get_contract_bin(self, bin_num: int) -> Contract:
+    def get_question(self, bin_num: int = 0) -> PredictItQuestion:
         """
-        Return the specified contract given by the bin number, starting at 0.
+        Return the specified question given by the bin number, starting at 0.
         """
-        return list(self.contracts)[bin_num]
+        return list(self.questions)[bin_num]
 
-    def search_contract(self, bin_name: str) -> Contract:
+    def get_question_by_id(self, id: int) -> PredictItQuestion:
         """
-        Return the specified contract given by the name of the contract,
+        Return the specified question given by the id number, starting at 0.
+        """
+        for contract in self.questions:
+            if contract.id == id:
+                return contract
+        raise ValueError("Unable to find a question with that id.")
+
+    def search_question(self, bin_name: str) -> PredictItQuestion:
+        """
+        Return the specified question given by the name of the question,
         using fuzzy matching in the case where the name isn't exact.
         """
         guess = re.sub(r'[^\w\s]', '', bin_name).lower()
         guess_words = guess.split()
         most_matches = 0
         best_diff = 0
-        best_diff_contract = 0
-        for contract in self.contracts:
+        best_diff_contract = None
+        for contract in self.questions:
             short_name = re.sub(r'[^\w\s]', '', contract.name).lower()
             matches = sum([word in short_name for word in guess_words])
             diff = fuzz.token_sort_ratio(guess, short_name)
@@ -141,6 +229,8 @@ class PredictItQuestion:
                 best_diff_contract = contract
             if matches > most_matches:
                 most_matches = matches
+        if best_diff_contract is None:
+            raise ValueError("Unable to find a question with that name.")
         return best_diff_contract
 
 
@@ -152,34 +242,42 @@ class PredictIt:
     def __init__(self):
         self.api_url = "https://www.predictit.org/api/marketdata"
         self.s = requests.Session()
+        self._data = self._get(f"{self.api_url}/all/").json()
 
-    def get_questions(self) -> Iterator[PredictItQuestion]:
+    def _get(self, url):
         """
-        Generate all of the questions currently in PredictIt.
+        Send a get request to to PredictIt API
         """
-        r = self.s.get(f"{self.api_url}/all/")
-        for data in r.json()['markets']:
-            yield PredictItQuestion(self, data)
+        r = self.s.get(url)
+        assert "Slow down!" not in str(r.content), "Hit API rate limit"
+        return r
 
-    def get_question(self, id: int) -> PredictItQuestion:
-        """
-        Return the PredictIt question with the given id.
-        A question's id can be found in the url of the question.
-        """
-        r = self.s.get(f"{self.api_url}/markets/{id}/")
-        data = r.json()
-        return PredictItQuestion(self, data)
+    def reload_markets(self):
+        self._data = self._get(f"{self.api_url}/all/").json()
 
-    def search_question(self, name: str) -> PredictItQuestion:
+    def get_markets(self) -> Iterator[PredictItMarket]:
         """
-        Return a PredictIt question with the given name,
+        Generate all of the markets currently in PredictIt.
+        """
+        for data in self._data['markets']:
+            yield PredictItMarket(self, data)
+
+    def get_market(self, id: int) -> PredictItMarket:
+        """
+        Return the PredictIt market with the given id.
+        A market's id can be found in the url of the market.
+        """
+        for data in self._data['markets']:
+            if data['id'] == id:
+                return PredictItMarket(self, data)
+        raise ValueError("Unable to find a market with that ID.")
+
+    def search_market(self, name: str) -> PredictItMarket:
+        """
+        Return a PredictIt market with the given name,
         using fuzzy matching if an exact match is not found.
         """
-        id = self._get_market_id(name)
-        markets = self.get_questions()
-        for market in markets:
-            if market.id == id:
-                return market
+        return self.get_market(self._get_market_id(name))
 
     def _get_market_id(self, market_str: str) -> int:
         """
@@ -191,7 +289,7 @@ class PredictIt:
         most_matches = 0
         best_diff = 0
         best_diff_id = 0
-        for market in self.get_questions():
+        for market in self.get_markets():
             short_name = re.sub(r'[^\w\s]', '', market.shortName).lower()
             long_name = re.sub(r'[^\w\s]', '', market.name).lower()
             matches = sum([word in short_name or word in long_name for word in guess_words])
@@ -204,10 +302,3 @@ class PredictIt:
                 most_matches = matches
         return best_diff_id
 
-
-p = PredictIt()
-q = p.get_question(2721)
-print(q.contracts.__class__)
-print(q.timestamp)
-print(q.search_contract("Lib").shortName)
-print(p.search_question("2020 pres").name)
