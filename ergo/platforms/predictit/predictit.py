@@ -16,17 +16,14 @@ print("implied: " + str(q_senparty.get_community_prediction()*q_senparty.get_com
 print("given: " + str(q_demsweep.get_community_prediction()))
 """
 import re
-import time
 from typing import Any, Dict, Iterator, List
 
+import pandas as pd
 import requests
 from dateutil.parser import parse
 from fuzzywuzzy import fuzz
 
-import ergo
 from ergo.distributions.base import flip
-
-import pandas as pd
 
 
 class PredictItQuestion:
@@ -69,6 +66,8 @@ class PredictItQuestion:
         """
         If an attribute isn't directly on the class, check whether it's in the
         raw contract data. If it's a time, format it appropriately.
+        :param name:
+        :return: attribute value
         """
         if name in self._data:
             if name == "dateEnd":
@@ -97,8 +96,8 @@ class PredictItQuestion:
 
     @staticmethod
     def to_dataframe(
-        questions: List["PredictItQuestion"],
-        columns: List[str] = ["id", "name", "dateEnd"],
+            questions: List["PredictItQuestion"],
+            columns: List[str] = ["id", "name", "dateEnd"],
     ) -> pd.DataFrame:
         """
         Summarize a list of questions in a dataframe
@@ -118,12 +117,16 @@ class PredictItQuestion:
         return self.lastTradePrice
 
     def refresh_question(self):
+        """
+        Refetch the market data from PredictIt and reload the question.
+        """
         self.market.refresh_market()
         self._data = self.market.get_question_by_id(self.id)._data
 
     def sample_community(self) -> bool:
         """
         Sample from the PredictIt community distribution (Bernoulli).
+        :return: true/false
         """
         community_prediction = self.lastTradePrice
         return flip(community_prediction)
@@ -164,6 +167,7 @@ class PredictItMarket:
     def _load_attr(self, data):
         """
         Load attributes of question from data to instance.
+        :param data:
         """
         self._data = data
         self.id = data['id']
@@ -182,6 +186,7 @@ class PredictItMarket:
     def questions(self) -> Iterator[PredictItQuestion]:
         """
         Generate all of the questions in the market.
+        :return: iterator of questions in market
         """
         for data in self._data['contracts']:
             yield PredictItQuestion(self, data)
@@ -198,12 +203,16 @@ class PredictItMarket:
     def get_question(self, bin_num: int = 0) -> PredictItQuestion:
         """
         Return the specified question given by the bin number, starting at 0.
+        :param bin_num:
+        :return: question
         """
         return list(self.questions)[bin_num]
 
     def get_question_by_id(self, id: int) -> PredictItQuestion:
         """
         Return the specified question given by the id number, starting at 0.
+        :param id:
+        :return: question
         """
         for contract in self.questions:
             if contract.id == id:
@@ -214,6 +223,8 @@ class PredictItMarket:
         """
         Return the specified question given by the name of the question,
         using fuzzy matching in the case where the name isn't exact.
+        :param bin_name:
+        :return: question
         """
         guess = re.sub(r'[^\w\s]', '', bin_name).lower()
         guess_words = guess.split()
@@ -247,6 +258,8 @@ class PredictIt:
     def _get(self, url):
         """
         Send a get request to to PredictIt API
+        :param url:
+        :return: response
         """
         r = self.s.get(url)
         assert "Slow down!" not in str(r.content), "Hit API rate limit"
@@ -258,6 +271,7 @@ class PredictIt:
     def get_markets(self) -> Iterator[PredictItMarket]:
         """
         Generate all of the markets currently in PredictIt.
+        :return: iterator of predictit markets
         """
         for data in self._data['markets']:
             yield PredictItMarket(self, data)
@@ -266,6 +280,8 @@ class PredictIt:
         """
         Return the PredictIt market with the given id.
         A market's id can be found in the url of the market.
+        :param id:
+        :return: market
         """
         for data in self._data['markets']:
             if data['id'] == id:
@@ -276,6 +292,8 @@ class PredictIt:
         """
         Return a PredictIt market with the given name,
         using fuzzy matching if an exact match is not found.
+        :param name:
+        :return: market
         """
         return self.get_market(self._get_market_id(name))
 
@@ -283,6 +301,8 @@ class PredictIt:
         """
         Find the id of the market with a given name,
         using fuzzy matching if an exact match is not found.
+        :param market_str:
+        :return: market id
         """
         guess = re.sub(r'[^\w\s]', '', market_str).lower()
         guess_words = guess.split()
@@ -301,4 +321,3 @@ class PredictIt:
             if matches > most_matches:
                 most_matches = matches
         return best_diff_id
-
