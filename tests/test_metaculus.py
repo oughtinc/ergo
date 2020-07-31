@@ -98,7 +98,7 @@ def test_score_binary(metaculus_questions):
 
 
 def test_get_questions(metaculus):
-    questions = metaculus.get_markets(question_status="closed")
+    questions = metaculus.get_questions(question_status="closed")
     assert len(questions) >= 15
 
 
@@ -166,7 +166,7 @@ def test_submitted_equals_predicted_linear(
     metaculus_questions.continuous_linear_open_question.submit_from_samples(
         logistic_mixture_samples
     )
-    metaculus_questions.continuous_linear_open_question.refresh_market()
+    metaculus_questions.continuous_linear_open_question.refresh_question()
     latest_prediction = (
         metaculus_questions.continuous_linear_open_question.get_latest_normalized_prediction()
     )
@@ -184,7 +184,7 @@ def test_submitted_equals_predicted_log(metaculus_questions, logistic_mixture_sa
     metaculus_questions.continuous_log_open_question.submit_from_samples(
         logistic_mixture_samples
     )
-    metaculus_questions.continuous_log_open_question.refresh_market()
+    metaculus_questions.continuous_log_open_question.refresh_question()
     latest_prediction = (
         metaculus_questions.continuous_log_open_question.get_latest_normalized_prediction()
     )
