@@ -261,12 +261,10 @@ class PointDensity(Distribution, Optimizable):
             grid = np.linspace(0, 1, num_points_out + 1)
             normed_xs = (grid[1:] + grid[:-1]) / 2
             xs = self.scale.denormalize_points(normed_xs)
-            f = interp1d(
-                self.scale.denormalize_points(self.normed_xs), self.normed_densities
-            )
+            f = interp1d(self.true_xs, self.normed_densities)
             normed_densities = f(xs)
         else:
-            xs = self.scale.denormalize_points(self.normed_xs)
+            xs = self.true_xs
             normed_densities = self.normed_densities
 
         if add_endpoints:
