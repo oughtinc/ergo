@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import cached_property
 
 from jax import nn
 import jax.numpy as np
@@ -20,7 +21,6 @@ class PointDensity(Distribution, Optimizable):
 
     normed_xs: np.DeviceArray
     normed_densities: np.DeviceArray
-    bin_probs: np.DeviceArray
     scale: Scale
 
     def __init__(
@@ -45,17 +45,17 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
-        self.bin_probs = self.normed_densities * constants.bin_sizes
-
         self._cumulative_normed_ps = cumulative_normed_ps
 
-    @property
-    def normed_log_densities(self):
-        if getattr(self, "_normed_log_densities", None) is None:
-            self._normed_log_densities = np.log(self.normed_densities)
-        return self._normed_log_densities
+    @cached_property
+    def bin_probs(self):
+        return self.normed_densities * constants.bin_sizes
 
-    @property
+    @cached_property
+    def normed_log_densities(self):
+        return np.log(self.normed_densities)
+
+    @cached_property
     def cumulative_normed_ps(self):
         if self._cumulative_normed_ps is None:
             self._cumulative_normed_ps = np.append(
@@ -63,17 +63,13 @@ class PointDensity(Distribution, Optimizable):
             )
         return self._cumulative_normed_ps
 
-    @property
+    @cached_property
     def true_xs(self):
-        if getattr(self, "_true_xs", None) is None:
-            self._true_xs = self.scale.denormalize_points(self.normed_xs)
-        return self._true_xs
+        return self.scale.denormalize_points(self.normed_xs)
 
-    @property
+    @cached_property
     def true_grid(self):
-        if getattr(self, "_true_grid", None) is None:
-            self._true_grid = self.scale.denormalize_points(constants.grid)
-        return self._true_grid
+        return self.scale.denormalize_points(constants.grid)
 
     # Distribution
 
