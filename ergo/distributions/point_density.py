@@ -206,25 +206,28 @@ class PointDensity(Distribution, Optimizable):
     # Export
 
     @classmethod
-    def add_endpoints(cls, xs, densities):
+    def add_endpoints(cls, xs, densities, scale=None):
         """
-        Assumes xs are normalized. Returns a list of xs and densities
-        with endpoints that are on the edge of the scale.
+        Returns a list of xs and densities with endpoints that are on the edge of the scale
+        provided. If no scale is provided assume data is normalized.
         """
-        if xs[0] != 0:
+        if scale is None:
+            scale = Scale(0, 1)
+
+        if xs[0] != scale.low:
             xdiff_ratio = (xs[1] - xs[0]) / xs[0]
             density = (densities[0] - densities[1]) / xdiff_ratio + densities[0]
             clamped_density = onp.maximum(density, 0)
 
-            xs = onp.append(onp.array([0]), xs)
+            xs = onp.append(onp.array([scale.low]), xs)
             densities = onp.append(np.array([clamped_density]), densities)
 
-        if xs[-1] != 1:
-            xdiff_ratio = (xs[-1] - xs[-2]) / (1 - xs[-1])
+        if xs[-1] != scale.high:
+            xdiff_ratio = (xs[-1] - xs[-2]) / (scale.high - xs[-1])
             density = (densities[-1] - densities[-2]) / xdiff_ratio + densities[-1]
             clamped_density = onp.maximum(density, 0)
 
-            xs = onp.append(xs, onp.array([1]))
+            xs = onp.append(xs, onp.array([scale.high]))
             densities = onp.append(densities, np.array([clamped_density]))
 
         return xs, densities
