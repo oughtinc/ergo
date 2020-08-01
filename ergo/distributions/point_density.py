@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from backports.cached_property import cached_property
 from jax import nn
 import jax.numpy as np
 import numpy as onp
@@ -20,7 +21,6 @@ class PointDensity(Distribution, Optimizable):
 
     normed_xs: np.DeviceArray
     normed_densities: np.DeviceArray
-    bin_probs: np.DeviceArray
     scale: Scale
 
     def __init__(
@@ -36,7 +36,6 @@ class PointDensity(Distribution, Optimizable):
             raise ValueError
 
         self.scale = scale
-        init_np = np if traceable else onp
 
         if normalized:
             self.normed_xs = xs
@@ -46,16 +45,31 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
-        self.bin_probs = self.normed_densities * constants.bin_sizes
+        self._cumulative_normed_ps = cumulative_normed_ps
 
-        if cumulative_normed_ps is not None:
-            self.cumulative_normed_ps = cumulative_normed_ps
+    @cached_property
+    def bin_probs(self):
+        return self.normed_densities * constants.bin_sizes
 
-        else:
-            self.cumulative_normed_ps = init_np.append(
-                init_np.array([0]), init_np.cumsum(self.bin_probs)
+    @cached_property
+    def normed_log_densities(self):
+        return np.log(self.normed_densities)
+
+    @cached_property
+    def cumulative_normed_ps(self):
+        if self._cumulative_normed_ps is None:
+            self._cumulative_normed_ps = np.append(
+                np.array([0]), np.cumsum(self.bin_probs)
             )
-        self.normed_log_densities = init_np.log(self.normed_densities)
+        return self._cumulative_normed_ps
+
+    @cached_property
+    def true_xs(self):
+        return self.scale.denormalize_points(self.normed_xs)
+
+    @cached_property
+    def true_grid(self):
+        return self.scale.denormalize_points(constants.grid)
 
     # Distribution
 
@@ -97,7 +111,7 @@ class PointDensity(Distribution, Optimizable):
 
     def ppf(self, q):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
-        return self.scale.denormalize_point(constants.grid[bin])
+        return self.true_grid[bin]
 
     def sample(self):
         raise NotImplementedError
@@ -285,9 +299,8 @@ class PointDensity(Distribution, Optimizable):
         return -np.dot(self.bin_probs, np.log(q_dist.bin_probs))
 
     def mean(self):
-        return np.dot(self.scale.denormalize_points(self.normed_xs), self.bin_probs)
+        return np.dot(self.true_xs, self.bin_probs)
 
     def variance(self):
         mean = self.mean()
-        true_xs = self.scale.denormalize_points(self.normed_xs)
-        return np.dot(self.bin_probs, np.square(true_xs - mean))
+        return np.dot(self.bin_probs, np.square(self.true_xs - mean))

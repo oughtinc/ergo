@@ -26,6 +26,7 @@ numpyro = {git = "https://github.com/pyro-ppl/numpyro.git", rev = "4c4903103c496
 pendulum = { version = "2.1.0", optional = true }    
 scikit-learn = { version = "0.22.2", optional = true } 
 sklearn = {version = "^0.0", optional = true}
+"backports.cached-property" = "^1.0.0"
 
 
 [tool.poetry.dev-dependencies]
