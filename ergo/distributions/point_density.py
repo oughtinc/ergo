@@ -147,6 +147,7 @@ class PointDensity(Distribution, Optimizable):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = np.array([x for (x, density) in sorted_pairs])
         densities = np.array([density for (x, density) in sorted_pairs])
+
         if not normalized:
             xs = scale.normalize_points(xs)
             densities = scale.normalize_densities(xs, densities)
@@ -245,19 +246,20 @@ class PointDensity(Distribution, Optimizable):
         if num_points_out:
             grid = np.linspace(0, 1, num_points_out + 1)
             normed_xs = (grid[1:] + grid[:-1]) / 2
-            f = interp1d(self.normed_xs, self.normed_densities)
-            normed_densities = f(normed_xs)
-
+            xs = self.scale.denormalize_points(normed_xs)
+            f = interp1d(
+                self.scale.denormalize_points(self.normed_xs), self.normed_densities
+            )
+            normed_densities = f(xs)
         else:
-            normed_xs = self.normed_xs
+            xs = self.scale.denormalize_points(self.normed_xs)
             normed_densities = self.normed_densities
 
         if add_endpoints:
-            normed_xs, normed_densities = PointDensity.add_endpoints(
-                normed_xs, normed_densities
+            xs, normed_densities = PointDensity.add_endpoints(
+                xs, normed_densities, self.scale
             )
 
-        xs = self.scale.denormalize_points(normed_xs)
         if denorm_xs_only:
             densities = normed_densities
         else:
