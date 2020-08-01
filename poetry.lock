@@ -97,6 +97,19 @@ python-versions = "*"
 version = "0.2.0"
 
 [[package]]
+category = "main"
+description = "cached_property() - computed once per instance, cached as attribute"
+name = "backports.cached-property"
+optional = false
+python-versions = ">=3.6.0"
+version = "1.0.0.post2"
+
+[package.dependencies]
+[package.dependencies.typing]
+python = "<3.7"
+version = ">=3.6"
+
+[[package]]
 category = "dev"
 description = "The uncompromising code formatter."
 name = "black"
@@ -901,6 +914,7 @@ test = ["flake8", "pytest (>=4.1)", "pyro-api (>=0.1.1)"]
 reference = "4c4903103c496663195e0f368b52bb4467556291"
 type = "git"
 url = "https://github.com/pyro-ppl/numpyro.git"
+
 [[package]]
 category = "main"
 description = "Optimizing numpys einsum function"
@@ -1085,7 +1099,7 @@ wcwidth = "*"
 [[package]]
 category = "dev"
 description = "Run a subprocess in a pseudo terminal"
-marker = "sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\""
+marker = "python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\" and (python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\")"
 name = "ptyprocess"
 optional = false
 python-versions = "*"
@@ -1692,6 +1706,15 @@ version = "1.4.1"
 
 [[package]]
 category = "main"
+description = "Type Hints for Python"
+marker = "python_version < \"3.7\""
+name = "typing"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "3.7.4.3"
+
+[[package]]
+category = "main"
 description = "Backported and Experimental Type Hints for Python 3.5+"
 name = "typing-extensions"
 optional = false
@@ -1754,7 +1777,7 @@ testing = ["jaraco.itertools", "func-timeout"]
 notebooks = ["pendulum", "scikit-learn", "sklearn"]
 
 [metadata]
-content-hash = "69204b3dbc7cfe7128136817d1719da0f8970dbe1431984dc09b2c1479aeca02"
+content-hash = "7eeeef8a6c3aa897512e9d6d6104ff74c477aa545617c1bd4648c3961b0cb6e7"
 python-versions = "~3.6.8"
 
 [metadata.files]
@@ -1795,6 +1818,10 @@ babel = [
 backcall = [
     {file = "backcall-0.2.0-py2.py3-none-any.whl", hash = "sha256:fbbce6a29f263178a1f7915c1940bde0ec2b2a967566fe1c65c1dfb7422bd255"},
     {file = "backcall-0.2.0.tar.gz", hash = "sha256:5cbdbf27be5e7cfadb448baf0aa95508f91f2bbc6c6437cd9cd06e2a4c215e1e"},
+]
+"backports.cached-property" = [
+    {file = "backports.cached-property-1.0.0.post2.tar.gz", hash = "sha256:74d525451ff39a069701ed81247e708498a387eeb35043070d008e1c25ed1b0c"},
+    {file = "backports.cached_property-1.0.0.post2-py3-none-any.whl", hash = "sha256:268eb9a5c6bb74d567038d574d7c2abfdadb481522ed8c5f230c13a898472673"},
 ]
 black = [
     {file = "black-19.10b0-py36-none-any.whl", hash = "sha256:1b30e59be925fafc1ee4565e5e08abef6b03fe455102883820fe5ee2e4734e0b"},
@@ -2606,6 +2633,10 @@ typed-ast = [
     {file = "typed_ast-1.4.1-cp38-cp38-win_amd64.whl", hash = "sha256:fc0fea399acb12edbf8a628ba8d2312f583bdbdb3335635db062fa98cf71fca4"},
     {file = "typed_ast-1.4.1-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:d43943ef777f9a1c42bf4e552ba23ac77a6351de620aa9acf64ad54933ad4d34"},
     {file = "typed_ast-1.4.1.tar.gz", hash = "sha256:8c8aaad94455178e3187ab22c8b01a3837f8ee50e09cf31f1ba129eb293ec30b"},
+]
+typing = [
+    {file = "typing-3.7.4.3-py2-none-any.whl", hash = "sha256:283d868f5071ab9ad873e5e52268d611e851c870a2ba354193026f2dfb29d8b5"},
+    {file = "typing-3.7.4.3.tar.gz", hash = "sha256:1187fb9c82fd670d10aa07bbb6cfcfe4bdda42d6fab8d5134f04e8c4d0b71cc9"},
 ]
 typing-extensions = [
     {file = "typing_extensions-3.7.4.2-py2-none-any.whl", hash = "sha256:f8d2bd89d25bc39dabe7d23df520442fa1d8969b82544370e03d88b5a591c392"},
