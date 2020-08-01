@@ -25,6 +25,7 @@ from tests.conftest import scales_to_test
         "denormalized",
         "from_conditions",
         "to_arrays",
+        "to_arrays/2",
     ],
 )
 def test_point_density(scale, dist_source):
@@ -51,6 +52,13 @@ def test_point_density(scale, dist_source):
         _xs, _density = direct_dist.to_arrays()
         pairs = [{"x": x, "density": d} for x, d in zip(_xs, _density)]
         dist = PointDensity.from_pairs(pairs, scale)
+    elif dist_source == "to_arrays/2":
+        _xs, _density = direct_dist.to_arrays(
+            num_points_out=int(constants.point_density_default_num_points / 2),
+            add_endpoints=True,
+        )
+        pairs = [{"x": x, "density": d} for x, d in zip(_xs, _density)]
+        dist = PointDensity.from_pairs(pairs, scale)
     elif dist_source == "structured":
         dist = PointDensity.structure(direct_dist.destructure())
     elif dist_source == "denormalized":
@@ -61,12 +69,14 @@ def test_point_density(scale, dist_source):
 
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
-    assert dist_densities == pytest.approx(orig_densities, abs=0.01)
+    if dist_source == "to_arrays/2":
+        assert dist_densities == pytest.approx(orig_densities, abs=0.05)
+    else:
+        assert dist_densities == pytest.approx(orig_densities, abs=0.01)
 
     # CDF
     dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
     assert dist_cdfs == pytest.approx(orig_cdfs, abs=0.05)
-
     MIN_CHECK_DENSITY = 1e-3
     check_idxs = [
         i
@@ -74,7 +84,6 @@ def test_point_density(scale, dist_source):
         if orig_densities[i] > MIN_CHECK_DENSITY
     ]
     dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[check_idxs]])
-    assert dist_ppfs == pytest.approx(xs[check_idxs], abs=0.1)
     assert dist_ppfs == pytest.approx(xs[check_idxs], rel=0.1)
 
 
