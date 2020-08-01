@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from functools import cached_property
 
+from backports.cached_property import cached_property
 from jax import nn
 import jax.numpy as np
 import numpy as onp
