@@ -165,7 +165,7 @@ class PredictItMarket:
         :return: response
         """
         r = self.predictit.s.get(url)
-        if "Slow down!" in str(r.content):
+        if r.status_code == 429:
             raise requests.RequestException("Hit API rate limit")
         return r
 
@@ -236,7 +236,7 @@ class PredictIt:
         :return: response
         """
         r = self.s.get(url)
-        if "Slow down!" in str(r.content):
+        if r.status_code == 429:
             raise requests.RequestException("Hit API rate limit")
         return r
 
