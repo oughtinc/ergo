@@ -29,8 +29,7 @@ In this example, we grap the oldest PredictIt question and it's first contract a
     >>> print(name3 == name1)
     True
 """
-import re
-from typing import Any, Generator, List, Dict
+from typing import Any, Dict, Generator, List
 
 from dateutil.parser import parse
 import pandas as pd
@@ -46,7 +45,7 @@ class PredictItQuestion:
     :param market: PredictIt question instance
     :param data: Contract JSON retrieved from PredictIt API
 
-    :ivar PredictItQuestion question: predictit question instance
+    :ivar PredictItQuestion market: predictit market instance
     :ivar int id: id of the contract
     :ivar datetime.datetime dateEnd: end-date of a market, usually None
     :ivar str image: url of the image resource for the contract

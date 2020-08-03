@@ -1,8 +1,7 @@
 import re
 
-from fuzzywuzzy import fuzz
-
 from ergo import PredictIt, PredictItMarket, PredictItQuestion
+from fuzzywuzzy import fuzz
 
 
 def _get_market_id(pi: PredictIt, name: str) -> int:
