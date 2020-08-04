@@ -221,13 +221,11 @@ class PointDensity(Distribution, Optimizable):
     # Export
 
     @classmethod
-    def add_endpoints(cls, xs, densities, scale=None):
+    def add_endpoints(cls, xs, densities, scale):
         """
         Returns a list of xs and densities with endpoints that are on the edge of the scale
         provided. If no scale is provided assume data is normalized.
         """
-        if scale is None:
-            scale = Scale(0, 1)
 
         if xs[0] != scale.low:
             xdiff_ratio = (xs[1] - xs[0]) / xs[0]
@@ -247,18 +245,18 @@ class PointDensity(Distribution, Optimizable):
 
         return xs, densities
 
-    def to_arrays(self, denorm_xs_only=False, add_endpoints=False, num_points_out=None):
+    def to_arrays(self, denorm_xs_only=False, add_endpoints=False, num_xs=None):
         """
         Exports the distribution in two arrays of xs and associated densities
 
         :param denorm_xs_only: only denormalize the xs and leave the densities normalized
         :param add_endpoints: add endpoints of the distribution to points passed out
-        :param num_points_out: the number of points to summarise the distribution with
+        :param num_xs: the number of points to summarise the distribution with
         :return: the true-scaled x values and densities (the normed density if denorm_xs_only=True)
         """
 
-        if num_points_out:
-            grid = np.linspace(0, 1, num_points_out + 1)
+        if num_xs is not None:
+            grid = np.linspace(0, 1, num_xs + 1)
             normed_xs = (grid[1:] + grid[:-1]) / 2
             xs = self.scale.denormalize_points(normed_xs)
             f = interp1d(self.true_xs, self.normed_densities)

@@ -54,7 +54,7 @@ def test_point_density(scale, dist_source):
         dist = PointDensity.from_pairs(pairs, scale)
     elif dist_source == "to_arrays/2":
         _xs, _density = direct_dist.to_arrays(
-            num_points_out=int(constants.point_density_default_num_points / 2),
+            num_xs=int(constants.point_density_default_num_points / 2),
             add_endpoints=True,
         )
         pairs = [{"x": x, "density": d} for x, d in zip(_xs, _density)]
