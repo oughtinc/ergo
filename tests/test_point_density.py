@@ -6,6 +6,7 @@ from ergo.conditions import (
     CrossEntropyCondition,
     IntervalCondition,
     MaxEntropyCondition,
+    SmoothnessCondition,
 )
 import ergo.distributions.constants as constants
 from ergo.distributions.point_density import PointDensity
@@ -180,3 +181,23 @@ def test_variance(scale: Scale):
     pd_norm = PointDensity.from_pairs(pairs, scale)
     calculated_variance = float(pd_norm.variance())
     assert true_variance == pytest.approx(calculated_variance, rel=1e-3, abs=1e-3)
+
+
+@pytest.mark.look
+def test_zero_log_issue():
+    """
+    Regression test for a bug where
+    1. distribution is specified which has 0 density in some bins, and
+    2. a condition or method that uses self.normed_log_densities or similar is called
+    """
+    pairs = [
+        {"x": 0, "density": 1},
+        {"x": 0.2, "density": 0},
+        {"x": 0.4, "density": 0},
+        {"x": 0.6, "density": 1},
+        {"x": 1, "density": 1},
+    ]
+    dist = PointDensity.from_pairs(pairs, scale=Scale(0, 1))
+    sc = SmoothnessCondition()
+    fit = sc.describe_fit(dist)
+    assert not np.isnan(fit["loss"])
