@@ -55,7 +55,7 @@ class PointDensity(Distribution, Optimizable):
     def normed_log_densities(self):
         return np.log(self.normed_densities)
 
-    @cached_property
+    @property
     def cumulative_normed_ps(self):
         if self._cumulative_normed_ps is None:
             self._cumulative_normed_ps = np.append(
