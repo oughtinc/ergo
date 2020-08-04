@@ -7,6 +7,7 @@ import numpy as onp
 from scipy.interpolate import interp1d
 
 from ergo.scale import Scale
+from ergo.utils import safe_log
 
 from . import constants
 from .distribution import Distribution
@@ -16,7 +17,7 @@ from .optimizable import Optimizable
 @dataclass
 class PointDensity(Distribution, Optimizable):
     """
-    A distribution specified through a number of density points.
+    a distribution specified through a number of density points.
     """
 
     normed_xs: np.DeviceArray
@@ -53,7 +54,7 @@ class PointDensity(Distribution, Optimizable):
 
     @cached_property
     def normed_log_densities(self):
-        return np.log(self.normed_densities)
+        return safe_log(self.normed_densities)
 
     @property
     def cumulative_normed_ps(self):
@@ -94,7 +95,7 @@ class PointDensity(Distribution, Optimizable):
         )
 
     def logpdf(self, x):
-        return np.log(self.pdf(x))
+        return safe_log(self.pdf(x))
 
     def cdf(self, x):
         """
@@ -203,6 +204,7 @@ class PointDensity(Distribution, Optimizable):
         xs = fixed_params["xs"]
 
         densities = nn.softmax(opt_params) * opt_params.size
+
         return cls(
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
         )
@@ -288,11 +290,11 @@ class PointDensity(Distribution, Optimizable):
     # Condition Methods
 
     def entropy(self):
-        return -np.dot(self.bin_probs, np.log(self.bin_probs))
+        return -np.dot(self.bin_probs, safe_log(self.bin_probs))
 
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
-        return -np.dot(self.bin_probs, np.log(q_dist.bin_probs))
+        return -np.dot(self.bin_probs, safe_log(q_dist.bin_probs))
 
     def mean(self):
         return np.dot(self.true_xs, self.bin_probs)

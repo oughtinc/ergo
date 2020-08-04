@@ -74,3 +74,7 @@ def trapz(y, x=None, dx=1.0):
     if x is not None:
         dx = np.diff(x)
     return 0.5 * (dx * (y[..., 1:] + y[..., :-1])).sum(-1)
+
+
+def safe_log(x, constant=1e-37):
+    return np.log(x + constant)
