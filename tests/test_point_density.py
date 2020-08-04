@@ -167,13 +167,13 @@ def test_add_endpoints():
     standard_densities = [0.25, 0.5, 0.75]
     expected_densities = np.array([0, 0.25, 0.5, 0.75, 1])
 
-    _, densities = PointDensity.add_endpoints(xs, standard_densities)
+    _, densities = PointDensity.add_endpoints(xs, standard_densities, scale=Scale(0, 1))
     assert densities == pytest.approx(expected_densities, abs=1e-5)
 
     to_clamp_densities = [0.1, 0.5, 0.1]
     expected_densities = np.array([0, 0.1, 0.5, 0.1, 0])
 
-    _, densities = PointDensity.add_endpoints(xs, to_clamp_densities)
+    _, densities = PointDensity.add_endpoints(xs, to_clamp_densities, scale=Scale(0, 1))
     assert densities == pytest.approx(expected_densities, abs=1e-5)
 
 
