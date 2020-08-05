@@ -71,13 +71,14 @@ def test_point_density(scale, dist_source):
     # PDF
     dist_densities = np.array([float(dist.pdf(x)) for x in xs])
     if dist_source == "to_arrays/2":
-        assert dist_densities == pytest.approx(orig_densities, abs=0.05)
+        assert dist_densities == pytest.approx(orig_densities, abs=0.08)
     else:
         assert dist_densities == pytest.approx(orig_densities, abs=0.01)
 
     # CDF
     dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
-    assert dist_cdfs == pytest.approx(orig_cdfs, abs=0.05)
+    assert dist_cdfs == pytest.approx(orig_cdfs, abs=0.06)
+    # PPF
     MIN_CHECK_DENSITY = 1e-3
     check_idxs = [
         i
@@ -85,7 +86,7 @@ def test_point_density(scale, dist_source):
         if orig_densities[i] > MIN_CHECK_DENSITY
     ]
     dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[check_idxs]])
-    assert dist_ppfs == pytest.approx(xs[check_idxs], rel=0.1)
+    assert dist_ppfs == pytest.approx(xs[check_idxs], rel=0.25)
 
 
 def test_density_frompairs():
