@@ -230,7 +230,7 @@ class PointDensity(Distribution, Optimizable):
         """
 
         if xs[0] != scale.low:
-            xdiff_ratio = (xs[1] - xs[0]) / xs[0]
+            xdiff_ratio = (xs[1] - xs[0]) / (xs[0] - scale.low)
             density = (densities[0] - densities[1]) / xdiff_ratio + densities[0]
             clamped_density = onp.maximum(density, 0)
 
