@@ -46,7 +46,11 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
-        self._cumulative_normed_ps = cumulative_normed_ps
+        self.cumulative_normed_ps = cumulative_normed_ps
+        if cumulative_normed_ps is None:
+            self.cumulative_normed_ps = np.append(
+                np.array([0]), np.cumsum(self.bin_probs)
+            )
 
     @cached_property
     def bin_probs(self):
@@ -55,14 +59,6 @@ class PointDensity(Distribution, Optimizable):
     @cached_property
     def normed_log_densities(self):
         return safe_log(self.normed_densities)
-
-    @property
-    def cumulative_normed_ps(self):
-        if self._cumulative_normed_ps is None:
-            self._cumulative_normed_ps = np.append(
-                np.array([0]), np.cumsum(self.bin_probs)
-            )
-        return self._cumulative_normed_ps
 
     @cached_property
     def true_xs(self):
