@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 
+from backports.cached_property import cached_property
 from jax import nn
 import jax.numpy as np
 import numpy as onp
 from scipy.interpolate import interp1d
 
 from ergo.scale import Scale
+from ergo.utils import safe_log
 
 from . import constants
 from .distribution import Distribution
@@ -15,12 +17,11 @@ from .optimizable import Optimizable
 @dataclass
 class PointDensity(Distribution, Optimizable):
     """
-    A distribution specified through a number of density points.
+    a distribution specified through a number of density points.
     """
 
     normed_xs: np.DeviceArray
     normed_densities: np.DeviceArray
-    bin_probs: np.DeviceArray
     scale: Scale
 
     def __init__(
@@ -36,7 +37,6 @@ class PointDensity(Distribution, Optimizable):
             raise ValueError
 
         self.scale = scale
-        init_np = np if traceable else onp
 
         if normalized:
             self.normed_xs = xs
@@ -46,16 +46,27 @@ class PointDensity(Distribution, Optimizable):
             self.normed_xs = scale.normalize_points(xs)
             self.normed_densities = scale.normalize_densities(self.normed_xs, densities)
 
-        self.bin_probs = self.normed_densities * constants.bin_sizes
-
-        if cumulative_normed_ps is not None:
-            self.cumulative_normed_ps = cumulative_normed_ps
-
-        else:
-            self.cumulative_normed_ps = init_np.append(
-                init_np.array([0]), init_np.cumsum(self.bin_probs)
+        self.cumulative_normed_ps = cumulative_normed_ps
+        if cumulative_normed_ps is None:
+            self.cumulative_normed_ps = np.append(
+                np.array([0]), np.cumsum(self.bin_probs)
             )
-        self.normed_log_densities = init_np.log(self.normed_densities)
+
+    @cached_property
+    def bin_probs(self):
+        return self.normed_densities * constants.bin_sizes
+
+    @cached_property
+    def normed_log_densities(self):
+        return safe_log(self.normed_densities)
+
+    @cached_property
+    def true_xs(self):
+        return self.scale.denormalize_points(self.normed_xs)
+
+    @cached_property
+    def true_grid(self):
+        return self.scale.denormalize_points(constants.grid)
 
     # Distribution
 
@@ -80,35 +91,24 @@ class PointDensity(Distribution, Optimizable):
         )
 
     def logpdf(self, x):
-        return np.log(self.pdf(x))
+        return safe_log(self.pdf(x))
 
     def cdf(self, x):
         """
         If x is below the distribution range, returns 0. If x is
         above the distribution range, returns 1.
-        Otherwise, determines the bin which x is in, then returns the
-        density below that bin plus the density in that bin, calculated as
-        width in bin (normed_x - bin start x) * height (density) of bin.
+        Otherwise, it returns the closest bin edge and returns the cdf to that point
 
         :param x: The point at which to get the cumulative density
         """
-        normed_x = self.scale.normalize_point(x)
 
-        def in_range_cdf(normed_x):
-            bin = np.argmax(constants.grid > normed_x) - 1
-            c_below_bin = np.where(bin > 0, self.cumulative_normed_ps[bin], 0)
-            c_in_bin = self.normed_densities[bin] * (normed_x - constants.grid[bin])
-            return c_below_bin + c_in_bin
-
-        return np.where(
-            normed_x <= constants.grid[0],
-            0,
-            np.where(normed_x >= constants.grid[-1], 1, in_range_cdf(normed_x)),
-        )
+        x = self.scale.normalize_point(x)
+        bin = np.argmin(np.abs(constants.grid - x))
+        return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
 
     def ppf(self, q):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
-        return self.scale.denormalize_point(constants.grid[bin])
+        return self.true_grid[bin]
 
     def sample(self):
         raise NotImplementedError
@@ -158,6 +158,7 @@ class PointDensity(Distribution, Optimizable):
         sorted_pairs = sorted([(v["x"], v["density"]) for v in pairs])
         xs = np.array([x for (x, density) in sorted_pairs])
         densities = np.array([density for (x, density) in sorted_pairs])
+
         if not normalized:
             xs = scale.normalize_points(xs)
             densities = scale.normalize_densities(xs, densities)
@@ -199,6 +200,7 @@ class PointDensity(Distribution, Optimizable):
         xs = fixed_params["xs"]
 
         densities = nn.softmax(opt_params) * opt_params.size
+
         return cls(
             xs=xs, densities=densities, scale=scale, normalized=True, traceable=True
         )
@@ -217,39 +219,55 @@ class PointDensity(Distribution, Optimizable):
     # Export
 
     @classmethod
-    def add_endpoints(cls, xs, densities):
+    def add_endpoints(cls, xs, densities, scale):
         """
-        Assumes xs are normalized. Returns a list of xs and densities
-        with endpoints that are on the edge of the scale.
+        Returns a list of xs and densities with endpoints that are on the edge of the scale
+        provided. If no scale is provided assume data is normalized.
         """
-        if xs[0] != 0:
-            xdiff_ratio = (xs[1] - xs[0]) / xs[0]
+
+        if xs[0] != scale.low:
+            xdiff_ratio = (xs[1] - xs[0]) / (xs[0] - scale.low)
             density = (densities[0] - densities[1]) / xdiff_ratio + densities[0]
             clamped_density = onp.maximum(density, 0)
 
-            xs = onp.append(onp.array([0]), xs)
+            xs = onp.append(onp.array([scale.low]), xs)
             densities = onp.append(np.array([clamped_density]), densities)
 
-        if xs[-1] != 1:
-            xdiff_ratio = (xs[-1] - xs[-2]) / (1 - xs[-1])
+        if xs[-1] != scale.high:
+            xdiff_ratio = (xs[-1] - xs[-2]) / (scale.high - xs[-1])
             density = (densities[-1] - densities[-2]) / xdiff_ratio + densities[-1]
             clamped_density = onp.maximum(density, 0)
 
-            xs = onp.append(xs, onp.array([1]))
+            xs = onp.append(xs, onp.array([scale.high]))
             densities = onp.append(densities, np.array([clamped_density]))
 
         return xs, densities
 
-    def to_arrays(self, denorm_xs_only=False, add_endpoints=False):
-        normed_xs = self.normed_xs
-        normed_densities = self.normed_densities
+    def to_arrays(self, denorm_xs_only=False, add_endpoints=False, num_xs=None):
+        """
+        Exports the distribution in two arrays of xs and associated densities
+
+        :param denorm_xs_only: only denormalize the xs and leave the densities normalized
+        :param add_endpoints: add endpoints of the distribution to points passed out
+        :param num_xs: the number of points to summarise the distribution with
+        :return: the true-scaled x values and densities (the normed density if denorm_xs_only=True)
+        """
+
+        if num_xs is not None:
+            grid = np.linspace(0, 1, num_xs + 1)
+            normed_xs = (grid[1:] + grid[:-1]) / 2
+            xs = self.scale.denormalize_points(normed_xs)
+            f = interp1d(self.true_xs, self.normed_densities)
+            normed_densities = f(xs)
+        else:
+            xs = self.true_xs
+            normed_densities = self.normed_densities
 
         if add_endpoints:
-            normed_xs, normed_densities = PointDensity.add_endpoints(
-                normed_xs, normed_densities
+            xs, normed_densities = PointDensity.add_endpoints(
+                xs, normed_densities, self.scale
             )
 
-        xs = self.scale.denormalize_points(normed_xs)
         if denorm_xs_only:
             densities = normed_densities
         else:
@@ -268,16 +286,15 @@ class PointDensity(Distribution, Optimizable):
     # Condition Methods
 
     def entropy(self):
-        return -np.dot(self.bin_probs, np.log(self.bin_probs))
+        return -np.dot(self.bin_probs, safe_log(self.bin_probs))
 
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
-        return -np.dot(self.bin_probs, np.log(q_dist.bin_probs))
+        return -np.dot(self.bin_probs, safe_log(q_dist.bin_probs))
 
     def mean(self):
-        return np.dot(self.scale.denormalize_points(self.normed_xs), self.bin_probs)
+        return np.dot(self.true_xs, self.bin_probs)
 
     def variance(self):
         mean = self.mean()
-        true_xs = self.scale.denormalize_points(self.normed_xs)
-        return np.dot(self.bin_probs, np.square(true_xs - mean))
+        return np.dot(self.bin_probs, np.square(self.true_xs - mean))

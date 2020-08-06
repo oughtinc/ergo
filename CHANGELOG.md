@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.8.5] - 2020-07-24
+
+### Changed
+
+- PointDensity.cdf() now does not interpolate and instead returns the cdf to the nearest grid point. 
+- The default grid density for PoinDensity distributions is now 400 (from 200)
+
 
 ## [0.8.4] - 2020-07-15
 
