@@ -1,64 +1,95 @@
+import operator
 import re
 
+from typing import List, Tuple
 from ergo import PredictIt, PredictItMarket, PredictItQuestion
 from fuzzywuzzy import fuzz
 
+clean = re.compile(r"[^\w\s]")
 
-def _get_market_id(pi: PredictIt, name: str) -> int:
-    guess = re.sub(r"[^\w\s]", "", name).lower()
+
+def _get_name_matches(name: str, guess_words: List[str]) -> int:
+    """
+    Return the number of common words in a str and list of words
+    :param name:
+    :param guess_words:
+    :return: number of matches
+    """
+    matches = sum(word in name for word in guess_words)
+    return matches
+
+
+def _get_name_score(names: List[str], guess: str) -> int:
+    """
+    Return similarity score of a guess to a name. Higher is better.
+    :param names:
+    :param guess:
+    :return: score
+    """
+    names = [clean.sub("", name).lower() for name in names]
     guess_words = guess.split()
-    most_matches = 0
-    best_diff = 0
-    best_diff_id = 0
-    for market in pi.markets:
-        short_name = re.sub(r"[^\w\s]", "", market.shortName).lower()
-        long_name = re.sub(r"[^\w\s]", "", market.name).lower()
-        matches = sum([word in short_name or word in long_name for word in guess_words])
-        diff1 = fuzz.token_sort_ratio(guess, short_name)
-        diff2 = fuzz.token_sort_ratio(guess, long_name)
-        if matches > most_matches or (
-            matches >= most_matches and (diff1 > best_diff or diff2 > best_diff)
-        ):
-            best_diff = max(diff1, diff2)
-            best_diff_id = market.id
-        if matches > most_matches:
-            most_matches = matches
-    return best_diff_id
+    matches = max(_get_name_matches(name, guess_words) for name in names)
+    diff = max(fuzz.token_sort_ratio(guess, name) for name in names)
+    return matches * 100 + diff
 
 
-def search_market(pi: PredictIt, name: str) -> PredictItMarket:
+def _check_market(market: PredictItMarket, guess: str) -> Tuple[int, int]:
+    """
+    Return the id and similarity score of a market to a guess.
+    :param market:
+    :param guess:
+    :return: id and similarity score
+    """
+    return market.id, _get_name_score([market.shortName, market.name], guess)
+
+
+def _check_question(question: PredictItQuestion, guess: str) -> Tuple[int, int]:
+    """
+    Return the id and similarity score of a question to a guess.
+    :param question:
+    :param guess:
+    :return: id and similarity score
+    """
+    return question.id, _get_name_score([question.name], guess)
+
+
+def _get_best_market_id(pi: PredictIt, guess: str) -> int:
+    """
+    Return the id of the market with the highest similarity score.
+    :param pi:
+    :param guess:
+    :return: market id
+    """
+    return max((_check_market(market, guess) for market in pi.markets), key=operator.itemgetter(1))[0]
+
+
+def _get_best_question_id(market: PredictItMarket, guess: str) -> int:
+    """
+    Return the id of the question with the highest similarity score.
+    :param market:
+    :param guess:
+    :return: question id
+    """
+    return max((_check_question(question, guess) for question in market.questions), key=operator.itemgetter(1))[0]
+
+
+def search_market(pi: PredictIt, guess: str) -> PredictItMarket:
     """
     Return a PredictIt market with the given name,
     using fuzzy matching if an exact match is not found.
     :param pi:
-    :param name:
+    :param guess:
     :return: market
     """
-    return pi.get_market(_get_market_id(pi, name))
+    return pi.get_market(_get_best_market_id(pi, guess))
 
 
-def search_question(market: PredictItMarket, name: str) -> PredictItQuestion:
+def search_question(market: PredictItMarket, guess: str) -> PredictItQuestion:
     """
     Return the specified question given by the name of the question,
     using fuzzy matching in the case where the name isn't exact.
     :param market:
-    :param name:
+    :param guess:
     :return: question
     """
-    guess = re.sub(r"[^\w\s]", "", name).lower()
-    guess_words = guess.split()
-    most_matches = 0
-    best_diff = 0
-    best_diff_contract = None
-    for contract in market.questions:
-        short_name = re.sub(r"[^\w\s]", "", contract.name).lower()
-        matches = sum([word in short_name for word in guess_words])
-        diff = fuzz.token_sort_ratio(guess, short_name)
-        if matches > most_matches or (matches >= most_matches and (diff > best_diff)):
-            best_diff = diff
-            best_diff_contract = contract
-        if matches > most_matches:
-            most_matches = matches
-    if best_diff_contract is None:
-        raise ValueError("Unable to find a question with that name.")
-    return best_diff_contract
+    return market.get_question(_get_best_question_id(market, guess))
