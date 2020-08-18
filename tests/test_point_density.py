@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 from scipy.stats import logistic, norm
-from hypothesis import given
-from hypothesis.strategies import data, floats, integers
 
 from ergo.conditions import (
     CrossEntropyCondition,
@@ -151,17 +149,18 @@ def test_point_density_ppf(scale: Scale):
     assert uniform_dist.ppf(1) == pytest.approx(scale.high, rel=0.1)
 
 
-@pytest.mark.parametrize("scale", scales_to_test)
-@given(data())
-def test_point_density_modes(scale: Scale, data):
-    xs = [scale.low]
-    while xs[-1] < scale.high and len(xs) < 10:
-        xs.append(data.draw(integers(min_value=xs[-1] + 1, max_value=scale.high)))
-
-    pairs = [{"x": x, "density": data.draw(integers(min_value=1))} for x in xs]
-    dist = PointDensity.from_pairs(pairs, scale=scale)
+def test_point_density_modes():
+    pairs = [
+        {"x": 0, "density": 1},
+        {"x": 0.2, "density": 0},
+        {"x": 0.4, "density": 0},
+        {"x": 0.6, "density": 1},
+        {"x": 1, "density": 1},
+    ]
+    dist = PointDensity.from_pairs(pairs, scale=Scale(0, 1))
 
     modes = dist.modes()
+
     mode_densities = [
         dist.normed_densities[np.where(dist.true_xs == mode)] for mode in modes
     ]
