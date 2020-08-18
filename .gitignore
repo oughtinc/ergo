@@ -13,3 +13,4 @@ docs/build
 **.ipynb_checkpoints
 **.ob-jupyter*
 **.prof
+.hypothesis/

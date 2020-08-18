@@ -110,6 +110,15 @@ class PointDensity(Distribution, Optimizable):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
         return self.true_grid[bin]
 
+    def modes(self):
+        """
+        Return true x values for all points with the highest density
+        in the distribution
+        """
+        max_density = np.max(self.normed_densities)
+        bins = np.where(self.normed_densities == max_density)
+        return self.true_xs[bins]
+
     def sample(self):
         raise NotImplementedError
 
