@@ -119,6 +119,15 @@ class PointDensity(Distribution, Optimizable):
         bins = np.where(self.normed_densities == max_density)
         return self.true_xs[bins]
 
+    def anti_modes(self):
+        """
+        Return true x values for all points with the lowest density
+        in the distribution
+        """
+        min_density = np.min(self.normed_densities)
+        bins = np.where(self.normed_densities == min_density)
+        return self.true_xs[bins]
+
     def sample(self):
         raise NotImplementedError
 

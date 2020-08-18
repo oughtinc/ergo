@@ -169,6 +169,26 @@ def test_point_density_modes():
         assert density == np.max(dist.normed_densities)
 
 
+def test_point_density_anti_modes():
+    pairs = [
+        {"x": 0, "density": 1},
+        {"x": 0.2, "density": 0},
+        {"x": 0.4, "density": 0},
+        {"x": 0.6, "density": 1},
+        {"x": 1, "density": 1},
+    ]
+    dist = PointDensity.from_pairs(pairs, scale=Scale(0, 1))
+
+    anti_modes = dist.anti_modes()
+
+    anti_mode_densities = [
+        dist.normed_densities[np.where(dist.true_xs == mode)] for mode in anti_modes
+    ]
+
+    for density in anti_mode_densities:
+        assert density == np.min(dist.normed_densities)
+
+
 @pytest.mark.parametrize("scale", scales_to_test)
 def test_interval_plus_entropy(scale: Scale):
     conditions = [
