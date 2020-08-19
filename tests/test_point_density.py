@@ -19,14 +19,10 @@ def get_dist_from_scale(scale):
     rv = logistic(loc=scale_mid, scale=scale.width / 30)
     xs = scale.denormalize_points(constants.target_xs)
 
-    orig_densities = rv.pdf(xs)
+    densities = rv.pdf(xs)
 
-    orig_pairs = [
-        {"x": x, "density": density} for (x, density) in zip(xs, orig_densities)
-    ]
-    direct_dist = PointDensity.from_pairs(orig_pairs, scale)
-
-    return direct_dist
+    pairs = [{"x": x, "density": density} for (x, density) in zip(xs, densities)]
+    return PointDensity.from_pairs(pairs, scale)
 
 
 @pytest.mark.parametrize(
