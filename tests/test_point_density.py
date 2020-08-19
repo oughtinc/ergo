@@ -14,6 +14,21 @@ from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
 
 
+def get_dist_from_scale(scale):
+    scale_mid = scale.low + scale.width / 2
+    rv = logistic(loc=scale_mid, scale=scale.width / 30)
+    xs = scale.denormalize_points(constants.target_xs)
+
+    orig_densities = rv.pdf(xs)
+
+    orig_pairs = [
+        {"x": x, "density": density} for (x, density) in zip(xs, orig_densities)
+    ]
+    direct_dist = PointDensity.from_pairs(orig_pairs, scale)
+
+    return direct_dist
+
+
 @pytest.mark.parametrize(
     "scale", [Scale(0, 5), Scale(-1, 6), Scale(-3, 10), LogScale(0.01, 5, 500)],
 )
@@ -149,27 +164,32 @@ def test_point_density_ppf(scale: Scale):
     assert uniform_dist.ppf(1) == pytest.approx(scale.high, rel=0.1)
 
 
-def test_point_density_modes():
-    pairs = [
-        {"x": 0, "density": 1},
-        {"x": 0.2, "density": 0},
-        {"x": 0.4, "density": 0},
-        {"x": 0.6, "density": 1},
-        {"x": 1, "density": 1},
-    ]
-    dist = PointDensity.from_pairs(pairs, scale=Scale(0, 1))
+@pytest.mark.parametrize(
+    "scale", [Scale(-3, 10), LogScale(0.01, 5, 500)],
+)
+def test_point_density_modes(scale: Scale):
+    dist = get_dist_from_scale(scale)
 
     modes = dist.modes()
 
-    mode_densities = [
-        dist.normed_densities[np.where(dist.true_xs == mode)] for mode in modes
-    ]
+    assert len(modes) > 0
 
-    for density in mode_densities:
-        assert density == np.max(dist.normed_densities)
+    mode_densities = np.array([dist.pdf(mode) for mode in modes])
+
+    assert np.all(mode_densities == mode_densities[0])
+
+    mode_density = mode_densities[0]
+
+    all_densities = [dist.pdf(x) for x in dist.true_xs]
+
+    assert mode_density == np.max(all_densities)
 
 
-def test_point_density_anti_modes():
+@pytest.mark.parametrize(
+    "scale", [Scale(-3, 10), LogScale(0.01, 5, 500)],
+)
+def test_point_density_anti_modes(scale: Scale):
+    dist = get_dist_from_scale(scale)
     pairs = [
         {"x": 0, "density": 1},
         {"x": 0.2, "density": 0},
@@ -181,12 +201,17 @@ def test_point_density_anti_modes():
 
     anti_modes = dist.anti_modes()
 
-    anti_mode_densities = [
-        dist.normed_densities[np.where(dist.true_xs == mode)] for mode in anti_modes
-    ]
+    assert len(anti_modes) > 0
 
-    for density in anti_mode_densities:
-        assert density == np.min(dist.normed_densities)
+    anti_mode_densities = np.array([dist.pdf(anti_mode) for anti_mode in anti_modes])
+
+    assert np.all(anti_mode_densities == anti_mode_densities[0])
+
+    anti_mode_density = anti_mode_densities[0]
+
+    all_densities = [dist.pdf(x) for x in dist.true_xs]
+
+    assert anti_mode_density == np.min(all_densities)
 
 
 @pytest.mark.parametrize("scale", scales_to_test)
