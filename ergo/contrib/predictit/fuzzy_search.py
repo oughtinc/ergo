@@ -1,11 +1,10 @@
 import operator
 import re
-
 from typing import List, Tuple
-from ergo import PredictIt, PredictItMarket, PredictItQuestion
+
 from fuzzywuzzy import fuzz
 
-clean = re.compile(r"[^\w\s]")
+from ergo import PredictIt, PredictItMarket, PredictItQuestion
 
 
 def _get_name_matches(name: str, guess_words: List[str]) -> int:
@@ -26,7 +25,7 @@ def _get_name_score(names: List[str], guess: str) -> int:
     :param guess:
     :return: score
     """
-    names = [clean.sub("", name).lower() for name in names]
+    names = [re.sub(r"[^\w\s]", "", name).lower() for name in names]
     guess_words = guess.split()
     matches = max(_get_name_matches(name, guess_words) for name in names)
     diff = max(fuzz.token_sort_ratio(guess, name) for name in names)
@@ -60,7 +59,10 @@ def _get_best_market_id(pi: PredictIt, guess: str) -> int:
     :param guess:
     :return: market id
     """
-    return max((_check_market(market, guess) for market in pi.markets), key=operator.itemgetter(1))[0]
+    return max(
+        (_check_market(market, guess) for market in pi.markets),
+        key=operator.itemgetter(1),
+    )[0]
 
 
 def _get_best_question_id(market: PredictItMarket, guess: str) -> int:
@@ -70,7 +72,10 @@ def _get_best_question_id(market: PredictItMarket, guess: str) -> int:
     :param guess:
     :return: question id
     """
-    return max((_check_question(question, guess) for question in market.questions), key=operator.itemgetter(1))[0]
+    return max(
+        (_check_question(question, guess) for question in market.questions),
+        key=operator.itemgetter(1),
+    )[0]
 
 
 def search_market(pi: PredictIt, guess: str) -> PredictItMarket:

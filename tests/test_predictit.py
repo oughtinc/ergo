@@ -28,7 +28,7 @@ def test_market_attributes(predictit_markets):
         "image": str,
         "url": str,
         "status": str,
-        "timestamp": datetime.datetime,
+        "timeStamp": datetime.datetime,
     }
     for market in predictit_markets:
         for attr in attrs.items():
@@ -65,12 +65,6 @@ def test_question_dataframe(predictit_markets):
         questions = list(market.questions)
         df = ergo.PredictItQuestion.to_dataframe(questions)
         assert type(df) is pd.DataFrame
-
-
-def test_question_community_prediction(predictit_markets):
-    for market in predictit_markets:
-        for question in market.questions:
-            assert type(question.get_community_prediction()) is float
 
 
 def test_question_attributes(predictit_markets):

@@ -1,35 +1,8 @@
 """
 This module lets you get question and prediction information from PredictIt
 and submit predictions, via the API (https://predictit.freshdesk.com/support/solutions/articles/12000001878)
-
-**Example**
-In this example, we grap the oldest PredictIt question and it's first contract and check to make sure the name's of both are consistent while we refresh.
-
-.. doctest::
-    >>> import ergo
-    >>> import os
-    >>> pi = ergo.PredictIt()
-
-    >>> market = list(pi.markets)[0]
-    >>> contract = list(market.questions)[0]
-
-    >>> name1 = market.name
-    >>> print(type(name1) is str)
-    True
-
-    >>> market.refresh()
-
-    >>> name2 = market.name
-    >>> print(name2 == name1)
-    True
-
-    >>> contract.refresh()
-
-    >>> name3 = contract.market.name
-    >>> print(name3 == name1)
-    True
 """
-from typing import Any, Dict, Generator, List
+from typing import Dict, Generator, List
 
 from dateutil.parser import parse
 import pandas as pd
@@ -42,7 +15,7 @@ class PredictItQuestion:
     """
     A single binary question in a PredictIt market.
 
-    :param market: PredictIt question instance
+    :param market: PredictIt market instance
     :param data: Contract JSON retrieved from PredictIt API
 
     :ivar PredictItQuestion market: predictit market instance
@@ -90,14 +63,6 @@ class PredictItQuestion:
             print(f"The column {name} could not be converted into a datetime")
             return dateEnd
 
-    def set_data(self, key: str, value: Any):
-        """
-        Set key on data dict
-        :param key:
-        :param value:
-        """
-        self._data[key] = value
-
     @staticmethod
     def to_dataframe(
         questions: List["PredictItQuestion"], columns=None,
@@ -113,12 +78,6 @@ class PredictItQuestion:
         data = [[question._data[key] for key in columns] for question in questions]
 
         return pd.DataFrame(data, columns=columns)
-
-    def get_community_prediction(self) -> float:
-        """
-        Return the lastTradePrice
-        """
-        return self.lastTradePrice
 
     def refresh(self):
         """
@@ -150,13 +109,14 @@ class PredictItMarket:
         :ivar str image: url of the image resource of the market
         :ivar str url: url of the market in PredictIt
         :ivar str status: status of the market. Closed markets aren't included in the API, so always "Open"
-        :ivar datetime.datetime timestamp: last time the market was updated.
+        :ivar datetime.datetime timeStamp: last time the market was updated.
             Api updates every minute, but timestamp can be earlier if it hasn't been traded in
     """
 
     def __init__(self, predictit: "PredictIt", data: Dict):
         self.predictit = predictit
-        self._load_attr(data)
+        self._data = data
+        self.api_url = f"{self.predictit.api_url}/markets/{self.id}/"
 
     def _get(self, url: str) -> requests.Response:
         """
@@ -172,23 +132,27 @@ class PredictItMarket:
     def __repr__(self):
         return f'<PredictItMarket title="{self.name}">'
 
-    def _load_attr(self, data):
+    def __getattr__(self, name: str):
         """
-        Load attributes of question from data to instance.
-        :param data:
+        If an attribute isn't directly on the class, check whether it's in the
+        raw contract data. If it's a time, format it appropriately.
+        :param name:
+        :return: attribute value
         """
-        self._data = data
-        self.id = data["id"]
-        self.name = data["name"]
-        self.shortName = data["shortName"]
-        self.image = data["image"]
-        self.url = data["url"]
-        self.status = data["status"]
-        self.api_url = f"{self.predictit.api_url}/markets/{self.id}/"
-        if data["timeStamp"] == "N/A":
-            self.timestamp = None
-        else:
-            self.timestamp = parse(data["timeStamp"])
+        if name not in self._data:
+            raise AttributeError(
+                f"Attribute {name} is neither directly on this class nor in the raw question data"
+            )
+        if name != "timeStamp":
+            return self._data[name]
+        dateEnd = self._data["timeStamp"]
+        if dateEnd == "N/A":
+            return None
+        try:
+            return parse(dateEnd)
+        except ValueError:
+            print(f"The column {name} could not be converted into a datetime")
+            return dateEnd
 
     @property
     def questions(self) -> Generator[PredictItQuestion, None, None]:
@@ -205,7 +169,7 @@ class PredictItMarket:
         used when the question data might have changed.
         """
         r = self._get(self.api_url)
-        self._load_attr(r.json())
+        self._data = r.json()
 
     def get_question(self, id: int) -> PredictItQuestion:
         """
