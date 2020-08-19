@@ -182,7 +182,7 @@ def predictit():
 
 @pytest.fixture(scope="module")
 def predictit_markets():
-    return list(ergo.PredictIt().markets)[0:10]
+    return list(ergo.PredictIt().markets)[0:3]
 
 
 def make_point_densities():
