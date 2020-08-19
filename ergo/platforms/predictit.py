@@ -18,7 +18,7 @@ class PredictItQuestion:
     :param market: PredictIt market instance
     :param data: Contract JSON retrieved from PredictIt API
 
-    :ivar PredictItQuestion market: predictit market instance
+    :ivar PredictItMarket market: PredictIt market instance
     :ivar int id: id of the contract
     :ivar datetime.datetime dateEnd: end-date of a market, usually None
     :ivar str image: url of the image resource for the contract
@@ -45,6 +45,7 @@ class PredictItQuestion:
         """
         If an attribute isn't directly on the class, check whether it's in the
         raw contract data. If it's a time, format it appropriately.
+
         :param name:
         :return: attribute value
         """
@@ -69,6 +70,7 @@ class PredictItQuestion:
     ) -> pd.DataFrame:
         """
         Summarize a list of questions in a dataframe
+
         :param questions: questions to summarize
         :param columns: list of column names as strings
         :return: pandas dataframe summarizing the questions
@@ -89,6 +91,7 @@ class PredictItQuestion:
     def sample_community(self) -> bool:
         """
         Sample from the PredictIt community distribution (Bernoulli).
+
         :return: true/false
         """
         return flip(self.get_community_prediction())
@@ -121,6 +124,7 @@ class PredictItMarket:
     def _get(self, url: str) -> requests.Response:
         """
         Send a get request to to PredictIt API.
+
         :param url:
         :return: response
         """
@@ -136,6 +140,7 @@ class PredictItMarket:
         """
         If an attribute isn't directly on the class, check whether it's in the
         raw contract data. If it's a time, format it appropriately.
+
         :param name:
         :return: attribute value
         """
@@ -158,6 +163,7 @@ class PredictItMarket:
     def questions(self) -> Generator[PredictItQuestion, None, None]:
         """
         Generate all of the questions in the market.
+
         :return: iterator of questions in market
         """
         for data in self._data["contracts"]:
@@ -174,7 +180,8 @@ class PredictItMarket:
     def get_question(self, id: int) -> PredictItQuestion:
         """
         Return the specified question given by the id number.
-        :param id:
+
+        :param id: question id
         :return: question
         """
         for question in self.questions:
@@ -196,6 +203,7 @@ class PredictIt:
     def _get(self, url: str) -> requests.Response:
         """
         Send a get request to to PredictIt API.
+
         :param url:
         :return: response
         """
@@ -214,6 +222,7 @@ class PredictIt:
     def markets(self) -> Generator[PredictItMarket, None, None]:
         """
         Generate all of the markets currently in PredictIt.
+
         :return: iterator of predictit markets
         """
         for data in self._data["markets"]:
@@ -223,7 +232,8 @@ class PredictIt:
         """
         Return the PredictIt market with the given id.
         A market's id can be found in the url of the market.
-        :param id:
+
+        :param id: market id
         :return: market
         """
         for data in self._data["markets"]:
