@@ -186,14 +186,6 @@ def test_point_density_modes(scale: Scale):
 )
 def test_point_density_anti_modes(scale: Scale):
     dist = get_dist_from_scale(scale)
-    pairs = [
-        {"x": 0, "density": 1},
-        {"x": 0.2, "density": 0},
-        {"x": 0.4, "density": 0},
-        {"x": 0.6, "density": 1},
-        {"x": 1, "density": 1},
-    ]
-    dist = PointDensity.from_pairs(pairs, scale=Scale(0, 1))
 
     anti_modes = dist.anti_modes()
 
