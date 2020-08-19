@@ -176,7 +176,7 @@ def test_point_density_modes(scale: Scale):
 
     mode_density = mode_densities[0]
 
-    all_densities = [dist.pdf(x) for x in dist.true_xs]
+    all_densities = np.array([dist.pdf(x) for x in dist.true_xs])
 
     assert mode_density == np.max(all_densities)
 
@@ -205,7 +205,7 @@ def test_point_density_anti_modes(scale: Scale):
 
     anti_mode_density = anti_mode_densities[0]
 
-    all_densities = [dist.pdf(x) for x in dist.true_xs]
+    all_densities = np.array([dist.pdf(x) for x in dist.true_xs])
 
     assert anti_mode_density == np.min(all_densities)
 
