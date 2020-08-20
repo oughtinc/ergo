@@ -1,6 +1,6 @@
 """
 This module lets you get question and prediction information from PredictIt
-and submit predictions, via the API (https://predictit.freshdesk.com/support/solutions/articles/12000001878)
+via the API (https://predictit.freshdesk.com/support/solutions/articles/12000001878)
 """
 from typing import Dict, Generator, List
 
@@ -104,8 +104,8 @@ class PredictItMarket:
         :param predictit: PredictIt API instance
         :param data: Market JSON retrieved from PredictIt API
 
-        :ivar PredictIt predictit: predictit api instance
-        :ivar str api_url: url of the predictit api for the given question
+        :ivar PredictIt predictit: PredictIT API instance
+        :ivar str api_url: url of the PredictIt API for the given question
         :ivar int id: id of the market
         :ivar str name: name of the market
         :ivar str shortName: shortened name of the market
@@ -113,7 +113,7 @@ class PredictItMarket:
         :ivar str url: url of the market in PredictIt
         :ivar str status: status of the market. Closed markets aren't included in the API, so always "Open"
         :ivar datetime.datetime timeStamp: last time the market was updated.
-            Api updates every minute, but timestamp can be earlier if it hasn't been traded in
+            The API updates every minute, but timestamp can be earlier if it hasn't been traded in
     """
 
     def __init__(self, predictit: "PredictIt", data: Dict):
@@ -123,7 +123,7 @@ class PredictItMarket:
 
     def _get(self, url: str) -> requests.Response:
         """
-        Send a get request to to PredictIt API.
+        Send a get request to the PredictIt API.
 
         :param url:
         :return: response
@@ -164,7 +164,7 @@ class PredictItMarket:
         """
         Generate all of the questions in the market.
 
-        :return: iterator of questions in market
+        :return: generator of questions in market
         """
         for data in self._data["contracts"]:
             yield PredictItQuestion(self, data)
@@ -214,7 +214,7 @@ class PredictIt:
 
     def refresh_markets(self):
         """
-        Refetch all of the markets from the predictit api.
+        Refetch all of the markets from the PredictIt API.
         """
         self._data = self._get(f"{self.api_url}/all/").json()
 
@@ -223,7 +223,7 @@ class PredictIt:
         """
         Generate all of the markets currently in PredictIt.
 
-        :return: iterator of predictit markets
+        :return: iterator of PredictIt markets
         """
         for data in self._data["markets"]:
             yield PredictItMarket(self, data)
