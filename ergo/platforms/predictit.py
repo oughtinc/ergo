@@ -150,14 +150,14 @@ class PredictItMarket:
             )
         if name != "timeStamp":
             return self._data[name]
-        dateEnd = self._data["timeStamp"]
-        if dateEnd == "N/A":
+        date_end = self._data["timeStamp"]
+        if date_end == "N/A":
             return None
         try:
-            return parse(dateEnd)
+            return parse(date_end)
         except ValueError:
             print(f"The column {name} could not be converted into a datetime")
-            return dateEnd
+            return date_end
 
     @property
     def questions(self) -> Generator[PredictItQuestion, None, None]:
@@ -202,7 +202,7 @@ class PredictIt:
 
     def _get(self, url: str) -> requests.Response:
         """
-        Send a get request to to PredictIt API.
+        Send a get request to the PredictIt API.
 
         :param url:
         :return: response
