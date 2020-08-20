@@ -68,6 +68,10 @@ class PointDensity(Distribution, Optimizable):
     def true_grid(self):
         return self.scale.denormalize_points(constants.grid)
 
+    @cached_property
+    def true_densities(self):
+        return self.scale.denormalize_densities(self.true_xs, self.normed_densities)
+
     # Distribution
 
     def pdf(self, x):
@@ -286,11 +290,11 @@ class PointDensity(Distribution, Optimizable):
     # Condition Methods
 
     def entropy(self):
-        return -np.dot(self.bin_probs, safe_log(self.bin_probs))
+        return -np.dot(self.bin_probs, safe_log(self.true_densities))
 
     def cross_entropy(self, q_dist):
         # We assume that the distributions are on the same scale!
-        return -np.dot(self.bin_probs, safe_log(q_dist.bin_probs))
+        return -np.sum(self.bin_probs * safe_log(q_dist.true_densities))
 
     def mean(self):
         return np.dot(self.true_xs, self.bin_probs)
