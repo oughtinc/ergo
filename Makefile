@@ -1,6 +1,7 @@
 all: format lint xtest
 
-lint: FORCE  ## Run flake8, mypy and black (in check mode)
+lint: FORCE  ## Run isort, flake8, mypy and black (in check mode)
+	poetry run isort -rc --check-only .
 	poetry run flake8
 	poetry run mypy .
 	poetry run black . --check
