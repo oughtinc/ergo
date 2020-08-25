@@ -116,11 +116,10 @@ class PointDensity(Distribution, Optimizable):
         in the distribution
 
         add_endpoints is passed on to self.to_arrays
-        to specify which set of xs to use
 
         (since we're taking the "modes" of a continuous distribution
         by testing certain points, we'll get a different answer
-        depending on which xs we use)
+        depending on which xs we use, e.g. whether or not we include the endpoints)
         """
         xs, densities = self.to_arrays(add_endpoints=add_endpoints)
         max_density = np.max(densities)
@@ -133,11 +132,10 @@ class PointDensity(Distribution, Optimizable):
         in the distribution
 
         add_endpoints is passed on to self.to_arrays
-        to specify which set of xs to use
 
-        (since we're taking the "anti modes" of a continuous distribution
+        (since we're taking the "modes" of a continuous distribution
         by testing certain points, we'll get a different answer
-        depending on which xs we use)
+        depending on which xs we use, e.g. whether or not we include the endpoints)
         """
         xs, densities = self.to_arrays(add_endpoints=add_endpoints)
         min_density = np.min(densities)
