@@ -114,18 +114,34 @@ class PointDensity(Distribution, Optimizable):
         """
         Return true x values for all points with the highest density
         in the distribution
+
+        Use the exported version of the xs (to_arrays)
+        so that the modes line up with the exported distribution
+
+        (since we're taking the "modes" of a continuous distribution
+        by testing certain points, we'll get a different answer
+        depending on which xs we use)
         """
-        max_density = np.max(self.normed_densities)
-        bins = np.where(self.normed_densities == max_density)
+        xs, densities = self.to_arrays()
+        max_density = np.max(densities)
+        bins = np.where(densities == max_density)
         return self.true_xs[bins]
 
     def anti_modes(self):
         """
         Return true x values for all points with the lowest density
         in the distribution
+
+        Use the exported version of the xs (to_arrays)
+        so that the anti-modes line up with the exported distribution
+
+        (since we're taking the "anti_modes" of a continuous distribution
+        by testing certain points, we'll get a different answer
+        depending on which xs we use)
         """
-        min_density = np.min(self.normed_densities)
-        bins = np.where(self.normed_densities == min_density)
+        xs, densities = self.to_arrays()
+        min_density = np.min(densities)
+        bins = np.where(densities == min_density)
         return self.true_xs[bins]
 
     def sample(self):
