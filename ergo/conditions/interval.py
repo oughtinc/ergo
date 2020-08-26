@@ -1,6 +1,6 @@
-import jax
-import jax.numpy as np
 from typing import Optional
+
+import jax.numpy as np
 
 from ergo.scale import Scale
 
