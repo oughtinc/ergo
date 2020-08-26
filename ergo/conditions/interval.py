@@ -1,3 +1,5 @@
+import jax
+import jax.numpy as np
 from typing import Optional
 
 from ergo.scale import Scale
@@ -31,7 +33,8 @@ class IntervalCondition(condition.Condition):
 
     def loss(self, dist):
         actual_p = self.actual_p(dist)
-        return self.weight * (actual_p - self.p) ** 2
+        return self.weight * np.sqrt((actual_p - self.p) ** 2)
+        # return self.weight * (actual_p - self.p) ** 2
 
     def _describe_fit(self, dist):
         description = super()._describe_fit(dist)
