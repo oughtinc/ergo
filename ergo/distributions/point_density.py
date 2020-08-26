@@ -110,6 +110,34 @@ class PointDensity(Distribution, Optimizable):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
         return self.true_grid[bin]
 
+    def modes(self, *args, **kwargs):
+        """
+        Return x values for all points with the highest density
+        in the distribution
+
+        *args, **kwargs are passed on to self.to_arrays to specify
+        how to create (x, density) points
+        from which to take the mode
+        """
+        xs, densities = self.to_arrays(*args, **kwargs)
+        max_density = np.max(densities)
+        bins = np.where(densities == max_density)
+        return xs[bins]
+
+    def anti_modes(self, *args, **kwargs):
+        """
+        Return x values for all points with the lowest density
+        in the distribution
+
+        *args, **kwargs are passed on to self.to_arrays to specify
+        how to create (x, density) points
+        from which to take the anti-mode
+        """
+        xs, densities = self.to_arrays(*args, **kwargs)
+        min_density = np.min(densities)
+        bins = np.where(densities == min_density)
+        return xs[bins]
+
     def sample(self):
         raise NotImplementedError
 
