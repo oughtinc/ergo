@@ -1,7 +1,5 @@
 import jax.numpy as np
 
-from ergo.utils import shift
-
 from . import condition
 
 
