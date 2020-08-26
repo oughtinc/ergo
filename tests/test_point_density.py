@@ -14,7 +14,7 @@ from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
 
 
-def get_dist_from_scale(scale):
+def point_density_from_scale(scale: Scale):
     scale_mid = scale.low + scale.width / 2
     rv = logistic(loc=scale_mid, scale=scale.width / 30)
     xs = scale.denormalize_points(constants.target_xs)
@@ -163,47 +163,22 @@ def test_point_density_ppf(scale: Scale):
 @pytest.mark.parametrize(
     "scale", [Scale(-3, 10), LogScale(0.01, 5, 500)],
 )
-def test_point_density_modes(scale: Scale):
-    dist = get_dist_from_scale(scale)
+def test_modes_anti_modes(scale: Scale):
+    dist = point_density_from_scale(scale)
 
-    modes = dist.modes()
+    extrema = ((dist.modes(), np.max), (dist.anti_modes(), np.min))
 
-    assert len(modes) > 0
+    for extremal_xs, np_fn in extrema:
+        # Check that the probability densities for all reported modes/anti-modes
+        # are the same
+        extremal_densities = set(float(dist.pdf(x)) for x in extremal_xs)
+        assert len(extremal_densities) == 1
+        extremal_density = extremal_densities.pop()
 
-    mode_densities = np.array([dist.pdf(mode) for mode in modes])
-
-    assert np.all(mode_densities == mode_densities[0])
-
-    mode_density = mode_densities[0]
-
-    xs, _ = dist.to_arrays()
-
-    all_densities = np.array([dist.pdf(x) for x in xs])
-
-    assert mode_density == np.max(all_densities)
-
-
-@pytest.mark.parametrize(
-    "scale", [Scale(-3, 10), LogScale(0.01, 5, 500)],
-)
-def test_point_density_anti_modes(scale: Scale):
-    dist = get_dist_from_scale(scale)
-
-    anti_modes = dist.anti_modes()
-
-    assert len(anti_modes) > 0
-
-    anti_mode_densities = np.array([dist.pdf(anti_mode) for anti_mode in anti_modes])
-
-    assert np.all(anti_mode_densities == anti_mode_densities[0])
-
-    anti_mode_density = anti_mode_densities[0]
-
-    xs, _ = dist.to_arrays()
-
-    all_densities = np.array([dist.pdf(x) for x in xs])
-
-    assert anti_mode_density == np.min(all_densities)
+        # Check that they match the min/max density we get
+        # from applying np min/max manually
+        _, all_densities = dist.to_arrays()
+        assert extremal_density == pytest.approx(float(np_fn(all_densities)))
 
 
 @pytest.mark.parametrize("scale", scales_to_test)
