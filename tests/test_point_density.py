@@ -176,10 +176,6 @@ def test_point_density_modes(scale: Scale):
 
     mode_density = mode_densities[0]
 
-    # It's important to test against dist.to_arrays()
-    # instead of e.g. dist.true_xs.
-    # The modes are for the exported xs, not for the true_xs.
-    # See the .modes function docstring for more.
     xs, _ = dist.to_arrays()
 
     all_densities = np.array([dist.pdf(x) for x in xs])
@@ -203,10 +199,6 @@ def test_point_density_anti_modes(scale: Scale):
 
     anti_mode_density = anti_mode_densities[0]
 
-    # It's important to test against dist.to_arrays()
-    # instead of e.g. dist.true_xs.
-    # The modes are for the exported xs, not for the true_xs
-    # See the .modes function docstring for more.
     xs, _ = dist.to_arrays()
 
     all_densities = np.array([dist.pdf(x) for x in xs])
