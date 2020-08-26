@@ -110,34 +110,28 @@ class PointDensity(Distribution, Optimizable):
         bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
         return self.true_grid[bin]
 
-    def modes(self, add_endpoints=False):
+    def modes(self, *args, **kwargs):
         """
-        Return true x values for all points with the highest density
+        Return x values for all points with the highest density
         in the distribution
 
-        add_endpoints is passed on to self.to_arrays
-
-        (since we're taking the "modes" of a continuous distribution
-        by testing certain points, we'll get a different answer
-        depending on which xs we use, e.g. whether or not we include the endpoints)
+        *args, **kwargs are passed on to self.to_arrays to specify
+        how to turn the xs and densities into points
         """
-        xs, densities = self.to_arrays(add_endpoints=add_endpoints)
+        xs, densities = self.to_arrays(*args, **kwargs)
         max_density = np.max(densities)
         bins = np.where(densities == max_density)
         return xs[bins]
 
-    def anti_modes(self, add_endpoints=False):
+    def anti_modes(self, *args, **kwargs):
         """
-        Return true x values for all points with the lowest density
+        Return x values for all points with the lowest density
         in the distribution
 
-        add_endpoints is passed on to self.to_arrays
-
-        (since we're taking the "modes" of a continuous distribution
-        by testing certain points, we'll get a different answer
-        depending on which xs we use, e.g. whether or not we include the endpoints)
+        *args, **kwargs are passed on to self.to_arrays to specify
+        how to turn the xs and densities into points
         """
-        xs, densities = self.to_arrays(add_endpoints=add_endpoints)
+        xs, densities = self.to_arrays(*args, **kwargs)
         min_density = np.min(densities)
         bins = np.where(densities == min_density)
         return xs[bins]
