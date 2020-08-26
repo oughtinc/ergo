@@ -116,7 +116,8 @@ class PointDensity(Distribution, Optimizable):
         in the distribution
 
         *args, **kwargs are passed on to self.to_arrays to specify
-        how to turn the xs and densities into points
+        how to create (x, density) points
+        from which to take the mode
         """
         xs, densities = self.to_arrays(*args, **kwargs)
         max_density = np.max(densities)
@@ -129,7 +130,8 @@ class PointDensity(Distribution, Optimizable):
         in the distribution
 
         *args, **kwargs are passed on to self.to_arrays to specify
-        how to turn the xs and densities into points
+        how to create (x, density) points
+        from which to take the anti-mode
         """
         xs, densities = self.to_arrays(*args, **kwargs)
         min_density = np.min(densities)
