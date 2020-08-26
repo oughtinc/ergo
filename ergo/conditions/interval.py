@@ -33,8 +33,7 @@ class IntervalCondition(condition.Condition):
 
     def loss(self, dist):
         actual_p = self.actual_p(dist)
-        return self.weight * np.sqrt((actual_p - self.p) ** 2)
-        # return self.weight * (actual_p - self.p) ** 2
+        return self.weight * ((np.abs(actual_p - self.p)) ** 1.5)
 
     def _describe_fit(self, dist):
         description = super()._describe_fit(dist)

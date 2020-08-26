@@ -55,16 +55,13 @@ def minimize(fun, *args, init=None, init_tries=1, opt_tries=1, verbose=False, **
     best_loss = float("+inf")
     while opt_tries > 0:
         init_params = minimize_random(fun, init, tries=init_tries)
-        print(f'init_params: {init_params}')
-        results = oscipy.optimize.minimize(fun, *args, x0=init_params, **kwargs, options={'disp': True, 'gtol': 1e-3})
+        results = oscipy.optimize.minimize(fun, *args, x0=init_params, **kwargs)
         opt_tries -= 1
-        print(f'results: {results}')
         if best_results is None or results.fun < best_loss:
             best_results = results
             best_loss = results.fun
         if opt_tries == 0:
             break
-    print(f'br: {best_results} bl: {best_loss}')
     return best_results
 
 
