@@ -14,6 +14,17 @@ from ergo.scale import LogScale, Scale
 from tests.conftest import scales_to_test
 
 
+def point_density_from_scale(scale: Scale):
+    scale_mid = scale.low + scale.width / 2
+    rv = logistic(loc=scale_mid, scale=scale.width / 30)
+    xs = scale.denormalize_points(constants.target_xs)
+
+    densities = rv.pdf(xs)
+
+    pairs = [{"x": x, "density": density} for (x, density) in zip(xs, densities)]
+    return PointDensity.from_pairs(pairs, scale)
+
+
 @pytest.mark.parametrize(
     "scale", [Scale(0, 5), Scale(-1, 6), Scale(-3, 10), LogScale(0.01, 5, 500)],
 )
@@ -147,6 +158,27 @@ def test_point_density_ppf(scale: Scale):
     # Ends of scale; second is approx since implemented as start of last bin
     assert uniform_dist.ppf(0) == scale.low
     assert uniform_dist.ppf(1) == pytest.approx(scale.high, rel=0.1)
+
+
+@pytest.mark.parametrize(
+    "scale", [Scale(-3, 10), LogScale(0.01, 5, 500)],
+)
+def test_modes_anti_modes(scale: Scale):
+    dist = point_density_from_scale(scale)
+
+    extrema = ((dist.modes(), np.max), (dist.anti_modes(), np.min))
+
+    for extremal_xs, np_fn in extrema:
+        # Check that the probability densities for all reported modes/anti-modes
+        # are the same
+        extremal_densities = set(float(dist.pdf(x)) for x in extremal_xs)
+        assert len(extremal_densities) == 1
+        extremal_density = extremal_densities.pop()
+
+        # Check that they match the min/max density we get
+        # from applying np min/max manually
+        _, all_densities = dist.to_arrays()
+        assert extremal_density == pytest.approx(float(np_fn(all_densities)))
 
 
 @pytest.mark.parametrize("scale", scales_to_test)
