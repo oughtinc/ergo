@@ -931,6 +931,7 @@ test = ["flake8", "pytest (>=4.1)", "pyro-api (>=0.1.1)"]
 reference = "cda5fac353d162d34a76cc6b05033e24bd203fa0"
 type = "git"
 url = "https://github.com/pyro-ppl/numpyro.git"
+
 [[package]]
 category = "main"
 description = "Optimizing numpys einsum function"
@@ -1115,7 +1116,7 @@ wcwidth = "*"
 [[package]]
 category = "dev"
 description = "Run a subprocess in a pseudo terminal"
-marker = "sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\""
+marker = "python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\" or os_name != \"nt\" or python_version >= \"3.3\" and sys_platform != \"win32\" and (python_version >= \"3.3\" and sys_platform != \"win32\" or sys_platform != \"win32\")"
 name = "ptyprocess"
 optional = false
 python-versions = "*"
