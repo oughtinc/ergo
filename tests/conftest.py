@@ -175,6 +175,16 @@ def point_densities():
     return make_point_densities()
 
 
+@pytest.fixture(scope="module")
+def predictit():
+    return ergo.PredictIt()
+
+
+@pytest.fixture(scope="module")
+def predictit_markets():
+    return list(ergo.PredictIt().markets)[0:3]
+
+
 def make_point_densities():
     xs = np.array(
         [
