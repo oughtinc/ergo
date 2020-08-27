@@ -2,9 +2,8 @@ import operator
 import re
 from typing import List, Tuple
 
-from fuzzywuzzy import fuzz
-
 from ergo import PredictIt, PredictItMarket, PredictItQuestion
+from fuzzywuzzy import fuzz
 
 
 def _get_name_matches(name: str, guess_words: List[str]) -> int:
