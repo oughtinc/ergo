@@ -145,7 +145,7 @@ class Optimizable(ABC):
         fit_results = minimize(
             loss,
             init=init,
-            jac=jac,
+            # jac=jac,
             init_tries=init_tries,
             opt_tries=opt_tries,
             verbose=verbose,

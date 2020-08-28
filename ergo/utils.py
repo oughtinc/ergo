@@ -4,6 +4,7 @@ import weakref
 import jax.numpy as np
 import scipy as oscipy
 
+from jax.scipy.optimize import minimize as jax_minimize
 
 def to_float(value):
     """Convert value to float"""
@@ -55,7 +56,7 @@ def minimize(fun, *args, init=None, init_tries=1, opt_tries=1, verbose=False, **
     best_loss = float("+inf")
     while opt_tries > 0:
         init_params = minimize_random(fun, init, tries=init_tries)
-        results = oscipy.optimize.minimize(fun, *args, x0=init_params, **kwargs)
+        results = jax_minimize(fun, *args, method='bfgs', x0=init_params, **kwargs)
         opt_tries -= 1
         if best_results is None or results.fun < best_loss:
             best_results = results
