@@ -36,9 +36,10 @@ def condition_loss(
     dist_class, dist_fixed_params, dist_opt_params, cond_classes, cond_params
 ):
     total_loss = 0.0
+    dist = get_dist(dist_class, dist_fixed_params, dist_opt_params)
     for (cond_class, cond_param) in zip(cond_classes, cond_params):
         total_loss += single_condition_loss(
-            dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
+            dist, cond_class, cond_param
         )
     return total_loss
 
@@ -47,19 +48,21 @@ def condition_loss_grad(
     dist_class, dist_fixed_params, dist_opt_params, cond_classes, cond_params
 ):
     total_grad = 0.0
+    dist = get_dist(dist_class, dist_fixed_params, dist_opt_params)
     for (cond_class, cond_param) in zip(cond_classes, cond_params):
         total_grad += single_condition_loss_grad(
-            dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
+            dist, cond_class, cond_param
         )
     return total_grad
 
+@partial(jit, static_argnums=(0))
+def get_dist(dist_class, dist_fixed_params, dist_opt_params):
+    return dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
 
-@partial(jit, static_argnums=(0, 3))
+@partial(jit, static_argnums=(1))
 def single_condition_loss(
-    dist_class, dist_fixed_params, dist_opt_params, cond_class, cond_param
+    dist, cond_class, cond_param
 ):
-
-    dist = dist_class.from_params(dist_fixed_params, dist_opt_params, traceable=True)
     condition = cond_class[0].structure((cond_class, cond_param))
     loss = condition.loss(dist) * 100
     print(
@@ -73,7 +76,7 @@ def single_condition_loss(
 
 
 single_condition_loss_grad = jit(
-    grad(single_condition_loss, argnums=2), static_argnums=(0, 3)
+    grad(single_condition_loss, argnums=2), static_argnums=( 1)
 )
 
 
