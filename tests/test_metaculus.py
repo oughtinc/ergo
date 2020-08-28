@@ -188,13 +188,11 @@ def test_submitted_equals_predicted_log(metaculus_questions, logistic_mixture_sa
     latest_prediction = (
         metaculus_questions.continuous_log_open_question.get_latest_normalized_prediction()
     )
-    prediction_samples = np.array(
-        [
-            metaculus_questions.continuous_log_open_question.true_from_normalized_value(
-                latest_prediction.sample()
-            )
-            for _ in range(0, 5000)
-        ]
+    normalized_prediction_samples = np.array(
+        [latest_prediction.sample() for _ in range(0, 5000)]
+    )
+    prediction_samples = metaculus_questions.continuous_log_open_question.denormalize_samples(
+        normalized_prediction_samples
     )
     assert float(np.mean(logistic_mixture_samples)) == pytest.approx(
         float(np.mean(prediction_samples)), rel=0.1
