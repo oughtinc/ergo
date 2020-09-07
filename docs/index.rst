@@ -20,6 +20,7 @@ Ergo documentation
 
    metaculus
    foretold
+   predictit
 
 .. toctree::
    :glob:
