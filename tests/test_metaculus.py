@@ -142,7 +142,7 @@ def test_get_questions_question_status(metaculus):
     ).all()
 
 
-@pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
+# @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
 def test_submission_from_samples_linear(metaculus_questions, logistic_mixture_samples):
     normalized_mixture = metaculus_questions.continuous_linear_open_question.get_submission_from_samples(
         logistic_mixture_samples
@@ -159,7 +159,7 @@ def test_submission_from_samples_linear(metaculus_questions, logistic_mixture_sa
     )
 
 
-@pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
+# @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
 def test_submitted_equals_predicted_linear(
     metaculus_questions, logistic_mixture_samples
 ):
@@ -179,7 +179,7 @@ def test_submitted_equals_predicted_linear(
     )
 
 
-@pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
+# @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
 def test_submitted_equals_predicted_log(metaculus_questions, logistic_mixture_samples):
     metaculus_questions.continuous_log_open_question.submit_from_samples(
         logistic_mixture_samples
