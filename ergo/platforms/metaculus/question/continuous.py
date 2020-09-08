@@ -322,7 +322,10 @@ class ContinuousQuestion(MetaculusQuestion):
 
         normalized_samples = self.scale.normalize_points(samples)
         _dist = dist.LogisticMixture.from_samples(
-            normalized_samples, fixed_params={"num_components": 3}, verbose=verbose
+            normalized_samples,
+            fixed_params={"num_components": 3},
+            verbose=verbose,
+            scale=Scale(0, 1),
         )
         return self.prepare_logistic_mixture(_dist)
 
