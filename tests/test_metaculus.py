@@ -142,6 +142,23 @@ def test_get_questions_question_status(metaculus):
     ).all()
 
 
+def test_submission_from_samples_smooth(metaculus_questions, smooth_logistic_mixture):
+    samples = np.array([smooth_logistic_mixture.sample() for _ in range(5000)])
+    fit_mixture = metaculus_questions.continuous_linear_open_question.get_submission_from_samples(
+        samples
+    )
+    normalized_samples_from_fit_mixture = [fit_mixture.sample() for _ in range(5000)]
+    mixture_samples = metaculus_questions.continuous_linear_open_question.denormalize_samples(
+        normalized_samples_from_fit_mixture
+    )
+    assert float(np.mean(samples)) == pytest.approx(
+        float(np.mean(mixture_samples)), rel=0.1
+    )
+    assert float(np.var(samples)) == pytest.approx(
+        float(np.var(mixture_samples)), rel=0.2
+    )
+
+
 @pytest.mark.xfail(reason="Fitting doesn't reliably work yet #219")
 def test_submission_from_samples_linear(metaculus_questions, logistic_mixture_samples):
     normalized_mixture = metaculus_questions.continuous_linear_open_question.get_submission_from_samples(
