@@ -464,9 +464,9 @@ class ContinuousQuestion(MetaculusQuestion):
                         "For multiple predictions comparisons, only samples can be compared (plot_fitted must be False)"
                     )
                 for col in samples:
-                    df[col] = self.scale.normalize_points(samples[col])
+                    df[col] = onp.array(self.scale.normalize_points(samples[col]))
             else:
-                df["samples"] = self.scale.normalize_points(samples)
+                df["samples"] = onp.array(self.scale.normalize_points(samples))
 
         if plot_fitted:
             prediction = self.get_submission_from_samples(samples)
