@@ -145,7 +145,7 @@ def metaculus():
             ".env is missing METACULUS_USERNAME, METACULUS_PASSWORD, or METACULUS_USER_ID"
         )
     user_id = int(user_id_str)
-    metaculus = ergo.Metaculus(uname, pwd)
+    metaculus = ergo.Metaculus(username=uname, password=pwd)
     assert metaculus.user_id == user_id
     return metaculus
 
