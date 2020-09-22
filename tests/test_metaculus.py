@@ -3,9 +3,6 @@ from http import HTTPStatus
 import pprint
 
 import jax.numpy as np
-import matplotlib.pyplot as plt
-import numpy as onp
-import pandas as pd
 import pytest
 import requests
 
@@ -215,32 +212,3 @@ def test_get_community_prediction_log(metaculus_questions):
 def test_sample_community_binary(metaculus_questions):
     value = metaculus_questions.binary_question.sample_community()
     assert bool(value) in (True, False)
-
-
-def test_show_prediction_with_fitted(
-    metaculus_questions, logistic_mixture_samples, monkeypatch
-):
-    monkeypatch.setattr(plt, "draw", lambda: None)
-    metaculus_questions.continuous_linear_open_question.show_prediction(
-        logistic_mixture_samples, show_commuity=True, plot_fitted=True,
-    )
-
-
-def test_show_prediction_multiple_models(
-    metaculus_questions, logistic_mixture_samples, monkeypatch
-):
-    xscale = metaculus_questions.continuous_linear_open_question.scale
-
-    samples = pd.DataFrame(
-        {
-            "logistic_samples": logistic_mixture_samples,
-            "random_samples": onp.random.random(len(logistic_mixture_samples))
-            * xscale.width
-            + xscale.low,
-        }
-    )
-
-    monkeypatch.setattr(plt, "draw", lambda: None)
-    metaculus_questions.continuous_linear_open_question.show_prediction(
-        samples, show_commuity=True,
-    )
