@@ -67,12 +67,18 @@ class Metaculus:
         "interested": "upvoted_by",
     }
 
-    def __init__(self, username: str, password: str, api_domain: str = "www"):
+    def __init__(self, username: str = None, password: str = None, user_api_key: str = None, org_api_key: str = None, api_domain: str = "www"):
         self.user_id = None
         self.api_domain = api_domain
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
-        self.login(username, password)
+        self.auth_method = "username_and_password"
+        if uesrname and password:
+            self.login(username, password)
+        elif user_api_key and org_api_key:
+            self.auth_method = "api_keys"
+        else:
+            raise ValueError("Authentication method not provided. Please provide either username and password, or user and org API keys.")
 
     def login(self, username, password):
         """
@@ -95,15 +101,30 @@ class Metaculus:
         Make a post request using your Metaculus credentials.
         Best to use this for all post requests to avoid auth issues
         """
-        r = self.s.post(
-            url,
-            headers={
-                "Content-Type": "application/json",
-                "Referer": self.api_url,
-                "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"],
-            },
-            data=json.dumps(data),
-        )
+        if self.auth_method == "username_and_password":
+            r = self.s.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Referer": self.api_url,
+                    "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"],
+                },
+                data=json.dumps(data),
+            )
+        elif self.auth_method == "api_keys":
+            r = self.s.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Referer": self.api_url,
+                    "X-USERKEY": self.user_api_key,
+                    "X-APIKEY": self.org_api_key,
+                },
+                data=json.dumps(data),
+            )
+        else:
+            raise ValueError(f"Authentication method {self.auth_method} not recognized. Please provide either username and password, or user and org API keys.")
+
         try:
             r.raise_for_status()
 
