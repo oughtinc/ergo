@@ -464,8 +464,10 @@ class ContinuousQuestion(MetaculusQuestion):
                         "For multiple predictions comparisons, only samples can be compared (plot_fitted must be False)"
                     )
                 for col in samples:
+                    # use numpy array to ensure df doesn't become read-only
                     df[col] = onp.array(self.scale.normalize_points(samples[col]))
             else:
+                # use numpy array to ensure df doesn't become read-only
                 df["samples"] = onp.array(self.scale.normalize_points(samples))
 
         if plot_fitted:
