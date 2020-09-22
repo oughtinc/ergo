@@ -94,10 +94,7 @@ def describe_fit(dist_classes, dist_params, cond_class, cond_params):
 @partial(jit, static_argnums=0)
 def dist_logloss(dist_class, fixed_params, opt_params, data):
     dist = dist_class.from_params(fixed_params, opt_params, traceable=True)
-    if data.size == 1:
-        return -dist.logpdf(data)
-    scores = vmap(dist.logpdf)(data)
-    return -np.sum(scores)
+    return -np.sum(dist.logpdf(data))
 
 
 dist_grad_logloss = jit(grad(dist_logloss, argnums=2), static_argnums=0)
