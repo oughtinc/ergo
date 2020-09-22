@@ -73,8 +73,10 @@ class Metaculus:
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
         self.auth_method = "username_and_password"
+        self.user_api_key = user_api_key
+        self.org_api_key = org_api_key
         if username and password:
-            self.login(username, password)
+            self.login(usernae, password)
         elif user_api_key and org_api_key:
             self.auth_method = "api_keys"
         else:
