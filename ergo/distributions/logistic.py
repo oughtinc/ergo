@@ -60,6 +60,7 @@ class Logistic(Distribution):
     # Distribution
 
     def pdf(self, x):
+        x = np.asarray(x)
         y = (self.scale.normalize_point(x) - self.loc) / self.s
         p = np.exp(scipy.stats.logistic.logpdf(y) - np.log(self.s))
         return self.scale.denormalize_density(x, p)

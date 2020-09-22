@@ -30,13 +30,18 @@ class LogisticMixture(Distribution, Optimizable):
     # Distribution
 
     def pdf(self, x):
-        return np.sum([c.pdf(x) * p for (c, p) in zip(self.components, self.probs)])
+        x = np.asarray(x)
+        # last dimension will be component-wise pdf values
+        unscaled_pdfs = np.stack([c.pdf(x) for c in self.components], axis=-1)
+        # multiply probs and sum by last dimension
+        return np.dot(unscaled_pdfs, np.asarray(self.probs))
 
     def logpdf(self, x):
-        scores = []
-        for (c, p) in zip(self.components, self.probs):
-            scores.append(c.logpdf(x) + np.log(p))
-        return scipy.special.logsumexp(np.array(scores))
+        x = np.asarray(x)
+        log_pdfs = np.stack([c.logpdf(x) for c in self.components], axis=-1)
+        log_probs = np.log(np.asarray(self.probs))
+        scores = np.add(log_pdfs, log_probs)
+        return scipy.special.logsumexp(scores, axis=-1)
 
     def cdf(self, x):
         return np.sum([c.cdf(x) * p for (c, p) in zip(self.components, self.probs)])
