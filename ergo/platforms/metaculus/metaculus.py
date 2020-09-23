@@ -76,7 +76,7 @@ class Metaculus:
         self.user_api_key = user_api_key
         self.org_api_key = org_api_key
         if username and password:
-            self.login(usernae, password)
+            self.login(username, password)
         elif user_api_key and org_api_key:
             self.auth_method = "api_keys"
         else:
