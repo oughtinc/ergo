@@ -69,13 +69,14 @@ class Metaculus:
 
     def __init__(
         self,
-        username: str = None,
-        password: str = None,
-        user_api_key: str = None,
-        org_api_key: str = None,
-        api_domain: str = "www",
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        user_api_key: Optional[str] = None,
+        org_api_key: Optional[str] = None,
+        api_domain: Optional[str] = "www",
+        user_id: Optional[str] = None,
     ):
-        self.user_id = None
+        self.user_id = user_id
         self.api_domain = api_domain
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
@@ -267,9 +268,14 @@ class Metaculus:
             if player_status == "private":
                 query_params.append("access=private")
             else:
-                query_params.append(
-                    f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
-                )
+                if self.user_id:
+                    query_params.append(
+                        f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
+                    )
+                else:
+                    raise ValueError(
+                        f"User ID must be specified in order to filter by status {player_status}"
+                    )
 
         if cat is not None:
             query_params.append(f"search=cat:{cat}")
