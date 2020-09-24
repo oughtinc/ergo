@@ -67,7 +67,14 @@ class Metaculus:
         "interested": "upvoted_by",
     }
 
-    def __init__(self, username: str = None, password: str = None, user_api_key: str = None, org_api_key: str = None, api_domain: str = "www"):
+    def __init__(
+        self,
+        username: str = None,
+        password: str = None,
+        user_api_key: str = None,
+        org_api_key: str = None,
+        api_domain: str = "www",
+    ):
         self.user_id = None
         self.api_domain = api_domain
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
@@ -80,7 +87,9 @@ class Metaculus:
         elif user_api_key and org_api_key:
             self.auth_method = "api_keys"
         else:
-            raise ValueError("Authentication method not provided. Please provide either username and password, or user and org API keys.")
+            raise ValueError(
+                "Authentication method not provided. Please provide either username and password, or user and org API keys."
+            )
 
     def login(self, username, password):
         """
@@ -125,7 +134,9 @@ class Metaculus:
                 data=json.dumps(data),
             )
         else:
-            raise ValueError(f"Authentication method {self.auth_method} not recognized. Please provide either username and password, or user and org API keys.")
+            raise ValueError(
+                f"Authentication method {self.auth_method} not recognized. Please provide either username and password, or user and org API keys."
+            )
 
         try:
             r.raise_for_status()
