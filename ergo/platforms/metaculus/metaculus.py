@@ -105,7 +105,8 @@ class Metaculus:
         )
 
         r.raise_for_status()
-
+        
+        self.auth_method = "username_and_password"
         self.user_id = r.json()["user_id"]
 
     def post(self, url: str, data: Dict) -> requests.Response:
