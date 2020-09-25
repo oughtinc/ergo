@@ -75,7 +75,7 @@ class Metaculus:
         username: Optional[str] = None,
         password: Optional[str] = None,
     ):
-        if username and password:
+        if username or password:
             raise ValueError(
                 "Username and password are no longer accepted on initializaion. Use login_via_username_and_password after initialization instead."
             )
@@ -118,28 +118,7 @@ class Metaculus:
                 },
                 data=json.dumps(data),
             )
-
-            try:
-                r.raise_for_status()
-
-            except requests.exceptions.HTTPError as e:
-                e.args = (
-                    str(e.args),
-                    f"request body: {e.request.body}",
-                    f"response json: {e.response.json()}",
-                )
-                raise
-
-            return r
-
-        return self.post(url, data)
-
-    def post(self, url: str, data: Dict) -> requests.Response:
-        """
-        Make a post request using your Metaculus credentials.
-        Best to use this for all post requests to avoid auth issues
-        """
-        if self.auth_method == "username_and_password":
+        elif self.auth_method == "username_and_password":
             r = self.s.post(
                 url,
                 headers={
@@ -151,7 +130,7 @@ class Metaculus:
             )
         else:
             raise ValueError(
-                f"Authentication method {self.auth_method} not authorize for general post use. Please login via username and password."
+                f"Must be authenticated to make a prediction"
             )
 
         try:
