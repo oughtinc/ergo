@@ -85,11 +85,13 @@ class Metaculus:
         )
 
         r.raise_for_status()
-        
+
         self.auth_method = "username_and_password"
         self.user_id = r.json()["user_id"]
 
-    def login_via_api_keys(self, user_api_key: str, org_api_key: str, user_id: int = None):
+    def login_via_api_keys(
+        self, user_api_key: str, org_api_key: str, user_id: int = None
+    ):
         self.auth_method = "api_keys"
         self.user_api_key = user_api_key
         self.org_api_key = org_api_key
@@ -213,7 +215,7 @@ class Metaculus:
             player_status=player_status,
             cat=cat,
             pages=pages,
-            load_detai=load_detail,
+            load_detail=load_detail,
         )
 
         def is_log_date(data: Dict) -> bool:

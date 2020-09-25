@@ -1,14 +1,15 @@
 import datetime
 from http import HTTPStatus
+import os
 import pprint
+from typing import cast
 
 from dotenv import load_dotenv
-from typing import cast
-import os
-import ergo
 import jax.numpy as np
 import pytest
 import requests
+
+import ergo
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -217,6 +218,7 @@ def test_sample_community_binary(metaculus_questions):
     value = metaculus_questions.binary_question.sample_community()
     assert bool(value) in (True, False)
 
+
 def test_login_via_api_key(metaculus_questions):
     load_dotenv()
     oughtpublic_api_key = "8fcc67f4-341b-4107-98ea-1dd4215d0be1"
@@ -225,7 +227,11 @@ def test_login_via_api_key(metaculus_questions):
     if not org_api_key:
         raise ValueError(".env is missing METACULUS_ORG_API_KEY")
     metaculus = ergo.Metaculus()
-    metaculus.login_via_api_keys(user_api_key=oughtpublic_api_key, org_api_key=org_api_key, user_id=oughtpublic_user_id)
+    metaculus.login_via_api_keys(
+        user_api_key=oughtpublic_api_key,
+        org_api_key=org_api_key,
+        user_id=oughtpublic_user_id,
+    )
 
     # test sorting by player status to make sure login worked
     qs_i_predicted = metaculus.make_questions_df(
