@@ -152,6 +152,22 @@ def metaculus():
 
 
 @pytest.fixture(scope="module")
+def metaculus_via_api_keys():
+    load_dotenv()
+    user_api_key = cast(str, os.getenv("METACULUS_USER_WWW_API_KEY"))
+    org_api_key = cast(str, os.getenv("METACULUS_ORG_API_KEY"))
+    if None in [user_api_key, org_api_key]:
+        raise ValueError(
+            ".env is missing METACULUS_ORG_API_KEY or METACULUS_USER_WWW_API_KEY"
+        )
+    metaculus = ergo.Metaculus()
+    metaculus.login_via_api_keys(
+        user_api_key=user_api_key, org_api_key=org_api_key,
+    )
+    return metaculus
+
+
+@pytest.fixture(scope="module")
 def metaculus_questions(metaculus, log_question_data):
     questions = SimpleNamespace()
     questions.continuous_linear_closed_question = metaculus.get_question(3963)

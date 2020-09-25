@@ -85,10 +85,7 @@ class BinaryQuestion(MetaculusQuestion):
 
         :param p: how likely is the event to happen, from 0 to 1?
         """
-        return self.metaculus.post(
-            f"{self.metaculus.api_url}/questions/{self.id}/predict/",
-            {"prediction": p, "void": False},
-        )
+        return self.metaculus.predict(self.id, {"prediction": p, "void": False},)
 
     def sample_community(self) -> bool:
         """
