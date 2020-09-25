@@ -97,17 +97,33 @@ class Metaculus:
 
         r.raise_for_status()
 
-        self.auth_method = "username_and_password"
         self.user_id = r.json()["user_id"]
 
+    @property
+    def is_logged_in_via_uname_pwd(self):
+        return hasattr(self, "user_id")
+
     def login_via_api_keys(self, user_api_key: str, org_api_key: str):
-        self.auth_method = "api_keys"
         self.user_api_key = user_api_key
         self.org_api_key = org_api_key
 
+    @property
+    def has_api_keys(self):
+        return hasattr(self, "user_api_key") and hasattr(self, "org_api_key")
+
     def predict(self, q_id: str, data: Dict) -> requests.Response:
         url = f"{self.api_url}/questions/{q_id}/predict/"
-        if self.auth_method == "api_keys":
+        if self.is_logged_in_via_uname_pwd:
+            r = self.s.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Referer": self.api_url,
+                    "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"],
+                },
+                data=json.dumps(data),
+            )
+        elif self.has_api_keys:
             r = self.s.post(
                 url,
                 headers={
@@ -118,20 +134,8 @@ class Metaculus:
                 },
                 data=json.dumps(data),
             )
-        elif self.auth_method == "username_and_password":
-            r = self.s.post(
-                url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Referer": self.api_url,
-                    "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"],
-                },
-                data=json.dumps(data),
-            )
         else:
-            raise ValueError(
-                f"Must be authenticated to make a prediction"
-            )
+            raise ValueError("Must be authenticated to make a prediction")
 
         try:
             r.raise_for_status()
