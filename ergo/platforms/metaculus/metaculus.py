@@ -19,7 +19,7 @@ We predict that the admit rate will be 20% higher than the current community pre
     >>> metaculus = ergo.Metaculus(
     ...     api_domain="www"
     ... )
-    >>> metaculus.login_via_username_and_password)(
+    >>> metaculus.login_via_username_and_password(
     ...     username=os.getenv("METACULUS_USERNAME"),
     ...     password=os.getenv("METACULUS_PASSWORD"),
     ... )
