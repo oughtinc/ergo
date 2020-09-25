@@ -168,6 +168,11 @@ def metaculus_via_api_keys():
 
 
 @pytest.fixture(scope="module")
+def unauthenticated_metaculus():
+    return ergo.Metaculus()
+
+
+@pytest.fixture(scope="module")
 def metaculus_questions(metaculus, log_question_data):
     questions = SimpleNamespace()
     questions.continuous_linear_closed_question = metaculus.get_question(3963)
