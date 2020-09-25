@@ -67,32 +67,12 @@ class Metaculus:
         "interested": "upvoted_by",
     }
 
-    def __init__(
-        self,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        user_api_key: Optional[str] = None,
-        org_api_key: Optional[str] = None,
-        api_domain: Optional[str] = "www",
-        user_id: Optional[str] = None,
-    ):
-        self.user_id = user_id
+    def __init__(self, api_domain: Optional[str] = "www"):
         self.api_domain = api_domain
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
-        self.auth_method = "username_and_password"
-        self.user_api_key = user_api_key
-        self.org_api_key = org_api_key
-        if username and password:
-            self.login(username, password)
-        elif user_api_key and org_api_key:
-            self.auth_method = "api_keys"
-        else:
-            raise ValueError(
-                "Authentication method not provided. Please provide either username and password, or user and org API keys."
-            )
 
-    def login(self, username, password):
+    def login_via_username_and_password(self, username: str, password: str):
         """
         log in to Metaculus using your credentials and store cookies,
         etc. in the session object for future use
@@ -108,6 +88,12 @@ class Metaculus:
         
         self.auth_method = "username_and_password"
         self.user_id = r.json()["user_id"]
+
+    def login_via_api_keys(self, user_api_key: str, org_api_key: str, user_id: int = None):
+        self.auth_method = "api_keys"
+        self.user_api_key = user_api_key
+        self.org_api_key = org_api_key
+        self.user_id = user_id
 
     def post(self, url: str, data: Dict) -> requests.Response:
         """
@@ -192,9 +178,12 @@ class Metaculus:
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         if not data.get("possibilities"):
+            print(id)
+            print(data)
             raise ValueError(
                 "Unable to find a question with that id. Are you using the right api_domain?"
             )
+        print("worked")
         return self.make_question_from_data(data, name)
 
     def get_questions(
@@ -224,7 +213,7 @@ class Metaculus:
             player_status=player_status,
             cat=cat,
             pages=pages,
-            load_detail=load_detail,
+            load_detai=load_detail,
         )
 
         def is_log_date(data: Dict) -> bool:
