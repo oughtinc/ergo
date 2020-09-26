@@ -17,9 +17,11 @@ We predict that the admit rate will be 20% higher than the current community pre
     >>> from numpyro.handlers import seed
 
     >>> metaculus = ergo.Metaculus(
+    ...     api_domain="www"
+    ... )
+    >>> metaculus.login_via_username_and_password(
     ...     username=os.getenv("METACULUS_USERNAME"),
     ...     password=os.getenv("METACULUS_PASSWORD"),
-    ...     api_domain="www"
     ... )
 
     >>> harvard_question = metaculus.get_question(3622)
@@ -55,9 +57,9 @@ class Metaculus:
     """
     The main class for interacting with Metaculus
 
-    :param username: A Metaculus username
-    :param password: The password for the given Metaculus username
     :param api_domain: A Metaculus subdomain (e.g., www, pandemic, finance)
+    :param username: A Metaculus username (deprecated)
+    :param password: The password for the given Metaculus username (deprecated)
     """
 
     player_status_to_api_wording = {
@@ -67,14 +69,21 @@ class Metaculus:
         "interested": "upvoted_by",
     }
 
-    def __init__(self, username: str, password: str, api_domain: str = "www"):
-        self.user_id = None
+    def __init__(
+        self,
+        api_domain: Optional[str] = "www",
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+    ):
+        if username or password:
+            raise ValueError(
+                "Username and password are no longer accepted on initializaion. Use login_via_username_and_password after initialization instead."
+            )
         self.api_domain = api_domain
         self.api_url = f"https://{api_domain}.metaculus.com/api2"
         self.s = requests.Session()
-        self.login(username, password)
 
-    def login(self, username, password):
+    def login_via_username_and_password(self, username: str, password: str):
         """
         log in to Metaculus using your credentials and store cookies,
         etc. in the session object for future use
@@ -90,20 +99,44 @@ class Metaculus:
 
         self.user_id = r.json()["user_id"]
 
-    def post(self, url: str, data: Dict) -> requests.Response:
-        """
-        Make a post request using your Metaculus credentials.
-        Best to use this for all post requests to avoid auth issues
-        """
-        r = self.s.post(
-            url,
-            headers={
-                "Content-Type": "application/json",
-                "Referer": self.api_url,
-                "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"],
-            },
-            data=json.dumps(data),
-        )
+    @property
+    def is_logged_in_via_uname_pwd(self):
+        return hasattr(self, "user_id")
+
+    def login_via_api_keys(self, user_api_key: str, org_api_key: str):
+        self.user_api_key = user_api_key
+        self.org_api_key = org_api_key
+
+    @property
+    def has_api_keys(self):
+        return hasattr(self, "user_api_key") and hasattr(self, "org_api_key")
+
+    def predict(self, q_id: str, data: Dict) -> requests.Response:
+        url = f"{self.api_url}/questions/{q_id}/predict/"
+        if self.is_logged_in_via_uname_pwd:
+            r = self.s.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Referer": self.api_url,
+                    "X-CSRFToken": self.s.cookies.get_dict()["csrftoken"],
+                },
+                data=json.dumps(data),
+            )
+        elif self.has_api_keys:
+            r = self.s.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Referer": self.api_url,
+                    "X-USERKEY": self.user_api_key,
+                    "X-APIKEY": self.org_api_key,
+                },
+                data=json.dumps(data),
+            )
+        else:
+            raise ValueError("Must be authenticated to make a prediction")
+
         try:
             r.raise_for_status()
 
@@ -156,6 +189,8 @@ class Metaculus:
         r = self.s.get(f"{self.api_url}/questions/{id}")
         data = r.json()
         if not data.get("possibilities"):
+            print(id)
+            print(data)
             raise ValueError(
                 "Unable to find a question with that id. Are you using the right api_domain?"
             )
@@ -233,9 +268,14 @@ class Metaculus:
             if player_status == "private":
                 query_params.append("access=private")
             else:
-                query_params.append(
-                    f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
-                )
+                if hasattr(self, "user_id"):
+                    query_params.append(
+                        f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
+                    )
+                else:
+                    raise ValueError(
+                        f"username_and_password login must be used in order to filter by status {player_status}"
+                    )
 
         if cat is not None:
             query_params.append(f"search=cat:{cat}")

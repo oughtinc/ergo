@@ -92,6 +92,12 @@ def test_submit_closed_question_fails(metaculus_questions, normalized_logistic_m
         metaculus_questions.closed_question.submit(submission)
 
 
+def test_unauthenticated_submit_fails(unauthenticated_metaculus):
+    question = unauthenticated_metaculus.get_question(3616)
+    with pytest.raises(ValueError):
+        question.submit(0.9)
+
+
 def test_score_binary(metaculus_questions):
     """Smoke test"""
     metaculus_questions.binary_question.score_my_predictions()
@@ -99,6 +105,11 @@ def test_score_binary(metaculus_questions):
 
 def test_get_questions(metaculus):
     questions = metaculus.get_questions(question_status="closed")
+    assert len(questions) >= 15
+
+
+def test_unauthenticated_get_questions(unauthenticated_metaculus):
+    questions = unauthenticated_metaculus.get_questions(question_status="closed")
     assert len(questions) >= 15
 
 
@@ -122,6 +133,11 @@ def test_get_questions_player_status(metaculus):
         metaculus.get_questions_json(player_status="not-predicted")
     )
     assert (not_predicted["i_predicted"] == False).all()  # noqa: E712
+
+
+def test_unauthenticated_get_questions_player_status(unauthenticated_metaculus):
+    with pytest.raises(ValueError):
+        unauthenticated_metaculus.get_questions(player_status="predicted")
 
 
 def test_get_questions_question_status(metaculus):
@@ -211,4 +227,16 @@ def test_get_community_prediction_log(metaculus_questions):
 
 def test_sample_community_binary(metaculus_questions):
     value = metaculus_questions.binary_question.sample_community()
+    assert bool(value) in (True, False)
+
+
+def test_submit_binary_via_api_keys(metaculus_via_api_keys):
+    question = metaculus_via_api_keys.get_question(3616)
+    r = question.submit(0.55)
+    assert r.status_code == 202
+
+
+def test_unauthenticated_sample_community(unauthenticated_metaculus):
+    question = unauthenticated_metaculus.get_question(3616)
+    value = question.sample_community()
     assert bool(value) in (True, False)

@@ -355,10 +355,7 @@ class ContinuousQuestion(MetaculusQuestion):
             "void": False,
         }
 
-        r = self.metaculus.post(
-            f"""{self.metaculus.api_url}/questions/{self.id}/predict/""",
-            prediction_data,
-        )
+        r = self.metaculus.predict(self.id, prediction_data,)
 
         self.refresh_question()
 
