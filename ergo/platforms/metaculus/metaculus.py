@@ -268,13 +268,13 @@ class Metaculus:
             if player_status == "private":
                 query_params.append("access=private")
             else:
-                if self.user_id:
+                if hasattr(self, "user_id"):
                     query_params.append(
                         f"{self.player_status_to_api_wording[player_status]}={self.user_id}"
                     )
                 else:
                     raise ValueError(
-                        f"username_and_password auth must be used in order to filter by status {player_status}"
+                        f"username_and_password login must be used in order to filter by status {player_status}"
                     )
 
         if cat is not None:
