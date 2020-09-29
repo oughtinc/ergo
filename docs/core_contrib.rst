@@ -31,8 +31,8 @@ Before submitting a PR
 3. Run linting using ``make lint`` (flake8, mypy, black check)
 4. Run tests using ``make test``
 
-    * To run the tests in ``test_metaculus.py``, you'll need our secret `.env` file_. If you don't have it, you can ask us for it, 
-      or rely on Travis CI to run those tests for you.
+    * To run the tests in ``test_metaculus.py``, you'll need our secret `.env` file_.
+      If you don't have it, you can ask us for it, or rely on Travis CI to run those tests for you.
 
 5. Generate docs using ``make docs``, load
    ``docs/build/html/index.html`` and review the generated docs
