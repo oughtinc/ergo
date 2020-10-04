@@ -45,6 +45,18 @@ def logistic_mixture():
 
 
 @pytest.fixture(scope="module")
+def smooth_logistic_mixture():
+    xscale = Scale(1, 1000000.0)
+    return LogisticMixture(
+        components=[
+            Logistic(loc=400000, s=100000, scale=xscale),
+            Logistic(loc=700000, s=50000, scale=xscale),
+        ],
+        probs=[0.8, 0.2],
+    )
+
+
+@pytest.fixture(scope="module")
 def logistic_mixture10():
     xscale = Scale(-20, 40)
     return LogisticMixture(

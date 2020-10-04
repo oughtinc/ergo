@@ -64,5 +64,5 @@ notebooks = [
             ]
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=0.12", "setuptools>=47.1.1,<50"]
 build-backend = "poetry.masonry.api"

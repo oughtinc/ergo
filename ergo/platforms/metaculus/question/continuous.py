@@ -322,7 +322,10 @@ class ContinuousQuestion(MetaculusQuestion):
 
         normalized_samples = self.scale.normalize_points(samples)
         _dist = dist.LogisticMixture.from_samples(
-            normalized_samples, fixed_params={"num_components": 3}, verbose=verbose
+            normalized_samples,
+            fixed_params={"num_components": 3},
+            verbose=verbose,
+            scale=Scale(0, 1),
         )
         return self.prepare_logistic_mixture(_dist)
 
@@ -461,9 +464,11 @@ class ContinuousQuestion(MetaculusQuestion):
                         "For multiple predictions comparisons, only samples can be compared (plot_fitted must be False)"
                     )
                 for col in samples:
-                    df[col] = self.scale.normalize_points(samples[col])
+                    # use numpy array to ensure df doesn't become read-only
+                    df[col] = onp.array(self.scale.normalize_points(samples[col]))
             else:
-                df["samples"] = self.scale.normalize_points(samples)
+                # use numpy array to ensure df doesn't become read-only
+                df["samples"] = onp.array(self.scale.normalize_points(samples))
 
         if plot_fitted:
             prediction = self.get_submission_from_samples(samples)
