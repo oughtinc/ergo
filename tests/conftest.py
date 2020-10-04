@@ -145,9 +145,31 @@ def metaculus():
             ".env is missing METACULUS_USERNAME, METACULUS_PASSWORD, or METACULUS_USER_ID"
         )
     user_id = int(user_id_str)
-    metaculus = ergo.Metaculus(uname, pwd)
+    metaculus = ergo.Metaculus()
+    metaculus.login_via_username_and_password(username=uname, password=pwd)
     assert metaculus.user_id == user_id
     return metaculus
+
+
+@pytest.fixture(scope="module")
+def metaculus_via_api_keys():
+    load_dotenv()
+    user_api_key = cast(str, os.getenv("METACULUS_USER_WWW_API_KEY"))
+    org_api_key = cast(str, os.getenv("METACULUS_ORG_API_KEY"))
+    if None in [user_api_key, org_api_key]:
+        raise ValueError(
+            ".env is missing METACULUS_ORG_API_KEY or METACULUS_USER_WWW_API_KEY"
+        )
+    metaculus = ergo.Metaculus()
+    metaculus.login_via_api_keys(
+        user_api_key=user_api_key, org_api_key=org_api_key,
+    )
+    return metaculus
+
+
+@pytest.fixture(scope="module")
+def unauthenticated_metaculus():
+    return ergo.Metaculus()
 
 
 @pytest.fixture(scope="module")
