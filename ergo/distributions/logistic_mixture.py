@@ -44,9 +44,11 @@ class LogisticMixture(Distribution, Optimizable):
         return scipy.special.logsumexp(scores, axis=-1)
 
     def cdf(self, x):
-        return np.sum([c.cdf(x) * p for (c, p) in zip(self.components, self.probs)])
+        x = np.asarray(x)
+        unscaled_cdfs = np.stack([c.cdf(x) for c in self.components], axis=-1)
+        return np.dot(unscaled_cdfs, np.asarray(self.probs))
 
-    def ppf(self, q):
+    def ppf(self, qs):
         """
         Percent point function (inverse of cdf) at q.
 
@@ -60,17 +62,21 @@ class LogisticMixture(Distribution, Optimizable):
         https://cran.r-project.org/web/packages/mistr/vignettes/mistr-introduction.pdf
         """
         if len(self.components) == 1:
-            return self.components[0].ppf(q)
-        ppfs = [c.ppf(q) for c in self.components]
-        cmin = np.min(ppfs)
-        cmax = np.max(ppfs)
+            return self.components[0].ppf(qs)
+        ppfs = np.stack([c.ppf(qs) for c in self.components], axis=-1)
+        cmins = np.amin(ppfs, axis=-1)
+        cmaxs = np.amax(ppfs, axis=-1)
 
-        return oscipy.optimize.bisect(
-            lambda x: self.cdf(x) - q,
-            cmin - abs(cmin / 100),
-            cmax + abs(cmax / 100),
-            maxiter=1000,
-        )
+        def find_cdf(q, cmin, cmax):
+            return oscipy.optimize.bisect(
+                lambda x: self.cdf(x) - q,
+                cmin - abs(cmin / 100),
+                cmax + abs(cmax / 100),
+                maxiter=1000,
+            )
+
+        # note that this is not substancially faster than calling it one element at a time
+        return np.vectorize(find_cdf)(np.asarray(qs), cmins, cmaxs)
 
     def sample(self):
         i = categorical(np.array(self.probs))
