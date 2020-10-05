@@ -70,6 +70,18 @@ class PointDensity(Distribution, Optimizable):
 
     # Distribution
 
+    @staticmethod
+    def _find_bin(x, bins):
+        """
+        Finds the element of bins that is closest to every element of x.
+        Returns a DeviceArray of the same shape of x, of the indexes of the
+        corresponding bins.
+        """
+        # The extra final dimension allows for proper broadcasting
+        # equivilant to onp.subtract.outer, which is not implimented in jax.np
+        difs = np.expand_dims(x, -1) - bins
+        return np.abs(difs).argmin(axis=-1)
+
     def pdf(self, x):
         """
         If x is out of distribution range, returns 0. Otherwise,
@@ -79,8 +91,8 @@ class PointDensity(Distribution, Optimizable):
 
         :param x: The point at which to get the probability density
         """
-        x = self.scale.normalize_point(x)
-        bin = np.argmin(np.abs(self.normed_xs - x))
+        x = self.scale.normalize_point(np.asarray(x))
+        bin = PointDensity._find_bin(x, self.normed_xs)
         return np.where(
             (x < 0) | (x > 1),
             0,
@@ -103,11 +115,11 @@ class PointDensity(Distribution, Optimizable):
         """
 
         x = self.scale.normalize_point(x)
-        bin = np.argmin(np.abs(constants.grid - x))
+        bin = PointDensity._find_bin(x, constants.grid)
         return np.where(x < 0, 0, np.where(x > 1, 1, self.cumulative_normed_ps[bin]))
 
     def ppf(self, q):
-        bin = np.argmin(np.abs(self.cumulative_normed_ps - q))
+        bin = PointDensity._find_bin(q, self.cumulative_normed_ps)
         return self.true_grid[bin]
 
     def modes(self, *args, **kwargs):
