@@ -350,10 +350,13 @@ class ContinuousQuestion(MetaculusQuestion):
         prediction_data = {
             "prediction": {
                 "kind": "multi",
-                "d": [
-                    self.format_logistic_for_api(c, submission.probs[i])
-                    for i, c in enumerate(submission.components)
-                ],
+                "d": sorted(
+                    [
+                        self.format_logistic_for_api(c, submission.probs[i])
+                        for i, c in enumerate(submission.components)
+                    ],
+                    key=lambda l: -l["w"],
+                ),
             },
             "void": False,
         }
