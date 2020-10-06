@@ -346,7 +346,6 @@ class ContinuousQuestion(MetaculusQuestion):
         }
 
     def submit(self, submission: dist.LogisticMixture) -> requests.Response:
-
         prediction_data = {
             "prediction": {
                 "kind": "multi",
