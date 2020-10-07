@@ -189,8 +189,7 @@ def test_mixture_from_point_densities(point_densities):
         {"num_components": 3},
         Scale(min(point_densities["xs"]), max(point_densities["xs"])),
     )
-    for (x, density) in zip(point_densities["xs"], point_densities["densities"]):
-        assert mixture.pdf(x) == pytest.approx(density, abs=0.2)
+    assert mixture.pdf(point_densities["xs"]) == pytest.approx(point_densities["densities"], abs=0.2)
 
 
 def test_weights_mixture():
@@ -355,10 +354,7 @@ def test_point_densities_fit(point_densities):
         verbose=True,
     )
 
-    for (original_x, original_density) in zip(
-        point_densities["xs"], point_densities["densities"]
-    ):
-        assert dist.pdf(original_x) == pytest.approx(original_density, abs=0.05)
+    assert dist.pdf(point_densities["xs"]) == pytest.approx(point_densities["densities"], abs=0.05)
 
 
 def test_fit_point_density_regression_p_in_range():

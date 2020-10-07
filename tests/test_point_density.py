@@ -80,14 +80,14 @@ def test_point_density(scale, dist_source):
         dist = PointDensity.from_conditions([cond], scale=scale)
 
     # PDF
-    dist_densities = np.array([float(dist.pdf(x)) for x in xs])
+    dist_densities = dist.pdf(xs)
     if dist_source == "to_arrays/2":
         assert dist_densities == pytest.approx(orig_densities, abs=0.08)
     else:
         assert dist_densities == pytest.approx(orig_densities, abs=0.01)
 
     # CDF
-    dist_cdfs = np.array([float(dist.cdf(x)) for x in xs])
+    dist_cdfs = dist.cdf(xs)
     assert dist_cdfs == pytest.approx(orig_cdfs, abs=0.06)
     # PPF
     MIN_CHECK_DENSITY = 1e-3
@@ -96,7 +96,7 @@ def test_point_density(scale, dist_source):
         for i in range(constants.point_density_default_num_points)
         if orig_densities[i] > MIN_CHECK_DENSITY
     ]
-    dist_ppfs = np.array([float(dist.ppf(c)) for c in orig_cdfs[check_idxs]])
+    dist_ppfs = dist.ppf(orig_cdfs[check_idxs])
     assert dist_ppfs == pytest.approx(xs[check_idxs], rel=0.25)
 
 
@@ -171,7 +171,7 @@ def test_modes_anti_modes(scale: Scale):
     for extremal_xs, np_fn in extrema:
         # Check that the probability densities for all reported modes/anti-modes
         # are the same
-        extremal_densities = set(float(dist.pdf(x)) for x in extremal_xs)
+        extremal_densities = set(dist.pdf(extremal_xs))
         assert len(extremal_densities) == 1
         extremal_density = extremal_densities.pop()
 

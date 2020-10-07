@@ -18,23 +18,21 @@ def test_cdf(xscale: Scale):
 
     ergodist = Logistic(loc=true_loc, s=true_s, scale=xscale)
 
-    for x in np.linspace(0, 1, 10):
-        assert scipydist_normed.cdf(x) == pytest.approx(
-            float(ergodist.cdf(xscale.denormalize_point(x))), rel=1e-3
-        )
+    xs = np.linspace(0, 1, 10)
+    assert scipydist_normed.cdf(xs) == pytest.approx(
+        ergodist.cdf(xscale.denormalize_points(xs)), rel=1e-3
+    )
 
     # TODO: consider a better approach for log scale
+
+    xs = np.linspace(xscale.low, xscale.high, 10)
     if isinstance(xscale, LogScale):
-        for x in np.linspace(xscale.low, xscale.high, 10):
-            assert scipydist_normed.cdf(xscale.normalize_point(x)) == pytest.approx(
-                float(ergodist.cdf(x)), rel=1e-3
-            )
+        assert scipydist_normed.cdf(xscale.normalize_point(xs)) == pytest.approx(
+            ergodist.cdf(xs), rel=1e-3
+        )
     else:
         scipydist_true = scipy.stats.logistic(true_loc, true_s)
-        for x in np.linspace(xscale.low, xscale.high, 10):
-            assert scipydist_true.cdf(x) == pytest.approx(
-                float(ergodist.cdf(x)), rel=1e-3
-            )
+        assert scipydist_true.cdf(xs) == pytest.approx(ergodist.cdf(xs), rel=1e-3)
 
 
 # TODO test truncated Logistic better in this file
@@ -78,10 +76,9 @@ def test_truncated_ppf(xscale: Scale):
         probs=[1.0],
     )
 
-    for x in np.linspace(0.01, 0.99, 8):
-        assert dist_w_floor.ppf(x) == pytest.approx(
-            float(mix_w_floor.ppf(x)), rel=0.001
-        )
+    xs = np.linspace(0.01, 0.99, 8)
+    assert dist_w_floor.ppf(xs) == pytest.approx(mix_w_floor.ppf(xs), rel=0.001)
+    for x in xs:
         assert dist_w_floor.ppf(x) == pytest.approx(
             float(ppf_through_cdf(dist_w_floor, x)), rel=0.001
         )
@@ -102,10 +99,9 @@ def test_truncated_ppf(xscale: Scale):
         probs=[1.0],
     )
 
-    for x in np.linspace(0.01, 0.99, 8):
-        assert dist_w_ceiling.ppf(x) == pytest.approx(
-            float(mix_w_ceiling.ppf(x)), rel=0.001
-        )
+    xs = np.linspace(0.01, 0.99, 8)
+    assert dist_w_ceiling.ppf(xs) == pytest.approx(mix_w_ceiling.ppf(xs), rel=0.001)
+    for x in xs:
         assert dist_w_ceiling.ppf(x) == pytest.approx(
             float(ppf_through_cdf(dist_w_ceiling, x)), rel=0.001
         )
@@ -129,10 +125,11 @@ def test_truncated_ppf(xscale: Scale):
         probs=[1.0],
     )
 
-    for x in np.linspace(0.01, 0.99, 8):
-        assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
-            float(mix_w_floor_and_ceiling.ppf(x)), rel=0.001
-        )
+    xs = np.linspace(0.01, 0.99, 8)
+    assert dist_w_floor_and_ceiling.ppf(xs) == pytest.approx(
+        mix_w_floor_and_ceiling.ppf(xs), rel=0.001
+    )
+    for x in xs:
         assert dist_w_floor_and_ceiling.ppf(x) == pytest.approx(
             float(ppf_through_cdf(dist_w_floor_and_ceiling, x)), rel=0.001
         )
@@ -159,27 +156,19 @@ def test_pdf(xscale: Scale):
 
     ## Make sure it integrates to 1
     _xs = xscale.denormalize_points(np.linspace(0, 1, 100))
-    densities_logistic = np.array([float(ergoLogistic.pdf(x)) for x in _xs])
-    densities_mixture = np.array([float(ergoLogisticMixture.pdf(x)) for x in _xs])
-    auc_logistic = float(trapz(densities_logistic, x=_xs))
-    auc_mixture = float(trapz(densities_mixture, x=_xs))
-    assert (
-        1
-        == pytest.approx(auc_logistic, abs=0.03)
-        == pytest.approx(auc_mixture, abs=0.03)
-    )
+    auc_logistic = float(trapz(ergoLogistic.pdf(_xs), x=_xs))
+    auc_mixture = float(trapz(ergoLogisticMixture.pdf(_xs), x=_xs))
+    assert 1 == pytest.approx(auc_logistic, abs=0.03)
+    assert 1 == pytest.approx(auc_mixture, abs=0.03)
 
     if not isinstance(xscale, LogScale):
         scipydist = scipy.stats.logistic(test_loc, test_s)
 
-        for x in np.linspace(
-            xscale.denormalize_point(0), xscale.denormalize_point(1), 10
-        ):
-            assert (
-                scipydist.pdf(x)
-                == pytest.approx(float(ergoLogistic.pdf(x)), rel=1e-3)
-                == pytest.approx(float(ergoLogisticMixture.pdf(x)), rel=1e-3)
-            )
+        _xs = np.linspace(xscale.denormalize_point(0), xscale.denormalize_point(1), 10)
+        assert scipydist.pdf(_xs) == pytest.approx(ergoLogistic.pdf(_xs), rel=1e-3)
+        assert scipydist.pdf(_xs) == pytest.approx(
+            ergoLogisticMixture.pdf(_xs), rel=1e-3
+        )
 
 
 @pytest.mark.xfail(
@@ -205,13 +194,13 @@ def test_log_pdf(xscale: Scale):
 
     ## Test PDF
     normed_scipydist = scipy.stats.logistic(normed_test_loc, normed_test_s)
-    for x in np.linspace(0, 1, 10):
-        denormalized_x = xscale.denormalize_point(x)
-        assert (
-            normed_scipydist.pdf(x) / xscale.width
-            == pytest.approx(float(ergoLogistic.pdf(denormalized_x)), rel=1e-3)
-            == pytest.approx(float(ergoLogisticMixture.pdf(denormalized_x)), rel=1e-3)
-        )
+    xs = np.linspace(0, 1, 10)
+    denormalized_xs = xscale.denormalize_points(xs)
+    scipy_pdfs = normed_scipydist.pdf(xs) / xscale.width
+    assert scipy_pdfs == pytest.approx(ergoLogistic.pdf(denormalized_xs), rel=1e-3)
+    assert scipy_pdfs == pytest.approx(
+        ergoLogisticMixture.pdf(denormalized_xs), rel=1e-3
+    )
 
 
 @pytest.mark.parametrize(
