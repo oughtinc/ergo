@@ -89,7 +89,9 @@ class PointDensity(Distribution, Optimizable):
         self.normed_xs which is closest to normalized x by absolute
         difference.
 
-        :param x: The point at which to get the probability density
+        :param x: The point at which to get the probability density.
+        Can also be an array-like, in which case returns a device-array of
+        the same shape as the inputs.
         """
         x = self.scale.normalize_point(np.asarray(x))
         bin = PointDensity._find_bin(x, self.normed_xs)
@@ -111,7 +113,9 @@ class PointDensity(Distribution, Optimizable):
         above the distribution range, returns 1.
         Otherwise, it returns the closest bin edge and returns the cdf to that point
 
-        :param x: The point at which to get the cumulative density
+        :param x: The point at which to get the cumulative density.
+        Can also be an array-like, in which case returns a device-array of
+        the same shape as the inputs.
         """
 
         x = self.scale.normalize_point(x)
