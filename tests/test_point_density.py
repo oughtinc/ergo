@@ -100,6 +100,23 @@ def test_point_density(scale, dist_source):
     assert dist_ppfs == pytest.approx(xs[check_idxs], rel=0.25)
 
 
+def test_multidimensional_inputs():
+    flat_xs = np.linspace(0.1, 0.9, num=12)
+    xs = flat_xs.reshape(2, 3, 2)
+
+    dist = point_density_from_scale(Scale(0, 1))
+
+    np.testing.assert_array_equal(dist.pdf(xs), dist.pdf(flat_xs).reshape(2, 3, 2))
+    np.testing.assert_array_equal(
+        dist.logpdf(xs), dist.logpdf(flat_xs).reshape(2, 3, 2),
+    )
+    np.testing.assert_array_equal(dist.cdf(xs), dist.cdf(flat_xs).reshape(2, 3, 2))
+
+    flat_ps = np.linspace(0.1, 0.9, 12)
+    ps = flat_ps.reshape(2, 3, 2)
+    np.testing.assert_array_equal(dist.ppf(ps), dist.ppf(flat_ps).reshape(2, 3, 2))
+
+
 def test_density_frompairs():
     pairs = [
         {"x": 0, "density": 1},

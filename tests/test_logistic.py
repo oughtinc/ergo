@@ -294,6 +294,28 @@ def test_ppf_cdf_round_trip():
     assert mixture.ppf(prob) == pytest.approx(x, rel=1e-3)
 
 
+def test_multidimensional_inputs(logistic_mixture15):
+    flat_xs = np.linspace(4, 16, num=12)
+    xs = flat_xs.reshape(2, 3, 2)
+
+    onp.testing.assert_array_equal(
+        logistic_mixture15.pdf(xs), logistic_mixture15.pdf(flat_xs).reshape(2, 3, 2)
+    )
+    onp.testing.assert_array_equal(
+        logistic_mixture15.logpdf(xs),
+        logistic_mixture15.logpdf(flat_xs).reshape(2, 3, 2),
+    )
+    onp.testing.assert_array_equal(
+        logistic_mixture15.cdf(xs), logistic_mixture15.cdf(flat_xs).reshape(2, 3, 2)
+    )
+
+    flat_ps = np.linspace(0.1, 0.9, 12)
+    ps = flat_ps.reshape(2, 3, 2)
+    onp.testing.assert_array_equal(
+        logistic_mixture15.ppf(ps), logistic_mixture15.ppf(flat_ps).reshape(2, 3, 2)
+    )
+
+
 @pytest.mark.xfail(reason="Fitting to samples doesn't reliably work yet #219")
 def test_fit_samples(logistic_mixture):
     data = np.array([logistic_mixture.sample() for _ in range(0, 1000)])
