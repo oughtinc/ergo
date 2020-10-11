@@ -48,6 +48,14 @@ class LogisticMixture(Distribution, Optimizable):
         unscaled_cdfs = np.stack([c.cdf(x) for c in self.components], axis=-1)
         return np.dot(unscaled_cdfs, np.asarray(self.probs))
 
+    def _single_ppf(self, q, cmin, cmax):
+        return oscipy.optimize.bisect(
+            lambda x: self.cdf(x) - q,
+            cmin - abs(cmin / 100),
+            cmax + abs(cmax / 100),
+            maxiter=1000,
+        )
+
     def ppf(self, qs):
         """
         Percent point function (inverse of cdf) at q.
@@ -67,16 +75,11 @@ class LogisticMixture(Distribution, Optimizable):
         cmins = np.amin(ppfs, axis=-1)
         cmaxs = np.amax(ppfs, axis=-1)
 
-        def find_cdf(q, cmin, cmax):
-            return oscipy.optimize.bisect(
-                lambda x: self.cdf(x) - q,
-                cmin - abs(cmin / 100),
-                cmax + abs(cmax / 100),
-                maxiter=1000,
-            )
-
-        # note that this is not substancially faster than calling it one element at a time
-        return np.vectorize(find_cdf)(np.asarray(qs), cmins, cmaxs)
+        # Numpy's vectorize gives an easy, if not efficient, way to map the function
+        # onto the arrays.  Jax.numpy doesn't work, as it relies on vmap.
+        ppf = onp.vectorize(self._single_ppf)(np.asarray(qs), cmins, cmaxs)
+        # We want to return a jax array for consistency, however.
+        return np.array(ppf)
 
     def sample(self):
         i = categorical(np.array(self.probs))
