@@ -186,7 +186,7 @@ class Metaculus:
         :param id: Question id (can be read off from URL)
         :param name: Name to assign to this question (used in models)
         """
-        r = self.s.get(f"{self.api_url}/questions/{id}")
+        r = self.s.get(f"{self.api_url}/questions/{id}/", allow_redirects=False)
         data = r.json()
         if not data.get("possibilities"):
             print(id)
