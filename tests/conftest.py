@@ -219,6 +219,11 @@ def predictit_markets():
     return list(ergo.PredictIt().markets)[0:3]
 
 
+@pytest.fixture(scope="module")
+def almanis():
+    return ergo.Almanis()
+
+
 def make_point_densities():
     xs = np.array(
         [

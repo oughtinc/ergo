@@ -4,6 +4,7 @@ import ergo.conditions
 import ergo.distributions
 import ergo.platforms
 import ergo.ppl
+import ergo.questions
 import ergo.scale
 import ergo.static
 import ergo.theme
@@ -32,6 +33,9 @@ from .distributions import (
     uniform,
 )
 from .platforms import (
+    Almanis,
+    AlmanisBinaryQuestion,
+    AlmanisQuestion,
     Foretold,
     ForetoldQuestion,
     Metaculus,
