@@ -12,12 +12,10 @@ class Almanis:
     The main class for interacting with Almanis
     """
 
-    question_id_request_json = json.dumps(
-        {
+    question_id_request_json = {
             "customerID": "44d7f0b3-7e6f-4867-b00a-6816492bb510",
             "statuses": [{"Trading": {}}, {"ClosedForTrading": {}}],
         }
-    )
 
     BINARY_QUESTION_KEY = "BooleanQuestionOD"
     CONTINUOUS_QUESTION_KEY = "MultipleChoiceQuestionOD"
@@ -29,20 +27,20 @@ class Almanis:
 
     def refresh_question_ids(self):
         response = self.s.post(
-            f"{self.api_url}/getQuestionIDs", data=self.question_id_request_json
+            f"{self.api_url}/getQuestionIDs", json=self.question_id_request_json
         )
         response_json = response.json()
         self.question_ids = [x["id"] for x in response_json]
 
     def get_questions(self, ids: List[str]) -> Sequence["AlmanisQuestion"]:
-        request_json = json.dumps({"questionIDs": ids})
+        request_json = {"questionIDs": ids}
         questions_response = self.s.post(
-            f"{self.api_url}/getQuestionsWithIDs", data=request_json
+            f"{self.api_url}/getQuestionsWithIDs", json=request_json
         )
         questions_json = questions_response.json()
 
         prices_response = self.s.post(
-            f"{self.api_url}/getCurrentPricesForQuestionIDs", data=request_json
+            f"{self.api_url}/getCurrentPricesForQuestionIDs", json=request_json
         )
         prices_json = prices_response.json()
         prices_by_id = {p["questionID"]: p for p in prices_json}

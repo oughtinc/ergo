@@ -26,7 +26,7 @@ class BinaryQuestion(Question):
 
     def sample_community(self) -> bool:
         """
-        Sample from the PredictIt community distribution (Bernoulli).
+        Sample from the community distribution (Bernoulli).
 
         :return: true/false
         """
