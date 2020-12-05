@@ -5,7 +5,7 @@ description = ""
 authors = ["Ought <team@ought.org>"]
 
 [tool.poetry.dependencies]
-python = "^3.6.8"
+python = "^3.8.5"
 requests = "2.21.0"
 country_converter = "0.6.7"
 tqdm = "4.45.0"
