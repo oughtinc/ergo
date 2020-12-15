@@ -1,5 +1,4 @@
 from abc import abstractmethod
-import json
 from typing import Dict, List, Sequence
 
 import requests
@@ -13,9 +12,9 @@ class Almanis:
     """
 
     question_id_request_json = {
-            "customerID": "44d7f0b3-7e6f-4867-b00a-6816492bb510",
-            "statuses": [{"Trading": {}}, {"ClosedForTrading": {}}],
-        }
+        "customerID": "44d7f0b3-7e6f-4867-b00a-6816492bb510",
+        "statuses": [{"Trading": {}}, {"ClosedForTrading": {}}],
+    }
 
     BINARY_QUESTION_KEY = "BooleanQuestionOD"
     CONTINUOUS_QUESTION_KEY = "MultipleChoiceQuestionOD"

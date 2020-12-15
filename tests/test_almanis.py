@@ -15,7 +15,7 @@ def test_get_question_binary(almanis):
         binary_question.get_text()
         == "Will the Argentine government default on its debt obligations by 12 Sep 2019?"
     )
-    assert binary_question.status == {"Settled":{}}
+    assert binary_question.status == {"Settled": {}}
 
 
 def test_refresh_question(almanis):
