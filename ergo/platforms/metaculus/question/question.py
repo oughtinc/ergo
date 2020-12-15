@@ -96,7 +96,7 @@ class MetaculusQuestion:
                 # will fix this in python 3.7
                 try:
                     # attempt to parse with microseconds
-                    return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%S%fZ")
+                    return datetime.strptime(self.data[name], "%Y-%m-%dT%H:%M:%S.%fZ")
                 except ValueError:
                     try:
                         # attempt to parse without microseconds
