@@ -248,7 +248,10 @@ def test_sample_community_binary(metaculus_questions):
     assert bool(value) in (True, False)
 
 
-@pytest.mark.skipif("METACULUS_ORG_API_KEY" not in os.environ)
+@pytest.mark.skipif(
+    "METACULUS_ORG_API_KEY" not in os.environ,
+    reason="Can only test with secret APi keys",
+)
 def test_submit_binary_via_api_keys(metaculus_via_api_keys):
     question = metaculus_via_api_keys.get_question(3616)
     r = question.submit(0.55)
