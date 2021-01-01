@@ -15,6 +15,5 @@ install:
 script:
   - make lint
   - make docs
-  - make test
 after_success:
   - poetry run codecov
