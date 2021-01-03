@@ -20,8 +20,8 @@ We predict that the admit rate will be 20% higher than the current community pre
     ...     api_domain="www"
     ... )
     >>> metaculus.login_via_username_and_password(
-    ...     username=os.getenv("METACULUS_USERNAME"),
-    ...     password=os.getenv("METACULUS_PASSWORD"),
+    ...     username="oughttest",
+    ...     password="6vCo39Mz^rrb",
     ... )
 
     >>> harvard_question = metaculus.get_question(3622)
