@@ -250,7 +250,7 @@ def test_sample_community_binary(metaculus_questions):
 
 @pytest.mark.skipif(
     "METACULUS_ORG_API_KEY" not in os.environ,
-    reason="Can only test with secret APi keys",
+    reason="Can only test with secret API keys",
 )
 def test_submit_binary_via_api_keys(metaculus_via_api_keys):
     question = metaculus_via_api_keys.get_question(3616)
