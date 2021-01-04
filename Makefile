@@ -9,6 +9,9 @@ lint: FORCE  ## Run isort, flake8, mypy and black (in check mode)
 test: FORCE  ## Run pytest
 	poetry run python -m pytest --cov=ergo --ff --verbose -s --doctest-modules .
 
+test_skip_metaculus: FORCE  ## Run pytest, but skip the Metaculus tests to avoid overburdening the Metaculus API
+	poetry run python -m pytest --cov=ergo --ff --verbose -s --doctest-modules --ignore-glob='*test_metaculus.py' .
+
 xtest: FORCE  ## Run pytest in parallel mode using xdist
 	poetry run python -m pytest --cov=ergo --ff --verbose -s --doctest-modules -n auto .
 

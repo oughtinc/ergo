@@ -1,40 +1,6 @@
 """
 This module lets you get question and prediction information from Metaculus
 and submit predictions, via the API (https://www.metaculus.com/api2/)
-
-**Example**
-
-In this example, we predict the admit rate for Harvard's class of 2029:
-
-https://www.metaculus.com/questions/3622
-
-We predict that the admit rate will be 20% higher than the current community prediction.
-
-.. doctest::
-    >>> import os
-    >>> import ergo
-    >>> import jax.numpy as np
-    >>> from numpyro.handlers import seed
-
-    >>> metaculus = ergo.Metaculus(
-    ...     api_domain="www"
-    ... )
-    >>> metaculus.login_via_username_and_password(
-    ...     username=os.getenv("METACULUS_USERNAME"),
-    ...     password=os.getenv("METACULUS_PASSWORD"),
-    ... )
-
-    >>> harvard_question = metaculus.get_question(3622)
-    >>> # harvard_question.show_community_prediction()
-
-    >>> community_prediction_samples = np.array(
-    ...     [harvard_question.sample_community() for _ in range(0, 5000)]
-    ... )
-    >>> my_prediction_samples = community_prediction_samples * 1.2
-
-    >>> # harvard_question.show_prediction(my_prediction_samples)
-    >>> harvard_question.submit_from_samples(my_prediction_samples)
-    <Response [202]>
 """
 from datetime import datetime
 import json

@@ -11,6 +11,10 @@ import ergo
 from ergo.distributions import Logistic, LogisticMixture, Truncate
 from ergo.scale import LogScale, Scale, TimeScale
 
+METACULUS_USERNAME = "oughttest"
+METACULUS_PASSWORD = "6vCo39Mz^rrb"
+METACULUS_USER_ID = "112420"
+
 
 def three_sd_scale(loc, s):
     sd = s * math.pi / math.sqrt(3)
@@ -149,9 +153,9 @@ def log_question_data():
 @pytest.fixture(scope="module")
 def metaculus():
     load_dotenv()
-    uname = cast(str, os.getenv("METACULUS_USERNAME"))
-    pwd = cast(str, os.getenv("METACULUS_PASSWORD"))
-    user_id_str = cast(str, os.getenv("METACULUS_USER_ID"))
+    uname = METACULUS_USERNAME
+    pwd = METACULUS_PASSWORD
+    user_id_str = METACULUS_USER_ID
     if None in [uname, pwd, user_id_str]:
         raise ValueError(
             ".env is missing METACULUS_USERNAME, METACULUS_PASSWORD, or METACULUS_USER_ID"
