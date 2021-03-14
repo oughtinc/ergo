@@ -255,7 +255,7 @@ class Metaculus:
                 return results
 
             r = self.s.get(
-                f"{self.api_url}/questions/?{query_string}&page={current_page}"
+                f"{self.api_url}/questions/?{query_string}&limit=20&offset={20*current_page}"
             )
 
             if r.json() == {"detail": "Invalid page."}:
