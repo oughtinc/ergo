@@ -258,7 +258,7 @@ class Metaculus:
                 f"{self.api_url}/questions/?{query_string}&limit=20&offset={20*current_page}"
             )
 
-            if r.json() == {"detail": "Invalid page."}:
+            if len(r.json()["results"]) == 0:
                 return results
 
             r.raise_for_status()
