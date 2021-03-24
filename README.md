@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/oughtinc/ergo.svg?branch=master)](https://travis-ci.org/oughtinc/ergo) [![Documentation Status](https://readthedocs.org/projects/ergo/badge/?version=latest)](https://ergo.ought.org/) [![Codecov Status](https://codecov.io/gh/oughtinc/ergo/branch/master/graph/badge.svg)](https://codecov.io/gh/oughtinc/ergo)
 
+_Note: we're no longer actively developing Ergo. We'll no longer accept pull requests or issues._
+
 # Ergo
 
 A Python library for integrating model-based and judgmental forecasting
