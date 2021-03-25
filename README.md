@@ -6,7 +6,7 @@ A Python library for integrating model-based and judgmental forecasting
 
 [Quickstart](#get-started-using-ergo) | [Docs](https://ergo.ought.org) | [Examples](#notebooks-using-ergo)
 
-**_Note: We're no longer actively developing Ergo. We won't review PRs or issues._**
+**_Note: We're no longer actively developing Ergo._**
 
 ## Example
 
